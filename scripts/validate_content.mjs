@@ -33,6 +33,7 @@ async function readJson(filePath) {
 async function main() {
   const catalogPath = path.join(dataDir, 'catalog.json');
   const kgPath = path.join(dataDir, 'knowledge-graph.json');
+  const tipsPath = path.join(dataDir, 'daily-tips.json');
   const unitsDir = path.join(dataDir, 'units');
 
   const catalog = await readJson(catalogPath);
@@ -144,8 +145,18 @@ async function main() {
     }
   }
 
+  // 校验每日生活一招
+  const tipsBundle = await readJson(tipsPath);
+  assert(Array.isArray(tipsBundle.tips) && tipsBundle.tips.length > 0, 'daily-tips.tips 不能为空');
+  for (const tip of tipsBundle.tips) {
+    assert(tip.id && REQUIRED_BRANCHES.includes(tip.branchId), `daily-tip ${tip.id} 缺少有效 branchId`);
+    assert(tip.title && tip.tipBody, `daily-tip ${tip.id} 缺少标题或正文`);
+    assert(typeof tip.isPlaceholder === 'boolean', `daily-tip ${tip.id} 必须声明 isPlaceholder`);
+    assert(tip.sourceOrg && tip.sourceUrl && tip.fetchedAt, `daily-tip ${tip.id} 缺少来源元数据`);
+  }
+
   console.log(
-    `[check:content] 校验通过：${catalog.branches.length} 个分支、${trackMap.size} 条路径/软件分包、${conceptIds.size} 个知识图谱节点、${totalUnits} 个学习单元全部符合 Schema 与红线规则。`
+    `[check:content] 校验通过：${catalog.branches.length} 个分支、${trackMap.size} 条路径/软件分包、${conceptIds.size} 个知识图谱节点、${totalUnits} 个学习单元、${tipsBundle.tips.length} 条每日一招全部符合 Schema 与红线规则。`
   );
 }
 

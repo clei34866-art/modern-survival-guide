@@ -155,6 +155,60 @@ export interface UnitsBundle {
   units: LearningUnit[];
 }
 
+export interface DailyLifeTip {
+  id: string;
+  branchId: BranchId;
+  title: string;
+  tipBody: string;
+  actionHint?: string;
+  readSeconds: number;
+  isPlaceholder: boolean;
+  sourceOrg: string;
+  sourceUrl: string;
+  fetchedAt: string;
+}
+
+export interface DailyTipsBundle {
+  version: string;
+  tips: DailyLifeTip[];
+}
+
+// ============================================================================
+// 「今天」三时段精力调度与当日静态快照（做完即停、不追加、隔日不补账）
+// ============================================================================
+
+export type DailyTaskKind =
+  | 'card_flash'
+  | 'scenario_preview'
+  | 'core_unit'
+  | 'retest_review'
+  | 'light_recap';
+
+export interface ScheduledTaskItem {
+  id: string;
+  slot: EnergyBand; // fragment: 早间/碎片 | peak: 晚饭后·实验前 | low: 实验后
+  kind: DailyTaskKind;
+  branchId: BranchId;
+  trackId: string;
+  unitId?: string;
+  conceptIds?: string[];
+  title: string;
+  humanHint: string; // 说人话的执行提示
+  estimatedMinutes: number;
+  keepInLowBattery: boolean; // true 表示切换「状态差保底版」后仍保留的轻量保底项
+  isPlaceholder: boolean;
+}
+
+export interface DailyPlanSnapshot {
+  dateKey: string; // YYYY-MM-DD，跨日自动翻篇，绝不把昨日未完项叠加补账
+  generatedAt: string;
+  lowBatteryMode: boolean; // 「今天有点累 · 切保底版」开关态
+  dailyTipId: string;
+  tipAcknowledged: boolean;
+  tasks: ScheduledTaskItem[];
+  completedTaskIds: string[];
+}
+
 // ============================================================================
 // 全量学习行为留痕与持久化数据结构（从 M1 第一版起全量记录）
 // ============================================================================
@@ -228,6 +282,7 @@ export interface TelemetrySnapshot {
   cardStats: Record<string, ConceptCardStat>;
   unitSubmissions: Record<string, UnitActionSubmission>;
   milestoneSubmissions: Record<string, MilestoneDeliverableRecord>;
+  currentDailyPlan?: DailyPlanSnapshot; // 当日静态任务快照，持久化支持刷新不丢与状态墙联动
 }
 
 export interface WallExternalSyncPayload {

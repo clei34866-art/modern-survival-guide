@@ -2,9 +2,11 @@ import type {
   BranchId,
   CardRating,
   ConceptCardStat,
+  DailyPlanSnapshot,
   MilestoneDeliverableRecord,
   QuizAttemptLog,
   RetestStage,
+  ScheduledTaskItem,
   StudyDurationLog,
   StudyLineKind,
   TelemetrySnapshot,
@@ -57,7 +59,8 @@ export function hasLiveTelemetry(snapshot: TelemetrySnapshot): boolean {
     snapshot.attemptLogs.length > 0 ||
     Object.keys(snapshot.cardStats).length > 0 ||
     Object.keys(snapshot.unitSubmissions).length > 0 ||
-    Object.keys(snapshot.milestoneSubmissions).length > 0
+    Object.keys(snapshot.milestoneSubmissions).length > 0 ||
+    (snapshot.currentDailyPlan?.completedTaskIds.length ?? 0) > 0
   );
 }
 
@@ -382,8 +385,98 @@ export async function importTelemetryJson(rawJson: string): Promise<TelemetrySna
     cardStats: parsed.cardStats,
     unitSubmissions: parsed.unitSubmissions ?? {},
     milestoneSubmissions: parsed.milestoneSubmissions ?? {},
+    currentDailyPlan: parsed.currentDailyPlan,
   };
   return saveTelemetry(normalized);
+}
+
+/** 保存或初始化「今天」静态计划快照（仅初始化时不记活跃天，避免空打开污染留痕） */
+export async function saveDailyPlanSnapshot(plan: DailyPlanSnapshot): Promise<TelemetrySnapshot> {
+  const snap = await loadTelemetry();
+  return saveTelemetry({
+    ...snap,
+    currentDailyPlan: plan,
+  });
+}
+
+/** 切换「今天状态差 · 保底版」开关，保留已完成项 */
+export async function setDailyLowBatteryMode(enabled: boolean): Promise<TelemetrySnapshot> {
+  const snap = await loadTelemetry();
+  if (!snap.currentDailyPlan) return snap;
+  return saveTelemetry({
+    ...snap,
+    currentDailyPlan: {
+      ...snap.currentDailyPlan,
+      lowBatteryMode: enabled,
+    },
+  });
+}
+
+/** 标记「每日生活一招」已读或展开 */
+export async function setDailyTipAcknowledged(acknowledged: boolean): Promise<TelemetrySnapshot> {
+  const snap = await loadTelemetry();
+  if (!snap.currentDailyPlan) return snap;
+  return saveTelemetry({
+    ...snap,
+    activeDates: acknowledged ? touchActiveDate(snap.activeDates) : snap.activeDates,
+    currentDailyPlan: {
+      ...snap.currentDailyPlan,
+      tipAcknowledged: acknowledged,
+    },
+  });
+}
+
+/** 勾选或取消勾选「今天」某项任务，首次勾选时同步记录活跃日期与轻量投入用时 */
+export async function toggleDailyTaskCompletion(
+  task: ScheduledTaskItem
+): Promise<TelemetrySnapshot> {
+  const snap = await loadTelemetry();
+  const plan = snap.currentDailyPlan;
+  if (!plan) return snap;
+
+  const exists = plan.completedTaskIds.includes(task.id);
+  const completedTaskIds = exists
+    ? plan.completedTaskIds.filter((id) => id !== task.id)
+    : [...plan.completedTaskIds, task.id];
+
+  const logId = `daily_${plan.dateKey}_${task.id}`;
+  const hasLoggedDuration = snap.sessionDurations.some((d) => d.id === logId);
+
+  let nextDurations = snap.sessionDurations;
+  if (!exists && !hasLoggedDuration) {
+    const activityMap: Record<ScheduledTaskItem['kind'], StudyDurationLog['activity']> = {
+      card_flash: 'card_review',
+      scenario_preview: 'guide',
+      core_unit: 'guide',
+      retest_review: 'quiz',
+      light_recap: 'card_review',
+    };
+    nextDurations = [
+      ...snap.sessionDurations,
+      {
+        id: logId,
+        branchId: task.branchId,
+        trackId: task.trackId,
+        unitId: task.unitId,
+        lineKind: inferStudyLineKind(task.branchId, task.trackId),
+        activity: activityMap[task.kind],
+        durationMs: task.estimatedMinutes * 60 * 1000,
+        recordedAt: new Date().toISOString(),
+      },
+    ];
+  } else if (exists && hasLoggedDuration) {
+    nextDurations = snap.sessionDurations.filter((d) => d.id !== logId);
+  }
+
+  return saveTelemetry({
+    ...snap,
+    activeDates: !exists ? touchActiveDate(snap.activeDates, plan.dateKey) : snap.activeDates,
+    sessionDurations: nextDurations,
+    currentDailyPlan: {
+      ...plan,
+      completedTaskIds,
+    },
+  });
 }
 
 export async function clearTelemetry(): Promise<TelemetrySnapshot> {

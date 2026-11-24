@@ -1,0 +1,53 @@
+{
+  "version": "1.0.0",
+  "tips": [
+    {
+      "id": "tip-b1-git-reflog",
+      "branchId": "B1",
+      "title": "手滑 reset 丢了刚写半天的代码？先别关终端",
+      "tipBody": "只要之前 commit 过，执行 git reflog 就能看到本地每一次 HEAD 移动记录，找到误操作前的哈希值再 git checkout 或 git reset 即可找回。",
+      "actionHint": "记住口诀：commit 过就有后悔药，未 commit 慎敲 --hard。",
+      "readSeconds": 25,
+      "isPlaceholder": true,
+      "sourceOrg": "Pro Git 第二版（开源中文版 · 示例占位）",
+      "sourceUrl": "https://git-scm.com/book/zh/v2",
+      "fetchedAt": "2026-11-24"
+    },
+    {
+      "id": "tip-b4-eye-20",
+      "branchId": "B4",
+      "title": "盯屏幕改论文眼干发胀：20-20-20 微节律",
+      "tipBody": "每连续看近处屏幕 20 分钟，抬头看 6 米（约 20 英尺）外的窗外远景至少 20 秒，让睫状肌彻底松开一次，比事后狂滴眼药水更管用。",
+      "actionHint": "趁代码编译或跑脚本等待的那 20 秒顺便抬头看窗外。",
+      "readSeconds": 20,
+      "isPlaceholder": true,
+      "sourceOrg": "权威眼健康公开科普指南（示例占位）",
+      "sourceUrl": "https://www.who.int/zh",
+      "fetchedAt": "2026-11-24"
+    },
+    {
+      "id": "tip-b2-cooling-off",
+      "branchId": "B2",
+      "title": "大促凑单冲动前：放进购物车晾够 48 小时",
+      "tipBody": "凡是非刚需且单价超过日均生活费两倍的物品，先加购不付款；48 小时后如果已经想不起它解决什么具体问题，直接删掉就是净省。",
+      "actionHint": "把「凑满减省了多少」换成问「不买是不是省 100%」。",
+      "readSeconds": 25,
+      "isPlaceholder": true,
+      "sourceOrg": "国民金融素养投教公开读物（示例占位）",
+      "sourceUrl": "https://www.investor.org.cn/",
+      "fetchedAt": "2026-11-24"
+    },
+    {
+      "id": "tip-b7-link-check",
+      "branchId": "B7",
+      "title": "收到「教务/补贴/快递异常」短信链接先看顶级域名",
+      "tipBody": "钓鱼链接常把真机构名放在子域名前缀（如 edu-verify.xxx.top）；从右往左看第一个斜杠前的最后两段主域名，凡陌生后缀一律不点、不输验证码。",
+      "actionHint": "涉及账号和钱的通知，永远自己手动打开官方 App 核实。",
+      "readSeconds": 30,
+      "isPlaceholder": true,
+      "sourceOrg": "公开反诈与数字安全科普（示例占位）",
+      "sourceUrl": "https://www.npc.gov.cn/",
+      "fetchedAt": "2026-11-24"
+    }
+  ]
+}

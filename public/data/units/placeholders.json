@@ -1,0 +1,276 @@
+{
+  "version": "1.0.0",
+  "note": "M1 骨架期样板单元（显式标记 isPlaceholder: true），供流水线、留痕存储与红线校验冒烟测试；M9–M10 将灌入 Scrapling 权威源重组内容。",
+  "units": [
+    {
+      "id": "unit-b1-l1-sample",
+      "branchId": "B1",
+      "trackId": "b1-ai-l1",
+      "title": "【示例占位】给 AI 划清事实边界：告别一本正经编参考文献",
+      "estimatedMinutes": 20,
+      "recommendedEnergy": "peak",
+      "isPlaceholder": true,
+      "scenarioHook": {
+        "sceneTitle": "组会前夜的「幽灵论文」惊魂",
+        "story": "你让大模型帮忙总结某方向的 3 篇经典文献放进汇报 PPT，标题、作者、年份看着都像模像样，结果导师顺手一搜发现有两篇根本不存在——名字是两篇真论文拼出来的。",
+        "guidingQuestion": "如果不换模型，只改提问与核查结构，怎样把这种翻车概率压到最低？"
+      },
+      "prediction": {
+        "question": "想让大模型严格基于你手头一段实验记录写摘要且不瞎编数字，下列哪种做法最管用？",
+        "options": [
+          "在句尾连加三个感叹号强调「请务必100%严谨诚实！！！」",
+          "要求模型扮演「诺贝尔奖得主级别的严谨科学家」",
+          "用分隔符单独包裹原始记录，要求每句结论附上原文引用片段，且规定原文未提处直接输出「材料未提及」",
+          "把同一个问题原封不动重问三次取字数最长的一版"
+        ],
+        "commonTrapIndex": 1,
+        "answerIndex": 2,
+        "whyCounterIntuitive": "角色扮演往往反而激发模型模仿学术腔调「补全」看似合理的细节；真正有效的是提供明确事实锚点与允许说「不知道」的退路。"
+      },
+      "guide": {
+        "blocks": [
+          {
+            "heading": "把「大脑记忆检索」改成「开卷阅读理解」",
+            "markdown": "语言模型本质是在做条件概率续写。当你裸问一个具体文献或冷门参数时，它是在用压缩模糊的参数记忆硬凑；而当你把公开文档原段贴进 `<context>` 标签，并要求逐句对齐出处时，任务就降维成了高准确率的文本抽取。",
+            "keyTakeaway": "凡涉及事实、数据、API 参数与引文，一律走「给原文 + 索要原句定位 + 允许答未知」三件套。"
+          }
+        ],
+        "visuals": [
+          {
+            "kind": "exact_svg",
+            "caption": "裸问续写模式 vs 锚定材料+退路核查模式流程对照（示例精确图）",
+            "svgSpec": {
+              "template": "flow_pipeline",
+              "data": {
+                "steps": ["贴入可信原文锚点", "限定仅基于材料作答", "强制输出原句定位", "人工30秒抽检核实"]
+              }
+            }
+          }
+        ]
+      },
+      "conceptNodeIds": ["b1.prompt_context_boundary"],
+      "quiz": {
+        "mode": "standard_mcq",
+        "passRatio": 0.8,
+        "questions": [
+          {
+            "id": "q-b1-sample-1",
+            "stem": "用 AI 辅助整理文献综述时，最稳妥的第一步核查动作是什么？",
+            "options": [
+              "看行文是否通顺优美",
+              "逐条点击或检索 DOI / 原始链接核对标题、作者与核心数据是否真实存在",
+              "让同一个对话窗口里的 AI 自己发誓没有编造",
+              "只要年份是近三年的就直接采用"
+            ],
+            "correctIndex": 1,
+            "explanation": "模型在同一上下文中自我担保仍受原幻觉偏置影响，唯一可靠核查是回到外部权威源（DOI / 官网文档）交叉验证。",
+            "relatedConceptId": "b1.prompt_context_boundary"
+          }
+        ]
+      },
+      "actionTask": {
+        "id": "act-b1-sample",
+        "title": "改造一条你最常用的科研/学习提问模板",
+        "lifeContext": "直接拿你本周要读的一篇论文段落或实验报错日志做实测",
+        "steps": [
+          "用分隔符将原始材料与指令隔开",
+          "加入「若提供材料中无依据，请直接列出缺失项，不要推测」约束",
+          "记录改造前后输出质量差异"
+        ],
+        "deliverablePrompt": "贴入你改造后的可复用提问模板，并写一句核查感受",
+        "feynmanCheckPrompt": "用一句话跟室友解释：为什么给 AI 留出「回答材料未提及」的退路能防瞎编？",
+        "matchPoolCategory": "research_data"
+      },
+      "sources": [
+        {
+          "sourceOrg": "Anthropic Prompt Engineering Docs（M1 骨架示例占位，M9 抓源替换）",
+          "sourceUrl": "https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/reduce-hallucinations",
+          "fetchedAt": "2026-11-24"
+        }
+      ]
+    },
+    {
+      "id": "unit-b2-budget-sample",
+      "branchId": "B2",
+      "trackId": "b2-main",
+      "title": "【示例占位】生活费总在 20 号见底？先做三桶现金流隔离",
+      "estimatedMinutes": 15,
+      "recommendedEnergy": "fragment",
+      "isPlaceholder": true,
+      "scenarioHook": {
+        "sceneTitle": "月初潇洒聚餐，月底食堂算菜价",
+        "story": "明明每月生活费加补贴总额够花，也没买什么奢侈大件，可一查账单全是几十块的奶茶、外卖凑单和自动续费，到了 22 号看着余额心里发慌。",
+        "guidingQuestion": "不靠苦行僧式记每一笔五毛钱流水，怎么用 10 分钟管住整月节奏？"
+      },
+      "prediction": {
+        "question": "对于刚开始管钱的学生或新人，哪种方式最容易坚持超过三个月？",
+        "options": [
+          "每天睡前精确回忆并手工录入每一笔几块钱开支，漏记一天就重头补",
+          "生活费到账当天先按「固定刚需 / 每周弹性零花 / 应急不动金」转入不同卡或子账户",
+          "完全不管预算，等欠了账单下个月再缩衣节食填坑",
+          "把所有钱锁进三年定期，日常全刷消费贷"
+        ],
+        "commonTrapIndex": 0,
+        "answerIndex": 1,
+        "whyCounterIntuitive": "精细记账只是「事后验尸」且极耗意志力；到账先分桶是「事前物理限流」，哪怕不记细账也不会花穿底线。"
+      },
+      "guide": {
+        "blocks": [
+          {
+            "heading": "先管「水闸」，再看「水表」",
+            "markdown": "把每月可支配资金拆成三只桶：① 固定刚需桶（餐食底盘、话费网费、通勤）；② 弹性快乐桶（聚餐、咖啡、爱好，按周转入常用支付卡）；③ 应急缓冲桶（单独放货币基金或储蓄卡，非突发医疗/刚需不动）。",
+            "keyTakeaway": "只学预算核算方法，不涉及任何具体理财产品推荐。"
+          }
+        ],
+        "visuals": [
+          {
+            "kind": "exact_svg",
+            "caption": "月度到账三桶分流比例示意（示例精确图）",
+            "svgSpec": {
+              "template": "tree_breakdown",
+              "data": {
+                "buckets": [
+                  { "name": "固定刚需桶", "ratio": 55 },
+                  { "name": "弹性生活桶", "ratio": 30 },
+                  { "name": "应急储蓄桶", "ratio": 15 }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "conceptNodeIds": ["b2.budget_three_buckets", "b2.risk_drawdown_tolerance"],
+      "quiz": {
+        "mode": "standard_mcq",
+        "passRatio": 0.8,
+        "questions": [
+          {
+            "id": "q-b2-sample-1",
+            "stem": "应急缓冲金最核心的配置原则是什么？",
+            "options": [
+              "追求最高年化收益率",
+              "高流动性、本金安全、随时可取用应对突发状况",
+              "全部买进高波动股票博短期翻倍",
+              "借给熟人赚口头利息"
+            ],
+            "correctIndex": 1,
+            "explanation": "应急金的任务是兜住生活突发风险而非博高收益，必须确保随时可用且不承受大幅净值回撤。",
+            "relatedConceptId": "b2.risk_drawdown_tolerance"
+          }
+        ]
+      },
+      "actionTask": {
+        "id": "act-b2-sample",
+        "title": "画出你下个月的三桶分流数字表",
+        "lifeContext": "对照近两个月微信/支付宝账单总额，5 分钟定出三个数字",
+        "steps": [
+          "算出每月固定必花底线金额",
+          "定出每周可自由支配的弹性上限",
+          "检查并关掉 1 个不再使用的自动续费订阅"
+        ],
+        "deliverablePrompt": "记下你的三桶比例（无需填隐私卡号）及关掉的冗余订阅项",
+        "matchPoolCategory": "finance_sheet"
+      },
+      "sources": [
+        {
+          "sourceOrg": "中国投资者网 · 国民金融素养投教公开读物（示例占位，M10 抓源替换）",
+          "sourceUrl": "https://www.investor.org.cn/",
+          "fetchedAt": "2026-11-24",
+          "publishedYear": 2025,
+          "reviewAfter": "2027-06-01",
+          "disclaimerKind": "finance_no_advice"
+        }
+      ]
+    },
+    {
+      "id": "unit-b3-bias-sample",
+      "branchId": "B3",
+      "trackId": "b3-main",
+      "title": "【示例占位】为什么做废了三天的实验方案最难果断重来？",
+      "estimatedMinutes": 18,
+      "recommendedEnergy": "peak",
+      "isPlaceholder": true,
+      "scenarioHook": {
+        "sceneTitle": "明知参数错了还想「再抢救一下」的深夜",
+        "story": "一套实验预处理脚本已经发现基线漂移严重，重跑只要两小时，但因为前三天已经手动标了上百条数据，你硬是又花通宵打补丁修修补补，最后结果还是没法用。",
+        "guidingQuestion": "怎样用一个简单提问帮大脑绕开「舍不得前功尽弃」的惯性？"
+      },
+      "prediction": {
+        "question": "花 60 元买了张难看电影的票，开场 20 分钟如坐针毡，从理性决策看该怎么办？",
+        "options": [
+          "硬着头皮看完，不然 60 块钱白花了",
+          "再买桶爆米花安慰自己继续看",
+          "立刻离场去做更舒服或更有用的事，因为无论看不看 60 元都已经回不来了",
+          "发朋友圈骂两句但还是坐满两小时"
+        ],
+        "commonTrapIndex": 0,
+        "answerIndex": 2,
+        "whyCounterIntuitive": "不离场等于在「损失 60 元」之上再额外赔进「未来宝贵的 100 分钟」，但损失厌恶会让人误以为熬完就不算亏。"
+      },
+      "guide": {
+        "blocks": [
+          {
+            "heading": "零基提问法：假如今天第一天接手这件事",
+            "markdown": "当你纠结要不要停掉一个低效习惯、错误的购物或走不通的实验支线时，把问题换成：「如果过去没投过一分钱一分钟，今天让我从零选，我还会开启这个方案吗？」如果答案是坚决的「不会」，立刻止损就是赚回未来。",
+            "keyTakeaway": "历史投入只供复盘经验，不具备决定未来方向的投票权。"
+          }
+        ],
+        "visuals": [
+          {
+            "kind": "no_image_declared",
+            "noImageReason": "M1 样板验证「无图声明」分支规则：本节聚焦零基止损提问话术，M10 正式内容将补齐前景理论价值函数精确 SVG 曲线图。"
+          }
+        ],
+        "originCards": [
+          {
+            "conceptOrExperiment": "前景理论与损失厌恶（Prospect Theory & Loss Aversion）",
+            "citation": "Kahneman, D., & Tversky, A. (1979). Econometrica, 47(2), 263–291.",
+            "originalSampleAndData": "通过一系列受控概率赌局问卷发现，受试者在面对确定收益时倾向规避风险，而在面对确定损失时倾向冒险翻本。",
+            "replicationControversy": "核心方向效应跨文化复现稳健，但「损失厌恶系数恒等于 2 倍」在近年大样本研究中发现高度依赖金额尺度与具体情境，不宜机械套用固定倍数。"
+          }
+        ]
+      },
+      "conceptNodeIds": ["b3.loss_aversion"],
+      "quiz": {
+        "mode": "standard_mcq",
+        "passRatio": 0.8,
+        "questions": [
+          {
+            "id": "q-b3-sample-1",
+            "stem": "判断一项正在推进的事务是否属于「沉没成本绑架」，最直接的自检问题是什么？",
+            "options": [
+              "我已经在这件事上熬了多少个通宵？",
+              "别人会不会觉得我半途而废？",
+              "若此刻从零开始，仅看未来的预期收益与代价，我还会选这条路吗？",
+              "当初做决定时我有多自信？"
+            ],
+            "correctIndex": 2,
+            "explanation": "理性决策只比较从当下往后的边际成本与边际收益，过去的熬夜与面子均属不可回收项。",
+            "relatedConceptId": "b3.loss_aversion"
+          }
+        ]
+      },
+      "actionTask": {
+        "id": "act-b3-sample",
+        "title": "给手头一件拖延内耗的小事做一次「零基体检」",
+        "lifeContext": "可以是囤着不看的低质网课、改了五版方向偏掉的小节或占空间的闲置物品",
+        "steps": [
+          "写下这件事过去已经耗掉的投入",
+          "用「若今天从零选还会不会做」回答是或否",
+          "若为否，执行一个 5 分钟止损动作（归档/删除/转向新方案）"
+        ],
+        "deliverablePrompt": "记录你止损归档的那件小事与腾出来的精力时间",
+        "matchPoolCategory": "general"
+      },
+      "sources": [
+        {
+          "sourceOrg": "OpenStax Psychology 2e · Thinking and Intelligence（示例占位，M10 抓源替换）",
+          "sourceUrl": "https://openstax.org/details/books/psychology-2e",
+          "fetchedAt": "2026-11-24",
+          "disclaimerKind": "psych_boundary",
+          "helpBoundaryText": "本节内容仅供日常思维习惯科普与自我觉察参考，不构成任何心理咨询或医学诊断。若长期陷入严重焦虑、自责失眠或影响正常学习生活超过两周，请及时联系高校心理咨询中心、三甲医院心理/精神科或拨打全国心理援助热线 12356。"
+        }
+      ]
+    }
+  ]
+}

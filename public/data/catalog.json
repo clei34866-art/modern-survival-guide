@@ -1,0 +1,357 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-11-24",
+  "branches": [
+    {
+      "id": "B1",
+      "name": "AI 与软件",
+      "subtitle": "把 AI 与专业软件驯成日常科研、学习与创作的趁手工具",
+      "accentToken": "#3D7A8A",
+      "redLineRules": [
+        "AI 能力线按五层逐层过关解锁，每层须完成实战项目产出",
+        "软件技能线按包独立组织，只选学完立刻能用的高杠杆能力",
+        "所有代码示例与工具参数须源自官方文档或公开课讲义，不编造 API"
+      ],
+      "tracks": [
+        {
+          "id": "b1-ai-l1",
+          "kind": "layered_stage",
+          "title": "AI L1 · 工具与实战素养",
+          "summary": "提示工程原理、Agent 工具链、工作流搭建、AI 输出交叉核查",
+          "milestoneDeliverable": {
+            "title": "一条可复用的个人 Agent / Prompt 标准工作流文档",
+            "criteria": [
+              "单元自测全部达标（≥80%）",
+              "完成费曼一句话原理复述",
+              "产出一份在真实学习或科研任务中跑通的工作流说明"
+            ]
+          },
+          "unitIds": ["unit-b1-l1-sample"],
+          "curatedResources": [
+            {
+              "title": "DeepLearning.AI Prompt Engineering 公开课程指南",
+              "org": "DeepLearning.AI",
+              "url": "https://www.deeplearning.ai/short-courses/"
+            },
+            {
+              "title": "Anthropic Prompt Engineering 官方文档",
+              "org": "Anthropic Docs",
+              "url": "https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview"
+            }
+          ]
+        },
+        {
+          "id": "b1-ai-l2",
+          "kind": "layered_stage",
+          "title": "AI L2 · 编程与数学基础",
+          "summary": "Python 数据处理（NumPy / Pandas / Matplotlib）与够用的线代、概率、微积分直觉",
+          "unlockAfterTrackId": "b1-ai-l1",
+          "milestoneDeliverable": {
+            "title": "一份处理个人真实实验或生活数据的 Python 脚本与图表",
+            "criteria": ["自测达标", "脚本可复现输出清洗结果与规范可视化图"]
+          },
+          "unitIds": [],
+          "curatedResources": [
+            {
+              "title": "NumPy 官方快速入门与数组广播教程",
+              "org": "NumPy Official",
+              "url": "https://numpy.org/doc/stable/user/absolute_beginners.html"
+            },
+            {
+              "title": "Pandas 10 Minutes to pandas 官方导览",
+              "org": "Pandas Official",
+              "url": "https://pandas.pydata.org/docs/user_guide/10min.html"
+            }
+          ]
+        },
+        {
+          "id": "b1-ai-l3",
+          "kind": "layered_stage",
+          "title": "AI L3 · 机器学习核心",
+          "summary": "监督与无监督学习、评估指标与过拟合诊断、特征工程",
+          "unlockAfterTrackId": "b1-ai-l2",
+          "milestoneDeliverable": {
+            "title": "一个包含基线对比与误差分析的完整建模小项目",
+            "criteria": ["自测达标", "清晰区分训练/验证泄漏风险并给出评估结论"]
+          },
+          "unitIds": [],
+          "curatedResources": [
+            {
+              "title": "李宏毅《机器学习》公开课讲义索引",
+              "org": "台湾大学李宏毅实验室",
+              "url": "https://speech.ee.ntu.edu.tw/~hylee/ml/2023-spring.php"
+            },
+            {
+              "title": "Scikit-learn User Guide 官方手册",
+              "org": "Scikit-learn",
+              "url": "https://scikit-learn.org/stable/user_guide.html"
+            }
+          ]
+        },
+        {
+          "id": "b1-ai-l4",
+          "kind": "layered_stage",
+          "title": "AI L4 · 深度学习与大模型",
+          "summary": "Transformer 机制、LLM 训练与推理原理、微调、RAG 与 Agent 架构",
+          "unlockAfterTrackId": "b1-ai-l3",
+          "milestoneDeliverable": {
+            "title": "复现轻量模型或落地一次真实个人知识库 RAG / 微调应用",
+            "criteria": ["自测达标", "具备可验证的检索准确率或微调前后对比记录"]
+          },
+          "unitIds": [],
+          "curatedResources": [
+            {
+              "title": "Attention Is All You Need (arXiv 开放获取原文)",
+              "org": "arXiv",
+              "url": "https://arxiv.org/abs/1706.03762"
+            }
+          ]
+        },
+        {
+          "id": "b1-ai-l5",
+          "kind": "layered_stage",
+          "title": "AI L5 · 前沿与交叉（滚动制）",
+          "summary": "高价值论文精读法、AI × 材料科学、AI × 心理学应用探索",
+          "unlockAfterTrackId": "b1-ai-l4",
+          "milestoneDeliverable": {
+            "title": "一篇跨学科论文复现/精读卡片或交叉小实验",
+            "criteria": ["提炼问题假设、方法边界与迁移到个人科研的可行点"]
+          },
+          "unitIds": [],
+          "curatedResources": [
+            {
+              "title": "arXiv Condensed Matter / Materials Science & AI 开放检索",
+              "org": "arXiv",
+              "url": "https://arxiv.org/"
+            }
+          ]
+        },
+        {
+          "id": "b1-sw-blender",
+          "kind": "software_pack",
+          "title": "软件包 S1 · Blender（bpy 脚本科研与三维表达）",
+          "summary": "跳过冗长手捏泥巴，直奔场景组织、材质灯光与 bpy 脚本批量生成科研示意图",
+          "milestoneDeliverable": {
+            "title": "用一份 bpy Python 脚本一键生成可复现实验结构/晶体/流程图渲染",
+            "criteria": ["脚本在 Blender Scripting 面板无报错运行并输出高清 PNG"]
+          },
+          "unitIds": [],
+          "curatedResources": [
+            {
+              "title": "Blender Python API Quickstart 官方文档",
+              "org": "Blender Foundation",
+              "url": "https://docs.blender.org/api/current/info_quickstart.html"
+            }
+          ]
+        },
+        {
+          "id": "b1-sw-office",
+          "kind": "software_pack",
+          "title": "软件包 S2 · Office / WPS 高效排版与表格",
+          "summary": "长文档样式自动化、数据透视表核账、清爽学术汇报页母版",
+          "unitIds": [],
+          "curatedResources": []
+        },
+        {
+          "id": "b1-sw-git",
+          "kind": "software_pack",
+          "title": "软件包 S3 · Git 与现代开发工具链",
+          "summary": "分支管理、后悔药回滚、终端效率与代码编辑器高频工作流",
+          "unitIds": [],
+          "curatedResources": [
+            {
+              "title": "Pro Git 第二版（开源中文版）",
+              "org": "Git SCM",
+              "url": "https://git-scm.com/book/zh/v2"
+            }
+          ]
+        },
+        {
+          "id": "b1-sw-notes",
+          "kind": "software_pack",
+          "title": "软件包 S4 · 笔记工具与科研知识库",
+          "summary": "Markdown 双链笔记、文献阅读卡片流与防囤积检索结构",
+          "unitIds": [],
+          "curatedResources": []
+        },
+        {
+          "id": "b1-sw-video",
+          "kind": "software_pack",
+          "title": "软件包 S5 · 剪辑工具与快速成片",
+          "summary": "粗剪节奏、音画对齐、字幕批处理与课程/推文短视频交付",
+          "unitIds": [],
+          "curatedResources": []
+        }
+      ]
+    },
+    {
+      "id": "B2",
+      "name": "财经",
+      "subtitle": "算清日常账、看懂保单与税单、建立不焦虑的资产配置常识",
+      "accentToken": "#B87D2B",
+      "redLineRules": [
+        "只学金融知识与核算方法，绝不提供具体投资建议、不荐股、不推具体理财产品",
+        "所有政策、社保、税务与保险规则均须标注发布年份与官方出处，超期自动标记「待复核」"
+      ],
+      "tracks": [
+        {
+          "id": "b2-main",
+          "kind": "branch_path",
+          "title": "个人财务生存主路径",
+          "summary": "记账与预算 → 消费、信用与负债 → 保险常识 → 社保与税务常识 → 投资基础 → 经济学常识",
+          "unitIds": ["unit-b2-budget-sample"],
+          "curatedResources": [
+            {
+              "title": "中国投资者网 · 投资者教育知识读本",
+              "org": "中国证监会投资者保护局 / 中国投资者网",
+              "url": "https://www.investor.org.cn/"
+            },
+            {
+              "title": "中证指数有限公司 · 指数投资百问百答",
+              "org": "中证指数有限公司",
+              "url": "https://www.csindex.com.cn/"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "B3",
+      "name": "心理",
+      "subtitle": "读懂情绪信号、避开思维陷阱、把关系与冲突处明白",
+      "accentToken": "#A86472",
+      "redLineRules": [
+        "仅做心理学应用科普与日常自助练习，不做任何临床心理或精神医学诊断与治疗建议",
+        "每节显著标注专业求助边界（持续两周以上功能受损或危机状态须及时寻求校医院/精神科/心理热线）",
+        "经典实验与概念配备「溯源卡」，如实呈现原始样本与后续复现争议"
+      ],
+      "tracks": [
+        {
+          "id": "b3-main",
+          "kind": "branch_path",
+          "title": "应用心理与决策主路径",
+          "summary": "情绪管理 → 压力与睡眠心理 → 认知偏误与决策 → 沟通与冲突 → 亲密关系 → 自我认知",
+          "unitIds": ["unit-b3-bias-sample"],
+          "curatedResources": [
+            {
+              "title": "OpenStax Psychology 2e (CC BY 4.0 开放获取教材)",
+              "org": "OpenStax / Rice University",
+              "url": "https://openstax.org/details/books/psychology-2e"
+            },
+            {
+              "title": "WHO 压力管理实用指南《Doing What Matters in Times of Stress》",
+              "org": "世界卫生组织 (WHO)",
+              "url": "https://www.who.int/publications/i/item/9789240003927"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "B4",
+      "name": "健康",
+      "subtitle": "睡够觉、科学跑、会看体检单，守住科研与生活的身体底盘",
+      "accentToken": "#56876D",
+      "redLineRules": [
+        "仅采用国家卫健委、WHO 及权威三甲医院公开科普指南，不采信偏方与营销软文",
+        "标注指南年份与复核期限，明确身体异常须线下就医"
+      ],
+      "tracks": [
+        {
+          "id": "b4-main",
+          "kind": "branch_path",
+          "title": "身体管理主路径",
+          "summary": "睡眠 → 运动（跑步为主）→ 营养基础 → 久坐、用眼与体态 → 体检指标怎么看",
+          "unitIds": [],
+          "curatedResources": [
+            {
+              "title": "WHO 关于身体活动和久坐行为的指南",
+              "org": "世界卫生组织 (WHO)",
+              "url": "https://www.who.int/zh/publications/i/item/9789240015128"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "B5",
+      "name": "表达与职业",
+      "subtitle": "写清推文、讲好组会与答辩、准备经得起追问的简历与作品集",
+      "accentToken": "#C46D45",
+      "redLineRules": [
+        "拒绝空洞成功学话术，所有练习直接挂钩真实推文、课程汇报与复试/求职场景"
+      ],
+      "tracks": [
+        {
+          "id": "b5-main",
+          "kind": "branch_path",
+          "title": "清晰表达与职业准备路径",
+          "summary": "写作与表达 → 汇报与演讲 → 简历与面试 → 职场沟通 → 个人作品集",
+          "unitIds": [],
+          "curatedResources": [
+            {
+              "title": "Purdue Online Writing Lab (OWL) 公开写作结构指南",
+              "org": "Purdue University",
+              "url": "https://owl.purdue.edu/"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "B6",
+      "name": "学习与精力",
+      "subtitle": "本平台的「使用说明书」：用认知科学与节律管理替代盲目死磕",
+      "accentToken": "#546A8C",
+      "redLineRules": [
+        "学完即用于其余六个分支，强调做完即停与可持续节律，反对疲劳战"
+      ],
+      "tracks": [
+        {
+          "id": "b6-main",
+          "kind": "branch_path",
+          "title": "高效学习与精力调度路径",
+          "summary": "自测提取 → 间隔重复与错题管理 → 费曼技巧 → 整体性学习 → 考试策略 → 时段匹配与专注 → 知识库搭建",
+          "unitIds": [],
+          "curatedResources": [
+            {
+              "title": "Strengthening the Student Toolbox: Study Strategies Boost Learning (Dunlosky 等公开综述)",
+              "org": "American Educator / AFT",
+              "url": "https://www.aft.org/ae/fall2013/dunlosky"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "B7",
+      "name": "生活常识与自保",
+      "subtitle": "签合同不踩坑、数字账号不裸奔、突发状况懂急救",
+      "accentToken": "#7A6352",
+      "redLineRules": [
+        "法律条文、反诈防护与急救操作一律以国家官方数据库与红十字会权威指南为准，严格标注时效"
+      ],
+      "tracks": [
+        {
+          "id": "b7-main",
+          "kind": "branch_path",
+          "title": "法律、数字安全与急救路径",
+          "summary": "法律常识（租房合同、劳动实习、消费者权益）→ 数字安全（密码、隐私、防诈骗）→ 急救与消防安全常识",
+          "unitIds": [],
+          "curatedResources": [
+            {
+              "title": "国家法律法规数据库（民法典·合同编 / 消费者权益保护法）",
+              "org": "全国人大常委会办公厅",
+              "url": "https://flk.npc.gov.cn/"
+            },
+            {
+              "title": "中国红十字会应急救护公开科普",
+              "org": "中国红十字会总会",
+              "url": "https://www.redcross.org.cn/"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "version": "1.0.0",
+  "nodes": [
+    {
+      "id": "b1.prompt_context_boundary",
+      "branchId": "B1",
+      "label": "上下文边界与核查约束",
+      "plainDefinition": "给大模型下指令时，把「已知事实材料」「输出格式」和「不知道就直说」拆开写清，从源头减少一本正经胡说八道。",
+      "cardPrompt": "为什么把背景资料与任务指令用明确分隔符拆开，能显著降低 AI 编造细节？",
+      "cardAnswer": "模型更容易区分「允许引用的事实锚点」与「需要执行的动作」，配合「若材料未提及请回答未知」可抑制概率补全幻觉。",
+      "prerequisites": [],
+      "crossLinks": [
+        {
+          "targetId": "b6.spaced_retrieval",
+          "bridgeNote": "让 AI 根据你的笔记自动出提取题，但答案必须回到原讲义核对。"
+        }
+      ]
+    },
+    {
+      "id": "math.matrix_transform",
+      "branchId": "B1",
+      "label": "三维齐次变换矩阵（共用数学节点）",
+      "plainDefinition": "用一张 4×4 数字表同时打包物体的平移、旋转和缩放，是三维图形学与高维特征映射的共同语言。",
+      "cardPrompt": "为什么三维空间里的平移无法只用 3×3 线性矩阵表示，而要升到 4×4 齐次坐标？",
+      "cardAnswer": "3×3 矩阵总把原点映到原点；引入第四维 w=1 后，平移才能写成矩阵乘法并与旋转、缩放统一连乘。",
+      "prerequisites": [],
+      "crossLinks": [
+        {
+          "targetId": "b1.bpy_scene_data",
+          "bridgeNote": "Blender 中每个 Object 的 matrix_world 正是 4×4 齐次变换矩阵。"
+        }
+      ]
+    },
+    {
+      "id": "b1.bpy_scene_data",
+      "branchId": "B1",
+      "label": "bpy.data 数据块与场景树",
+      "plainDefinition": "Blender 内部把网格、材质、相机都存成独立数据块（Data-Blocks），用 Python 直接改 bpy.data 比模拟鼠标点击稳定十倍。",
+      "cardPrompt": "在 Blender Python 脚本里，优先用 bpy.data 还是 bpy.ops 批量生成百个科研小球？为什么？",
+      "cardAnswer": "优先用 bpy.data；bpy.ops 依赖当前视图上下文且每次触发场景重算，循环百次极慢且易报错。",
+      "prerequisites": ["math.matrix_transform"],
+      "crossLinks": []
+    },
+    {
+      "id": "b2.budget_three_buckets",
+      "branchId": "B2",
+      "label": "月度现金流三桶分流法",
+      "plainDefinition": "生活费或收入一到账，先按「固定刚需 / 弹性生活 / 应急与储蓄」分桶隔离，而不是月底看还剩多少。",
+      "cardPrompt": "为什么「月末结余储蓄」几乎总会失败，而「到账先划拨应急桶」更容易执行？",
+      "cardAnswer": "账户混合会放大心理账户错觉，看到总余额充裕就不自觉提高日常消费基准。",
+      "prerequisites": [],
+      "crossLinks": [
+        {
+          "targetId": "b3.loss_aversion",
+          "bridgeNote": "先分桶相当于提前设好心理参照点，花超弹性桶会立刻触发真实感知。"
+        }
+      ]
+    },
+    {
+      "id": "b2.risk_drawdown_tolerance",
+      "branchId": "B2",
+      "label": "最大回撤与真实风险承受力",
+      "plainDefinition": "看一项投资不能只看年化收益，先问自己账面跌掉 20%～30% 时会不会睡不着觉、被迫急用钱割肉。",
+      "cardPrompt": "短期三年内必定要用的学费或租房押金，能不能放进宽基股票指数基金？",
+      "cardAnswer": "不能；权益资产短期回撤周期可能超过两三年，刚性期限资金一旦遇上熊市会被迫在底部变现亏损。",
+      "prerequisites": ["b2.budget_three_buckets"],
+      "crossLinks": [
+        {
+          "targetId": "b3.loss_aversion",
+          "bridgeNote": "同幅度的亏损带来的痛苦感约为收益快感的两倍，高估承受力是恐慌抛售主因。"
+        }
+      ]
+    },
+    {
+      "id": "b3.loss_aversion",
+      "branchId": "B3",
+      "label": "损失厌恶与沉没成本陷阱",
+      "plainDefinition": "人对「失去 100 元」的肉痛感远强于「捡到 100 元」的开心，所以常常为了挽回已沉没的投入而继续加注错误决定。",
+      "cardPrompt": "买错的难穿鞋子或跑不通的死胡同实验方案舍不得停，背后是什么认知偏误在推你？",
+      "cardAnswer": "损失厌恶叠加沉没成本效应——把已经无法收回的历史投入当成了继续消耗未来精力的理由。",
+      "prerequisites": [],
+      "crossLinks": [
+        {
+          "targetId": "b2.risk_drawdown_tolerance",
+          "bridgeNote": "投资与日常止损共用同一套反直觉纪律：只看未来期望，不替沉没成本买单。"
+        }
+      ]
+    },
+    {
+      "id": "b6.spaced_retrieval",
+      "branchId": "B6",
+      "label": "主动提取与 1/3/7 间隔重测",
+      "plainDefinition": "合上书费劲回想一次（哪怕想错了再看解析），记忆留存率远高于把划线重点反复顺读五遍。",
+      "cardPrompt": "为什么顺读讲义觉得自己「全懂了」，一到实操或上考场就大脑空白？",
+      "cardAnswer": "顺读产生的是「识别流畅性错觉」而非提取通路强度；只有闭卷自测与间隔重测才能真正加固提取路径。",
+      "prerequisites": [],
+      "crossLinks": []
+    }
+  ]
+}

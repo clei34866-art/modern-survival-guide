@@ -6,25 +6,42 @@ import {
   hasLiveTelemetry,
   importTelemetryJson,
   loadTelemetry,
-   saveDailyPlanSnapshot,
+  recordMilestoneSubmission,
+  saveDailyPlanSnapshot,
   setDailyLowBatteryMode,
   setDailyTipAcknowledged,
   subscribeTelemetrySync,
   toggleDailyTaskCompletion,
 } from './core/db';
 import { ensureTodayPlanSnapshot } from './core/scheduler';
-import type { ScheduledTaskItem, TelemetrySnapshot } from './types/schema';
+import type { BranchId, ScheduledTaskItem, TelemetrySnapshot } from './types/schema';
+import { BranchesView } from './views/BranchesView';
 import { TodayView } from './views/TodayView';
+import { UnitPlayerView } from './views/UnitPlayerView';
 
-type NavRoute = 'today' | 'branches' | 'events' | 'lab' | 'wall';
+interface ParsedRoute {
+  page: 'today' | 'branches' | 'unit' | 'events' | 'lab' | 'wall';
+  unitId?: string;
+  branchId?: BranchId;
+}
 
-function parseHashRoute(hash: string): NavRoute {
-  const clean = hash.replace(/^#\/?/, '').split('?')[0];
-  if (clean === 'branches') return 'branches';
-  if (clean === 'events') return 'events';
-  if (clean === 'lab') return 'lab';
-  if (clean === 'wall') return 'wall';
-  return 'today';
+function parseHashRoute(hash: string): ParsedRoute {
+  const clean = hash.replace(/^#\/?/, '');
+  const [pathPart, queryPart] = clean.split('?');
+  const segments = pathPart.split('/').filter(Boolean);
+
+  if (segments[0] === 'unit' && segments[1]) {
+    return { page: 'unit', unitId: decodeURIComponent(segments[1]) };
+  }
+  if (segments[0] === 'branches') {
+    const params = new URLSearchParams(queryPart ?? '');
+    const b = params.get('b') as BranchId | null;
+    return { page: 'branches', branchId: b ?? undefined };
+  }
+  if (segments[0] === 'events') return { page: 'events' };
+  if (segments[0] === 'lab') return { page: 'lab' };
+  if (segments[0] === 'wall') return { page: 'wall' };
+  return { page: 'today' };
 }
 
 function formatMinutes(ms: number): string {
@@ -33,8 +50,8 @@ function formatMinutes(ms: number): string {
 }
 
 export function App() {
-  const [route, setRoute] = useState<NavRoute>(() =>
-    typeof window !== 'undefined' ? parseHashRoute(window.location.hash) : 'today'
+  const [route, setRoute] = useState<ParsedRoute>(() =>
+    typeof window !== 'undefined' ? parseHashRoute(window.location.hash) : { page: 'today' }
   );
   const [content, setContent] = useState<PlatformContentBundle | null>(null);
   const [telemetry, setTelemetry] = useState<TelemetrySnapshot | null>(null);
@@ -112,6 +129,25 @@ export function App() {
     setTelemetry(next);
   };
 
+  const handleOpenUnit = (unitId: string) => {
+    window.location.hash = `#/unit/${encodeURIComponent(unitId)}`;
+  };
+
+  const handleBackToBranches = (branchId: BranchId) => {
+    window.location.hash = `#/branches?b=${branchId}`;
+  };
+
+  const handleSaveMilestone = async (input: {
+    trackId: string;
+    branchId: BranchId;
+    completionPercent: number;
+    artifactSummary: string;
+    isApproved: boolean;
+  }) => {
+    const next = await recordMilestoneSubmission(input);
+    setTelemetry(next);
+  };
+
   const handleExport = async () => {
     const json = await exportTelemetryJson();
     setBackupPreview(json);
@@ -150,6 +186,11 @@ export function App() {
     .filter((d) => d.lineKind === 'b1_software')
     .reduce((acc, d) => acc + d.durationMs, 0);
 
+  const activeUnit =
+    route.page === 'unit'
+      ? content.units.find((u) => u.id === route.unitId)
+      : undefined;
+
   return (
     <div>
       {/* DESIGN.md 1.5.1 全站轻量五项导航栏 */}
@@ -163,31 +204,33 @@ export function App() {
           <nav class="site-nav" aria-label="主导航">
             <a
               href="#/"
-              class={`site-nav-link ${route === 'today' ? 'is-active' : ''}`}
+              class={`site-nav-link ${route.page === 'today' ? 'is-active' : ''}`}
             >
               今天
             </a>
             <a
               href="#/branches"
-              class={`site-nav-link ${route === 'branches' ? 'is-active' : ''}`}
+              class={`site-nav-link ${
+                route.page === 'branches' || route.page === 'unit' ? 'is-active' : ''
+              }`}
             >
               七分支与技能树
             </a>
             <a
               href="#/events"
-              class={`site-nav-link ${route === 'events' ? 'is-active' : ''}`}
+              class={`site-nav-link ${route.page === 'events' ? 'is-active' : ''}`}
             >
               生活事件包
             </a>
             <a
               href="#/lab"
-              class={`site-nav-link ${route === 'lab' ? 'is-active' : ''}`}
+              class={`site-nav-link ${route.page === 'lab' ? 'is-active' : ''}`}
             >
               真实任务与实验室
             </a>
             <a
               href="#/wall"
-              class={`site-nav-link is-wall-link ${route === 'wall' ? 'is-active' : ''}`}
+              class={`site-nav-link is-wall-link ${route.page === 'wall' ? 'is-active' : ''}`}
             >
               状态墙 ↗
             </a>
@@ -196,7 +239,7 @@ export function App() {
       </header>
 
       <main class="page-shell">
-        {route === 'today' && (
+        {route.page === 'today' && (
           <TodayView
             content={content}
             telemetry={telemetry}
@@ -207,43 +250,37 @@ export function App() {
           />
         )}
 
-        {route === 'branches' && (
-          <section aria-label="七大生存分支结构概览">
-            <h1 class="hero-title" style={{ marginBottom: '6px' }}>
-              七大生存分支目录概览
-            </h1>
-            <p class="hero-subtitle" style={{ marginBottom: '20px' }}>
-              统一路径图、7 步学习单元播放器与 eudaimonia 生存技能树将在 M3 / M6 按序实装。
-            </p>
-            <div class="branches-grid">
-              {content.catalog.branches.map((branch) => (
-                <article class="branch-card" key={branch.id}>
-                  <span
-                    class="branch-tag"
-                    style={{ backgroundColor: branch.accentToken }}
-                  >
-                    {branch.id} · {branch.name}
-                  </span>
-                  <div style={{ fontWeight: 600, fontSize: '15px' }}>
-                    {branch.subtitle}
-                  </div>
-                  <ul class="track-list">
-                    {branch.tracks.map((track) => (
-                      <li key={track.id}>
-                        <strong>{track.title}</strong>
-                        {track.unlockAfterTrackId
-                          ? `（需先过 ${track.unlockAfterTrackId}）`
-                          : ''}
-                      </li>
-                    ))}
-                  </ul>
-                </article>
-              ))}
-            </div>
-          </section>
+        {route.page === 'branches' && (
+          <BranchesView
+            content={content}
+            telemetry={telemetry}
+            initialBranchId={route.branchId ?? 'B1'}
+            onOpenUnit={handleOpenUnit}
+            onSaveMilestone={handleSaveMilestone}
+          />
         )}
 
-        {route === 'events' && (
+        {route.page === 'unit' &&
+          (activeUnit ? (
+            <UnitPlayerView
+              key={activeUnit.id}
+              unit={activeUnit}
+              content={content}
+              telemetry={telemetry}
+              onTelemetryChange={setTelemetry}
+              onBackToBranches={handleBackToBranches}
+              onOpenUnit={handleOpenUnit}
+            />
+          ) : (
+            <section class="section-card">
+              <h1 class="section-heading">未找到对应学习单元</h1>
+              <a href="#/branches" class="site-nav-link is-active">
+                ← 返回七分支路径图
+              </a>
+            </section>
+          ))}
+
+        {route.page === 'events' && (
           <section class="section-card">
             <h1 class="section-heading">生活事件包（M7 实装留位）</h1>
             <p class="hero-subtitle">
@@ -252,7 +289,7 @@ export function App() {
           </section>
         )}
 
-        {route === 'lab' && (
+        {route.page === 'lab' && (
           <section class="section-card" aria-label="留痕与数据备份面板">
             <h1 class="section-heading">
               <span>本地留痕快照与数据备份（真实任务池与生活实验室将于 M6–M7 挂载）</span>
@@ -274,8 +311,10 @@ export function App() {
                 <div class="metric-value">{formatMinutes(swDurationMs)}</div>
               </div>
               <div class="metric-box">
-                <div class="metric-label">今日已完成项</div>
-                <div class="metric-value">{plan.completedTaskIds.length} 项</div>
+                <div class="metric-label">已过关单元数</div>
+                <div class="metric-value">
+                  {Object.values(telemetry.unitSubmissions).filter((u) => u.isCleared).length} 节
+                </div>
               </div>
             </div>
             <div class="btn-row">
@@ -311,7 +350,7 @@ export function App() {
           </section>
         )}
 
-        {route === 'wall' && (
+        {route.page === 'wall' && (
           <section class="section-card">
             <h1 class="section-heading">1080P 个人状态墙（M5 实装留位）</h1>
             <p class="hero-subtitle" style={{ marginBottom: '14px' }}>

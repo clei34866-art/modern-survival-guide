@@ -18,6 +18,7 @@ async function main() {
       contents: `
         export * from './src/core/db.ts';
         export * from './src/core/scheduler.ts';
+        export * from './src/core/gatekeeper.ts';
       `,
       resolveDir: process.cwd(),
     },
@@ -81,8 +82,99 @@ async function main() {
     throw new Error('隔日任务单未干净翻篇或错误累加了昨日任务');
   }
 
+  // 5. M3 门禁与 7 步单元过关 + B1 逐层解锁持久化验证
+  const b1Tracks = bundle.catalog.branches.find((b) => b.id === 'B1').tracks;
+  const l1Track = b1Tracks.find((t) => t.id === 'b1-ai-l1');
+  const l2Track = b1Tracks.find((t) => t.id === 'b1-ai-l2');
+  const blenderTrack = b1Tracks.find((t) => t.id === 'b1-sw-blender');
+
+  if (!m.isTrackUnlocked(l1Track, b1Tracks, reloaded)) {
+    throw new Error('AI L1 初始应为解锁状态');
+  }
+  if (m.isTrackUnlocked(l2Track, b1Tracks, reloaded)) {
+    throw new Error('AI L2 在 L1 未过关前必须处于锁定状态');
+  }
+  if (!m.isTrackUnlocked(blenderTrack, b1Tracks, reloaded)) {
+    throw new Error('软件技能分包（Blender）应独立开放无需前置锁定');
+  }
+
+  // 验证时效「待复核」自动判断逻辑
+  if (
+    m.isSourceExpired('2027-06-01', '2026-11-24') !== false ||
+    m.isSourceExpired('2026-05-01', '2026-11-24') !== true
+  ) {
+    throw new Error('时效到期「待复核」判定异常');
+  }
+
+  // 模拟走通 unit-b1-l1-sample：预测/自测作答留痕 + 用时 + 行动任务&费曼检查 + L1 产出验收
+  await m.recordStudyDuration({
+    branchId: 'B1',
+    trackId: 'b1-ai-l1',
+    unitId: 'unit-b1-l1-sample',
+    activity: 'guide',
+    durationMs: 420000,
+  });
+  await m.recordQuizAttempt({
+    unitId: 'unit-b1-l1-sample',
+    branchId: 'B1',
+    trackId: 'b1-ai-l1',
+    questionId: 'q-b1-sample-1',
+    conceptId: 'b1.prompt_context_boundary',
+    kind: 'quiz',
+    selectedIndex: 1,
+    isCorrect: true,
+    durationMs: 9500,
+  });
+
+  const gateFail = m.evaluateUnitPassGate({
+    quizScoreRatio: 0.5,
+    passRatio: 0.8,
+    deliverableSummary: '模板已更新',
+    requiresFeynman: true,
+    feynmanOneLiner: '锚定材料防瞎编',
+  });
+  if (gateFail.canClearUnit) {
+    throw new Error('自测未达标时不应放行单元过关');
+  }
+
+  const gatePass = m.evaluateUnitPassGate({
+    quizScoreRatio: 1.0,
+    passRatio: 0.8,
+    deliverableSummary: '已沉淀个人文献核查 Prompt 模板',
+    requiresFeynman: true,
+    feynmanOneLiner: '给原文锚点并允许答未知，阻断模型概率硬凑。',
+  });
+  if (!gatePass.canClearUnit) {
+    throw new Error('自测达标且行动、费曼均填写时应允许过关');
+  }
+
+  await m.recordActionSubmission({
+    unitId: 'unit-b1-l1-sample',
+    branchId: 'B1',
+    trackId: 'b1-ai-l1',
+    deliverableSummary: '已沉淀个人文献核查 Prompt 模板',
+    feynmanOneLiner: '给原文锚点并允许答未知，阻断模型概率硬凑。',
+    quizPassScoreRatio: 1.0,
+    isCleared: true,
+  });
+  await m.recordMilestoneSubmission({
+    trackId: 'b1-ai-l1',
+    branchId: 'B1',
+    completionPercent: 100,
+    artifactSummary: '个人 Agent/Prompt 标准核查工作流 v1',
+    isApproved: true,
+  });
+
+  const afterM3 = await m.loadTelemetry();
+  if (!m.isUnitCleared('unit-b1-l1-sample', afterM3)) {
+    throw new Error('单元过关状态未持久化');
+  }
+  if (!m.isTrackUnlocked(l2Track, b1Tracks, afterM3)) {
+    throw new Error('L1 单元与产出全部达标后，AI L2 应自动解锁');
+  }
+
   console.log(
-    '[smoke] 通过：三时段混排生成、保底版收敛(4→2)、做完即停收工态、刷新持久化与隔日不补账全部验证通过。'
+    '[smoke] 通过：M1–M3 全链路（留痕持久化、三时段与保底调度、7步门禁过关、时效待复核判定、B1 逐层解锁）验证通过。'
   );
 }
 

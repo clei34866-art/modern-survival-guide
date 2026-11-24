@@ -287,6 +287,15 @@ export function TodayView({
                           <div class="task-title">{task.title}</div>
                           <div class="task-hint">{task.humanHint}</div>
                         </div>
+                        {task.unitId && !isExempted && (
+                          <a
+                            href={`#/unit/${task.unitId}`}
+                            class="site-nav-link is-active"
+                            style={{ flexShrink: 0, fontSize: '13px', padding: '5px 11px' }}
+                          >
+                            打开单元 →
+                          </a>
+                        )}
                       </div>
                     );
                   })}

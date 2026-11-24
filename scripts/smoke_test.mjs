@@ -12,6 +12,9 @@ async function main() {
     units: JSON.parse(fs.readFileSync('public/data/units/placeholders.json', 'utf8')).units,
     dailyTips: JSON.parse(fs.readFileSync('public/data/daily-tips.json', 'utf8')).tips,
     wallConfig: JSON.parse(fs.readFileSync('public/data/wall-config.json', 'utf8')),
+    eventPacks: JSON.parse(fs.readFileSync('public/data/event-packs.json', 'utf8')).packs,
+    toolboxes: JSON.parse(fs.readFileSync('public/data/toolbox-packs.json', 'utf8')).toolboxes,
+    stagePrepPacks: JSON.parse(fs.readFileSync('public/data/toolbox-packs.json', 'utf8')).stagePrepPacks,
   };
 
   const out = await esbuild.build({
@@ -306,8 +309,44 @@ async function main() {
     throw new Error('单元联动过关后状态墙 B2 分支与技能树进度未同步增加');
   }
 
+  // 9. M7 生活事件包激活推入「今天」 + 生活实验室多日对比数据 + 简版周报汇总验证
+  let snapM7 = await m.setActiveEventPackWithPlan('event-presentation', (updated) =>
+    m.buildDailyPlanSnapshot('2026-11-24', bundle, updated)
+  );
+  if (
+    snapM7.activeEventPackId !== 'event-presentation' ||
+    !snapM7.currentDailyPlan.tasks.some((t) => t.kind === 'event_pack_step')
+  ) {
+    throw new Error('激活生活事件包后未将跨分支任务推入「今天」调度流');
+  }
+
+  snapM7 = await m.createLifeLabExperiment({
+    monthLabel: '2026-11',
+    title: '23:30 前熄灯睡眠实验',
+    hypothesis: '早睡提升次日精力',
+    independentVar: '23:30 关灯',
+    metricName: '晨起精力',
+    metricUnit: '分',
+    baselineValue: 5.5,
+  });
+  const expId = snapM7.lifeLabExperiments[0].id;
+  await m.addLifeLabEntry(expId, { dateKey: '2026-11-23', value: 7.0 });
+  snapM7 = await m.addLifeLabEntry(expId, { dateKey: '2026-11-24', value: 8.0 });
+  if (snapM7.lifeLabExperiments[0].entries.length !== 2) {
+    throw new Error('生活实验室多日数据记录失败');
+  }
+
+  const weekly = m.computeWeeklyReviewSummary(bundle, snapM7, '2026-11-24');
+  if (
+    weekly.clearedUnitTitles.length < 2 ||
+    weekly.completedActions.length < 2 ||
+    !weekly.activeExperimentBrief
+  ) {
+    throw new Error('简版周报未能准确汇总当周真实学习、行动任务与生活实验室留痕');
+  }
+
   console.log(
-    '[smoke] 通过：M1–M6 全流程验证通过（含真实任务池联动过关、技能树点亮与状态墙同步）。'
+    '[smoke] 通过：M1–M7 全流程验证通过（含生活事件包推流、生活实验室对比数据与简版周报聚合）。'
   );
 }
 

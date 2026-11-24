@@ -16,6 +16,8 @@ import {
 import { ensureTodayPlanSnapshot } from './core/scheduler';
 import type { BranchId, ScheduledTaskItem, TelemetrySnapshot } from './types/schema';
 import { BranchesView } from './views/BranchesView';
+import { EventPacksView } from './views/EventPacksView';
+import { LifeLabWeeklyView } from './views/LifeLabWeeklyView';
 import { ReviewDeckView } from './views/ReviewDeckView';
 import { StatusWallView } from './views/StatusWallView';
 import { TaskPoolView } from './views/TaskPoolView';
@@ -69,6 +71,7 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState<string>('');
   const [backupPreview, setBackupPreview] = useState<string>('');
+  const [labTab, setLabTab] = useState<'pool' | 'experiment' | 'weekly' | 'backup'>('pool');
 
   useEffect(() => {
     const onHashChange = () => setRoute(parseHashRoute(window.location.hash));
@@ -320,29 +323,82 @@ export function App() {
           ))}
 
         {route.page === 'events' && (
-          <section class="section-card">
-            <h1 class="section-heading">生活事件包（M7 实装留位）</h1>
-            <p class="hero-subtitle">
-              按真实生活事件（「要做课程汇报/组会展示」「周末/假期短途出行」）跨分支组课与工具箱清单将在 M7 里程碑上线。
-            </p>
-          </section>
+          <EventPacksView
+            content={content}
+            telemetry={telemetry}
+            onTelemetryChange={setTelemetry}
+            onOpenUnit={handleOpenUnit}
+          />
         )}
 
         {route.page === 'lab' && (
           <div>
-            <TaskPoolView
-              content={content}
-              telemetry={telemetry}
-              onTelemetryChange={setTelemetry}
-              onOpenUnit={handleOpenUnit}
-            />
-            <section class="section-card" aria-label="留痕与数据备份面板">
-              <h2 class="section-heading">
-                <span>本地留痕快照与数据备份（生活实验室与简版周报将于 M7 挂载）</span>
-                <span class={`badge-pill ${isLive ? 'badge-live' : 'badge-demo'}`}>
-                  {isLive ? '● LIVE · 已有真实留痕' : '○ DEMO · 尚无留痕'}
-                </span>
-              </h2>
+            <div class="btn-row" style={{ marginBottom: '16px' }}>
+              <button
+                type="button"
+                class={labTab === 'pool' ? 'btn-primary' : ''}
+                onClick={() => setLabTab('pool')}
+              >
+                真实任务池
+              </button>
+              <button
+                type="button"
+                class={labTab === 'experiment' ? 'btn-primary' : ''}
+                onClick={() => setLabTab('experiment')}
+              >
+                生活实验室（月度实验）
+              </button>
+              <button
+                type="button"
+                class={labTab === 'weekly' ? 'btn-primary' : ''}
+                onClick={() => setLabTab('weekly')}
+              >
+                简版每周生活复盘
+              </button>
+              <button
+                type="button"
+                class={labTab === 'backup' ? 'btn-primary' : ''}
+                onClick={() => setLabTab('backup')}
+              >
+                本地留痕与 JSON 备份
+              </button>
+            </div>
+
+            {labTab === 'pool' && (
+              <TaskPoolView
+                content={content}
+                telemetry={telemetry}
+                onTelemetryChange={setTelemetry}
+                onOpenUnit={handleOpenUnit}
+              />
+            )}
+
+            {labTab === 'experiment' && (
+              <LifeLabWeeklyView
+                content={content}
+                telemetry={telemetry}
+                mode="lab"
+                onTelemetryChange={setTelemetry}
+              />
+            )}
+
+            {labTab === 'weekly' && (
+              <LifeLabWeeklyView
+                content={content}
+                telemetry={telemetry}
+                mode="weekly"
+                onTelemetryChange={setTelemetry}
+              />
+            )}
+
+            {labTab === 'backup' && (
+              <section class="section-card" aria-label="留痕与数据备份面板">
+                <h2 class="section-heading">
+                  <span>本地留痕快照与数据备份</span>
+                  <span class={`badge-pill ${isLive ? 'badge-live' : 'badge-demo'}`}>
+                    {isLive ? '● LIVE · 已有真实留痕' : '○ DEMO · 尚无留痕'}
+                  </span>
+                </h2>
             <div class="metrics-grid">
               <div class="metric-box">
                 <div class="metric-label">累计点亮天数</div>
@@ -375,25 +431,26 @@ export function App() {
               </button>
             </div>
             {statusMsg && <div class="status-note">{statusMsg}</div>}
-            {backupPreview && (
-              <textarea
-                aria-label="JSON 备份内容"
-                value={backupPreview}
-                onInput={(e) => setBackupPreview((e.target as HTMLTextAreaElement).value)}
-                rows={6}
-                style={{
-                  width: '100%',
-                  marginTop: '12px',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '12px',
-                  padding: '10px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--border-warm)',
-                  background: 'var(--bg-subtle)',
-                }}
-              />
+                {backupPreview && (
+                  <textarea
+                    aria-label="JSON 备份内容"
+                    value={backupPreview}
+                    onInput={(e) => setBackupPreview((e.target as HTMLTextAreaElement).value)}
+                    rows={6}
+                    style={{
+                      width: '100%',
+                      marginTop: '12px',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '12px',
+                      padding: '10px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border-warm)',
+                      background: 'var(--bg-subtle)',
+                    }}
+                  />
+                )}
+              </section>
             )}
-            </section>
           </div>
         )}
       </main>

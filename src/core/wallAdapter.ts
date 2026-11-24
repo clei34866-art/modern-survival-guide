@@ -143,12 +143,26 @@ export function computeWallViewModel(
       ? externalSync.todos.slice(0, 4)
       : plan.tasks.slice(0, 4).map((t) => `${t.branchId} · ${t.title}`);
 
+  const activeExp = (telemetry.lifeLabExperiments ?? [])[0];
+  let experimentLine = '本月生活实验：待开启（可在站内实验室立项）';
+  if (activeExp) {
+    if (activeExp.entries.length > 0) {
+      const avg =
+        Math.round(
+          (activeExp.entries.reduce((s, e) => s + e.value, 0) / activeExp.entries.length) * 10
+        ) / 10;
+      experimentLine = `${activeExp.title}：均 ${avg}${activeExp.metricUnit}（基线 ${activeExp.baselineValue}${activeExp.metricUnit} · ${activeExp.entries.length}天）`;
+    } else {
+      experimentLine = `${activeExp.title}：已立项（基线 ${activeExp.baselineValue}${activeExp.metricUnit}）`;
+    }
+  }
+
   const lifeBlock = {
     running: externalSync?.life?.running ?? cfg.reservedBlocksSample.life.running,
     sleep: externalSync?.life?.sleep ?? cfg.reservedBlocksSample.life.sleep,
     water: externalSync?.life?.water ?? cfg.reservedBlocksSample.life.water,
-    experimentLine: '本月生活实验：待开启（M7 生活实验室挂载）',
-    isExternalSynced: Boolean(externalSync?.life),
+    experimentLine,
+    isExternalSynced: Boolean(externalSync?.life) || Boolean(activeExp),
   };
 
   const contentBlock = {

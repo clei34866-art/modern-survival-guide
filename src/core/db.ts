@@ -3,6 +3,8 @@ import type {
   CardRating,
   ConceptCardStat,
   DailyPlanSnapshot,
+  LifeLabEntry,
+  LifeLabExperiment,
   MilestoneDeliverableRecord,
   QuizAttemptLog,
   RealLifeTask,
@@ -63,7 +65,8 @@ export function hasLiveTelemetry(snapshot: TelemetrySnapshot): boolean {
     Object.keys(snapshot.unitSubmissions).length > 0 ||
     Object.keys(snapshot.milestoneSubmissions).length > 0 ||
     (snapshot.currentDailyPlan?.completedTaskIds.length ?? 0) > 0 ||
-    (snapshot.realTasks?.some((t) => t.status === 'completed') ?? false)
+    (snapshot.realTasks?.some((t) => t.status === 'completed') ?? false) ||
+    (snapshot.lifeLabExperiments?.some((e) => e.entries.length > 0) ?? false)
   );
 }
 
@@ -404,6 +407,9 @@ export async function importTelemetryJson(rawJson: string): Promise<TelemetrySna
     milestoneSubmissions: parsed.milestoneSubmissions ?? {},
     currentDailyPlan: parsed.currentDailyPlan,
     realTasks: parsed.realTasks ?? [],
+    activeEventPackId: parsed.activeEventPackId,
+    toolboxChecked: parsed.toolboxChecked ?? {},
+    lifeLabExperiments: parsed.lifeLabExperiments ?? [],
   };
   return saveTelemetry(normalized);
 }
@@ -459,6 +465,115 @@ export async function removeRealLifeTask(taskId: string): Promise<TelemetrySnaps
   return saveTelemetry({
     ...snap,
     realTasks: (snap.realTasks ?? []).filter((t) => t.id !== taskId),
+  });
+}
+
+/** M7 生活事件包：激活或取消激活事件包，并同步刷新「今天」跨分支调度清单 */
+export async function setActiveEventPackWithPlan(
+  packId: string | undefined,
+  buildPlan: (updatedSnap: TelemetrySnapshot) => DailyPlanSnapshot
+): Promise<TelemetrySnapshot> {
+  const snap = await loadTelemetry();
+  const prevCompleted = snap.currentDailyPlan?.completedTaskIds ?? [];
+  const nextSnapBase: TelemetrySnapshot = {
+    ...snap,
+    activeEventPackId: packId,
+  };
+  const rebuilt = buildPlan(nextSnapBase);
+  // 保留当天已经打勾完成的相同任务 ID
+  const validIds = new Set(rebuilt.tasks.map((t) => t.id));
+  rebuilt.completedTaskIds = prevCompleted.filter((id) => validIds.has(id));
+  rebuilt.lowBatteryMode = snap.currentDailyPlan?.lowBatteryMode ?? false;
+  rebuilt.tipAcknowledged = snap.currentDailyPlan?.tipAcknowledged ?? false;
+
+  return saveTelemetry({
+    ...nextSnapBase,
+    currentDailyPlan: rebuilt,
+  });
+}
+
+/** M7 生活工具箱：勾选或重置可复用清单项 */
+export async function toggleToolboxItemCheck(
+  toolboxId: string,
+  itemText: string,
+  resetAll = false
+): Promise<TelemetrySnapshot> {
+  const snap = await loadTelemetry();
+  const prevMap = snap.toolboxChecked ?? {};
+  if (resetAll) {
+    return saveTelemetry({
+      ...snap,
+      toolboxChecked: { ...prevMap, [toolboxId]: [] },
+    });
+  }
+  const currentList = prevMap[toolboxId] ?? [];
+  const nextList = currentList.includes(itemText)
+    ? currentList.filter((x) => x !== itemText)
+    : [...currentList, itemText];
+
+  return saveTelemetry({
+    ...snap,
+    toolboxChecked: {
+      ...prevMap,
+      [toolboxId]: nextList,
+    },
+  });
+}
+
+/** M7 生活实验室：创建一项月度个人生活实验 */
+export async function createLifeLabExperiment(input: {
+  monthLabel: string;
+  title: string;
+  hypothesis: string;
+  independentVar: string;
+  metricName: string;
+  metricUnit: string;
+  baselineValue: number;
+}): Promise<TelemetrySnapshot> {
+  const snap = await loadTelemetry();
+  const exp: LifeLabExperiment = {
+    id: `exp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    ...input,
+    entries: [],
+    createdAt: new Date().toISOString(),
+  };
+  return saveTelemetry({
+    ...snap,
+    lifeLabExperiments: [exp, ...(snap.lifeLabExperiments ?? [])],
+  });
+}
+
+/** M7 生活实验室：录入或更新某天的实验观测数据点 */
+export async function addLifeLabEntry(
+  experimentId: string,
+  entry: LifeLabEntry
+): Promise<TelemetrySnapshot> {
+  const snap = await loadTelemetry();
+  const nextExps = (snap.lifeLabExperiments ?? []).map((exp) => {
+    if (exp.id !== experimentId) return exp;
+    const filtered = exp.entries.filter((e) => e.dateKey !== entry.dateKey);
+    const entries = [...filtered, entry].sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+    return { ...exp, entries };
+  });
+
+  return saveTelemetry({
+    ...snap,
+    activeDates: touchActiveDate(snap.activeDates, entry.dateKey),
+    lifeLabExperiments: nextExps,
+  });
+}
+
+export async function updateLifeLabConclusion(
+  experimentId: string,
+  conclusion: string
+): Promise<TelemetrySnapshot> {
+  const snap = await loadTelemetry();
+  const nextExps = (snap.lifeLabExperiments ?? []).map((exp) =>
+    exp.id === experimentId ? { ...exp, conclusion: conclusion.trim() } : exp
+  );
+  return saveTelemetry({
+    ...snap,
+    lifeLabExperiments: nextExps,
   });
 }
 
@@ -520,6 +635,7 @@ export async function toggleDailyTaskCompletion(
       card_flash: 'card_review',
       scenario_preview: 'guide',
       core_unit: 'guide',
+      event_pack_step: 'action_task',
       retest_review: 'quiz',
       light_recap: 'card_review',
     };

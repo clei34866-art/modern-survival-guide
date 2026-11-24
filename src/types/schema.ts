@@ -181,6 +181,7 @@ export type DailyTaskKind =
   | 'card_flash'
   | 'scenario_preview'
   | 'core_unit'
+  | 'event_pack_step'
   | 'retest_review'
   | 'light_recap';
 
@@ -293,6 +294,58 @@ export interface RealLifeTask {
   completedAt?: string;
 }
 
+export interface LifeEventPackModule {
+  branchId: BranchId;
+  roleTitle: string;
+  actionGuide: string;
+  unitId?: string;
+}
+
+export interface LifeEventPack {
+  id: string;
+  title: string;
+  triggerScenario: string;
+  linkedToolboxId?: string;
+  modules: LifeEventPackModule[];
+  combinedActionChecklist: string[];
+}
+
+export interface ToolboxChecklist {
+  id: string;
+  branchId: BranchId;
+  title: string;
+  scene: string;
+  items: string[];
+}
+
+export interface StagePrepPack {
+  id: string;
+  title: string;
+  stageHint: string;
+  includedBranches: BranchId[];
+  summary: string;
+}
+
+export interface LifeLabEntry {
+  dateKey: string;
+  value: number;
+  note?: string;
+}
+
+export interface LifeLabExperiment {
+  id: string;
+  monthLabel: string;
+  title: string;
+  hypothesis: string;
+  independentVar: string;
+  metricName: string;
+  metricUnit: string;
+  baselineValue: number;
+  entries: LifeLabEntry[];
+  conclusion?: string;
+  createdAt: string;
+}
+
 export interface TelemetrySnapshot {
   schemaVersion: 1;
   updatedAt: string;
@@ -303,7 +356,10 @@ export interface TelemetrySnapshot {
   unitSubmissions: Record<string, UnitActionSubmission>;
   milestoneSubmissions: Record<string, MilestoneDeliverableRecord>;
   currentDailyPlan?: DailyPlanSnapshot; // 当日静态任务快照，持久化支持刷新不丢与状态墙联动
-  realTasks?: RealLifeTask[]; // M6 真实任务池（推文/大创数据/汇报/跑步等真实生活待办）
+  realTasks?: RealLifeTask[]; // M6 真实任务池
+  activeEventPackId?: string; // M7 当前激活的跨分支生活事件包
+  toolboxChecked?: Record<string, string[]>; // M7 生活工具箱已勾选条目
+  lifeLabExperiments?: LifeLabExperiment[]; // M7 生活实验室月度个人实验记录
 }
 
 export interface WallCountdownItem {

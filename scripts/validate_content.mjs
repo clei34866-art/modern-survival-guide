@@ -34,6 +34,8 @@ async function main() {
   const catalogPath = path.join(dataDir, 'catalog.json');
   const kgPath = path.join(dataDir, 'knowledge-graph.json');
   const tipsPath = path.join(dataDir, 'daily-tips.json');
+  const eventPacksPath = path.join(dataDir, 'event-packs.json');
+  const toolboxPath = path.join(dataDir, 'toolbox-packs.json');
   const unitsDir = path.join(dataDir, 'units');
 
   const catalog = await readJson(catalogPath);
@@ -155,8 +157,21 @@ async function main() {
     assert(tip.sourceOrg && tip.sourceUrl && tip.fetchedAt, `daily-tip ${tip.id} 缺少来源元数据`);
   }
 
+  const eventPacks = await readJson(eventPacksPath);
+  assert(
+    Array.isArray(eventPacks.packs) && eventPacks.packs.length >= 2,
+    'event-packs.json 至少需要包含 2 个跨分支生活事件包示例'
+  );
+  for (const ep of eventPacks.packs) {
+    assert(ep.id && ep.title && Array.isArray(ep.modules) && ep.modules.length >= 2, `事件包 ${ep.id} 结构不完整`);
+  }
+
+  const toolboxData = await readJson(toolboxPath);
+  assert(Array.isArray(toolboxData.toolboxes) && toolboxData.toolboxes.length > 0, 'toolbox-packs 缺少 toolboxes');
+  assert(Array.isArray(toolboxData.stagePrepPacks) && toolboxData.stagePrepPacks.length > 0, 'toolbox-packs 缺少 stagePrepPacks');
+
   console.log(
-    `[check:content] 校验通过：${catalog.branches.length} 个分支、${trackMap.size} 条路径/软件分包、${conceptIds.size} 个知识图谱节点、${totalUnits} 个学习单元、${tipsBundle.tips.length} 条每日一招全部符合 Schema 与红线规则。`
+    `[check:content] 校验通过：${catalog.branches.length} 个分支、${trackMap.size} 条路径/软件分包、${conceptIds.size} 个知识图谱节点、${totalUnits} 个学习单元、${tipsBundle.tips.length} 条每日一招、${eventPacks.packs.length} 个生活事件包全部符合 Schema 与红线规则。`
   );
 }
 

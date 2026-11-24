@@ -150,7 +150,41 @@ export function buildDailyPlanSnapshot(
       keepInLowBattery: true,
       isPlaceholder: previewUnit.isPlaceholder,
     },
-    {
+  ];
+
+  // M7：若当前激活了跨分支生活事件包，高精力时段优先推入事件包跨分支任务
+  const activePack = telemetry.activeEventPackId
+    ? content.eventPacks?.find((p) => p.id === telemetry.activeEventPackId)
+    : undefined;
+
+  if (activePack) {
+    const modWithUnit = activePack.modules.find(
+      (m) => m.unitId && content.units.some((u) => u.id === m.unitId)
+    );
+    const leadMod = modWithUnit ?? activePack.modules[0];
+    const linkedUnit = leadMod?.unitId
+      ? content.units.find((u) => u.id === leadMod.unitId)
+      : undefined;
+    const branchSpan = activePack.modules.map((m) => m.branchId).join(' + ');
+
+    tasks.push({
+      id: `task-peak-event-${activePack.id}-${dateKey}`,
+      slot: 'peak',
+      kind: 'event_pack_step',
+      branchId: leadMod.branchId,
+      trackId:
+        linkedUnit?.trackId ??
+        content.catalog.branches.find((b) => b.id === leadMod.branchId)?.tracks[0]?.id ??
+        'b1-ai-l1',
+      unitId: linkedUnit?.id,
+      title: `【事件包·${activePack.title}】${leadMod.roleTitle}`,
+      humanHint: `跨分支联动（${branchSpan}）：${leadMod.actionGuide}`,
+      estimatedMinutes: linkedUnit?.estimatedMinutes ?? 20,
+      keepInLowBattery: false,
+      isPlaceholder: linkedUnit?.isPlaceholder ?? false,
+    });
+  } else {
+    tasks.push({
       id: `task-peak-core-${dateKey}`,
       slot: 'peak',
       kind: 'core_unit',
@@ -162,8 +196,8 @@ export function buildDailyPlanSnapshot(
       estimatedMinutes: peakUnit.estimatedMinutes,
       keepInLowBattery: false,
       isPlaceholder: peakUnit.isPlaceholder,
-    },
-  ];
+    });
+  }
 
   // 实验后（低精力）：优先排入到期或待重测的 1/3/7 天薄弱概念；若无则安排无压力轻回顾
   const dueRetestConcepts = Object.values(telemetry.cardStats).filter(
@@ -301,5 +335,105 @@ export function computeContinuityFootprint(
   return {
     totalActiveDays: activeSet.size,
     recent14Days,
+  };
+}
+
+export interface WeeklyReviewSummary {
+  windowStart: string;
+  windowEnd: string;
+  activeDaysInWeek: number;
+  studyMinutesInWeek: number;
+  clearedUnitTitles: string[];
+  practicedConceptCount: number;
+  completedActions: string[];
+  activeExperimentBrief?: string;
+  nextWeekSuggestion: string;
+}
+
+/** M7 简版每周生活复盘（周报）：自动聚合近 7 天学习与行动任务留痕并给出下周一条温和建议 */
+export function computeWeeklyReviewSummary(
+  content: PlatformContentBundle,
+  telemetry: TelemetrySnapshot,
+  todayKey = getLocalDateKey()
+): WeeklyReviewSummary {
+  const windowStart = addDaysToDateKey(todayKey, -6);
+  const inWindow = (isoOrDate: string) => {
+    const dk = isoOrDate.slice(0, 10);
+    return dk >= windowStart && dk <= todayKey;
+  };
+
+  const activeDaysInWeek = telemetry.activeDates.filter((d) => d >= windowStart && d <= todayKey).length;
+  const studyMinutesInWeek = Math.round(
+    telemetry.sessionDurations
+      .filter((d) => inWindow(d.recordedAt))
+      .reduce((sum, d) => sum + d.durationMs, 0) / 60000
+  );
+
+  const unitMap = new Map(content.units.map((u) => [u.id, u]));
+  const clearedSubs = Object.values(telemetry.unitSubmissions).filter(
+    (s) => s.isCleared && inWindow(s.updatedAt)
+  );
+  const clearedUnitTitles = clearedSubs.map(
+    (s) => unitMap.get(s.unitId)?.title.replace(/^【示例占位】/, '') ?? s.unitId
+  );
+
+  const practicedConceptCount = Object.values(telemetry.cardStats).filter((c) =>
+    inWindow(c.lastPracticedAt)
+  ).length;
+
+  const completedRealTasks = (telemetry.realTasks ?? [])
+    .filter((t) => t.status === 'completed' && t.completedAt && inWindow(t.completedAt))
+    .map((t) => `真实待办：${t.title}`);
+  const unitActionSummaries = clearedSubs.map((s) => `单元行动：${s.deliverableSummary}`);
+  const completedActions = [...completedRealTasks, ...unitActionSummaries];
+
+  const activeExp = (telemetry.lifeLabExperiments ?? [])[0];
+  let activeExperimentBrief: string | undefined;
+  if (activeExp) {
+    if (activeExp.entries.length > 0) {
+      const avg =
+        Math.round(
+          (activeExp.entries.reduce((s, e) => s + e.value, 0) / activeExp.entries.length) * 10
+        ) / 10;
+      activeExperimentBrief = `「${activeExp.title}」已记录 ${activeExp.entries.length} 天，当前均值 ${avg} ${activeExp.metricUnit}（实验前基线 ${activeExp.baselineValue} ${activeExp.metricUnit}）`;
+    } else {
+      activeExperimentBrief = `「${activeExp.title}」已立项，待录入首日观测值`;
+    }
+  }
+
+  // 生成下周一条温和可执行建议
+  const pendingRetests = Object.values(telemetry.cardStats).filter(
+    (c) => typeof c.retestStage === 'number' && c.retestStage > 0
+  );
+  const openRealTasks = (telemetry.realTasks ?? []).filter((t) => t.status === 'open');
+
+  let nextWeekSuggestion =
+    '下周保持晚饭后推进 1～2 节高杠杆内容即可，累的日子随时切保底版，稳住节奏比猛冲更重要。';
+  if (pendingRetests.length > 0) {
+    const firstNode = content.knowledgeGraph.nodes.find(
+      (n) => n.id === pendingRetests[0].conceptId
+    );
+    nextWeekSuggestion = `下周实验后低精力时段优先顺手清掉「${
+      firstNode?.label ?? pendingRetests[0].conceptId
+    }」等 ${pendingRetests.length} 个 1/3/7 天待重测概念，把薄弱点转化为稳固直觉。`;
+  } else if (openRealTasks.length > 0) {
+    nextWeekSuggestion = `你任务池里还有「${openRealTasks[0].title}」待推进，下周直接挂靠对应分支单元一并交付即可。`;
+  } else if (telemetry.activeEventPackId) {
+    const pack = content.eventPacks.find((p) => p.id === telemetry.activeEventPackId);
+    if (pack) {
+      nextWeekSuggestion = `当前已开启「${pack.title}」事件包，下周按配套核查表逐项打勾落地即可从容应对。`;
+    }
+  }
+
+  return {
+    windowStart,
+    windowEnd: todayKey,
+    activeDaysInWeek,
+    studyMinutesInWeek,
+    clearedUnitTitles,
+    practicedConceptCount,
+    completedActions,
+    activeExperimentBrief,
+    nextWeekSuggestion,
   };
 }

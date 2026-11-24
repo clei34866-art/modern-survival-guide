@@ -16,25 +16,31 @@ import {
 import { ensureTodayPlanSnapshot } from './core/scheduler';
 import type { BranchId, ScheduledTaskItem, TelemetrySnapshot } from './types/schema';
 import { BranchesView } from './views/BranchesView';
+import { ReviewDeckView } from './views/ReviewDeckView';
 import { TodayView } from './views/TodayView';
 import { UnitPlayerView } from './views/UnitPlayerView';
 
 interface ParsedRoute {
-  page: 'today' | 'branches' | 'unit' | 'events' | 'lab' | 'wall';
+  page: 'today' | 'branches' | 'unit' | 'review' | 'events' | 'lab' | 'wall';
   unitId?: string;
   branchId?: BranchId;
+  reviewTab?: 'retest' | 'cards';
 }
 
 function parseHashRoute(hash: string): ParsedRoute {
   const clean = hash.replace(/^#\/?/, '');
   const [pathPart, queryPart] = clean.split('?');
   const segments = pathPart.split('/').filter(Boolean);
+  const params = new URLSearchParams(queryPart ?? '');
 
   if (segments[0] === 'unit' && segments[1]) {
     return { page: 'unit', unitId: decodeURIComponent(segments[1]) };
   }
+  if (segments[0] === 'review') {
+    const t = params.get('tab');
+    return { page: 'review', reviewTab: t === 'cards' ? 'cards' : 'retest' };
+  }
   if (segments[0] === 'branches') {
-    const params = new URLSearchParams(queryPart ?? '');
     const b = params.get('b') as BranchId | null;
     return { page: 'branches', branchId: b ?? undefined };
   }
@@ -251,12 +257,29 @@ export function App() {
         )}
 
         {route.page === 'branches' && (
-          <BranchesView
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+              <a href="#/review?tab=retest" class="site-nav-link is-active">
+                打开知识图谱闪卡 & 1/3/7 天错题重测中心 →
+              </a>
+            </div>
+            <BranchesView
+              content={content}
+              telemetry={telemetry}
+              initialBranchId={route.branchId ?? 'B1'}
+              onOpenUnit={handleOpenUnit}
+              onSaveMilestone={handleSaveMilestone}
+            />
+          </div>
+        )}
+
+        {route.page === 'review' && (
+          <ReviewDeckView
             content={content}
             telemetry={telemetry}
-            initialBranchId={route.branchId ?? 'B1'}
+            initialTab={route.reviewTab}
+            onTelemetryChange={setTelemetry}
             onOpenUnit={handleOpenUnit}
-            onSaveMilestone={handleSaveMilestone}
           />
         )}
 

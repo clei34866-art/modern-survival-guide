@@ -296,6 +296,19 @@ export function TodayView({
                             打开单元 →
                           </a>
                         )}
+                        {!task.unitId && !isExempted && (
+                          <a
+                            href={
+                              task.kind === 'retest_review'
+                                ? '#/review?tab=retest'
+                                : '#/review?tab=cards'
+                            }
+                            class="site-nav-link is-active"
+                            style={{ flexShrink: 0, fontSize: '13px', padding: '5px 11px' }}
+                          >
+                            {task.kind === 'retest_review' ? '去重测 →' : '去刷卡 →'}
+                          </a>
+                        )}
                       </div>
                     );
                   })}

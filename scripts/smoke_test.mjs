@@ -19,6 +19,7 @@ async function main() {
         export * from './src/core/db.ts';
         export * from './src/core/scheduler.ts';
         export * from './src/core/gatekeeper.ts';
+        export * from './src/core/srs.ts';
       `,
       resolveDir: process.cwd(),
     },
@@ -173,8 +174,79 @@ async function main() {
     throw new Error('L1 单元与产出全部达标后，AI L2 应自动解锁');
   }
 
+  // 6. M4 错题建档、薄弱 TOP5 与 1->3->7->graduated 重测推进验证
+  let snapM4 = await m.recordQuizAttempt({
+    unitId: 'unit-b2-budget-sample',
+    branchId: 'B2',
+    trackId: 'b2-main',
+    questionId: 'q-b2-sample-1',
+    conceptId: 'b2.risk_drawdown_tolerance',
+    kind: 'quiz',
+    selectedIndex: 0,
+    isCorrect: false,
+    durationMs: 8000,
+  });
+
+  const top5Before = m.getWeaknessTop5(bundle.knowledgeGraph, snapM4);
+  if (!top5Before.some((w) => w.concept.id === 'b2.risk_drawdown_tolerance')) {
+    throw new Error('答错题后对应概念未进入薄弱概念 TOP5');
+  }
+
+  // 模拟第 1 天到期重测答对 -> 应推进到 3 天
+  const q1 = m.getRetestQueue(bundle.knowledgeGraph, bundle.units, snapM4, '2099-01-01');
+  if (!q1.dueItems.some((i) => i.concept.id === 'b2.risk_drawdown_tolerance')) {
+    throw new Error('到期重测队列未找到错题概念');
+  }
+
+  snapM4 = await m.recordQuizAttempt({
+    unitId: 'unit-b2-budget-sample',
+    branchId: 'B2',
+    trackId: 'b2-main',
+    questionId: 'q-b2-sample-1',
+    conceptId: 'b2.risk_drawdown_tolerance',
+    kind: 'retest',
+    selectedIndex: 1,
+    isCorrect: true,
+    durationMs: 6000,
+  });
+  if (snapM4.cardStats['b2.risk_drawdown_tolerance'].retestStage !== 3) {
+    throw new Error('1 天重测答对后未推进至 3 天阶段');
+  }
+
+  // 第 3 天重测答对 -> 推进到 7 天
+  snapM4 = await m.recordQuizAttempt({
+    unitId: 'unit-b2-budget-sample',
+    branchId: 'B2',
+    trackId: 'b2-main',
+    questionId: 'q-b2-sample-1',
+    conceptId: 'b2.risk_drawdown_tolerance',
+    kind: 'retest',
+    selectedIndex: 1,
+    isCorrect: true,
+    durationMs: 5500,
+  });
+  if (snapM4.cardStats['b2.risk_drawdown_tolerance'].retestStage !== 7) {
+    throw new Error('3 天重测答对后未推进至 7 天阶段');
+  }
+
+  // 第 7 天重测答对 -> graduated 已掌握出列
+  snapM4 = await m.recordQuizAttempt({
+    unitId: 'unit-b2-budget-sample',
+    branchId: 'B2',
+    trackId: 'b2-main',
+    questionId: 'q-b2-sample-1',
+    conceptId: 'b2.risk_drawdown_tolerance',
+    kind: 'retest',
+    selectedIndex: 1,
+    isCorrect: true,
+    durationMs: 5000,
+  });
+  if (snapM4.cardStats['b2.risk_drawdown_tolerance'].retestStage !== 'graduated') {
+    throw new Error('7 天重测答对后未标记为 graduated 已掌握');
+  }
+
   console.log(
-    '[smoke] 通过：M1–M3 全链路（留痕持久化、三时段与保底调度、7步门禁过关、时效待复核判定、B1 逐层解锁）验证通过。'
+    '[smoke] 通过：M1–M4 全链路（含知识图谱闪卡、薄弱 TOP5 归档与 1→3→7→已掌握重测流转）验证通过。'
   );
 }
 

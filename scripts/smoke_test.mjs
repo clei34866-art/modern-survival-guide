@@ -345,8 +345,18 @@ async function main() {
     throw new Error('简版周报未能准确汇总当周真实学习、行动任务与生活实验室留痕');
   }
 
+  // 10. M8 Scrapling 白名单抓源产物与缺口清单闭环验证
+  if (!fs.existsSync('public/data/scraped-sources.json')) {
+    throw new Error('缺少 M8 抓取输出 public/data/scraped-sources.json');
+  }
+  const scraped = JSON.parse(fs.readFileSync('public/data/scraped-sources.json', 'utf8'));
+  const gaps = JSON.parse(fs.readFileSync('public/data/content-gaps.json', 'utf8'));
+  if (scraped.fetchedCount + gaps.gapCount !== scraped.totalTargets) {
+    throw new Error('白名单总目标数与「已抓源 + 缺口清单」之和不一致');
+  }
+
   console.log(
-    '[smoke] 通过：M1–M7 全流程验证通过（含生活事件包推流、生活实验室对比数据与简版周报聚合）。'
+    `[smoke] 通过：M1–M8 全流程验证通过（抓源引擎=${scraped.engine}，成功=${scraped.fetchedCount}，缺口归档=${gaps.gapCount}）。`
   );
 }
 

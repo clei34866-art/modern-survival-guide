@@ -1,0 +1,172 @@
+{
+  "version": "1.0.0",
+  "policy": "严格限定公开可访问与开放授权页面，单次礼貌只读请求，遇登录墙、付费墙、反爬验证或超时立即停止并记入 content-gaps.json。",
+  "allowedDomains": [
+    "docs.blender.org",
+    "docs.python.org",
+    "numpy.org",
+    "pandas.pydata.org",
+    "git-scm.com",
+    "arxiv.org",
+    "docs.anthropic.com",
+    "platform.claude.com",
+    "www.deeplearning.ai",
+    "speech.ee.ntu.edu.tw",
+    "scikit-learn.org",
+    "www.investor.org.cn",
+    "www.csindex.com.cn",
+    "www.pbc.gov.cn",
+    "openstax.org",
+    "www.who.int",
+    "owl.purdue.edu",
+    "www.aft.org",
+    "flk.npc.gov.cn",
+    "www.redcross.org.cn"
+  ],
+  "targets": [
+    {
+      "id": "src-b1-anthropic-prompt",
+      "branchId": "B1",
+      "trackId": "b1-ai-l1",
+      "topic": "提示工程最佳实践与结构化约束",
+      "sourceOrg": "Anthropic Claude Platform Docs",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices"
+    },
+    {
+      "id": "src-b1-anthropic-hallucination",
+      "branchId": "B1",
+      "trackId": "b1-ai-l1",
+      "topic": "AI 输出核查与幻觉抑制指南 (Reduce Hallucinations)",
+      "sourceOrg": "Anthropic Claude Platform Docs",
+      "url": "https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations"
+    },
+    {
+      "id": "src-b1-deeplearning-short",
+      "branchId": "B1",
+      "trackId": "b1-ai-l1",
+      "topic": "吴恩达 DeepLearning.AI 提示工程与 Agent 工作流公开短课目录",
+      "sourceOrg": "DeepLearning.AI",
+      "url": "https://www.deeplearning.ai/short-courses/"
+    },
+    {
+      "id": "src-b1-blender-quickstart",
+      "branchId": "B1",
+      "trackId": "b1-sw-blender",
+      "topic": "Blender Python API (bpy) 快速入门与数据访问",
+      "sourceOrg": "Blender Foundation Official Docs",
+      "url": "https://docs.blender.org/api/current/info_quickstart.html"
+    },
+    {
+      "id": "src-b1-blender-overview",
+      "branchId": "B1",
+      "trackId": "b1-sw-blender",
+      "topic": "Blender Python API 架构：bpy.context / bpy.data / bpy.ops 边界",
+      "sourceOrg": "Blender Foundation Official Docs",
+      "url": "https://docs.blender.org/api/current/info_overview.html"
+    },
+    {
+      "id": "src-b1-numpy-beginner",
+      "branchId": "B1",
+      "trackId": "b1-ai-l2",
+      "topic": "NumPy 数组与向量化基础",
+      "sourceOrg": "NumPy Official Docs",
+      "url": "https://numpy.org/doc/stable/user/absolute_beginners.html"
+    },
+    {
+      "id": "src-b1-git-progit",
+      "branchId": "B1",
+      "trackId": "b1-sw-git",
+      "topic": "Pro Git 开源中文教材",
+      "sourceOrg": "Git SCM",
+      "url": "https://git-scm.com/book/zh/v2"
+    },
+    {
+      "id": "src-b1-hylee-ml",
+      "branchId": "B1",
+      "trackId": "b1-ai-l3",
+      "topic": "李宏毅机器学习公开课讲义索引",
+      "sourceOrg": "台湾大学李宏毅实验室",
+      "url": "https://speech.ee.ntu.edu.tw/~hylee/ml/2023-spring.php"
+    },
+    {
+      "id": "src-b1-arxiv-transformer",
+      "branchId": "B1",
+      "trackId": "b1-ai-l4",
+      "topic": "Attention Is All You Need 开放获取论文元数据",
+      "sourceOrg": "arXiv Open Access",
+      "url": "https://arxiv.org/abs/1706.03762"
+    },
+    {
+      "id": "src-b2-investor-edu",
+      "branchId": "B2",
+      "trackId": "b2-main",
+      "topic": "证监会中国投资者网·基金与个人风险教育课堂",
+      "sourceOrg": "中国证监会投资者保护局 / 中国投资者网",
+      "url": "https://www.investor.org.cn/xxzx/tzzkt/jj/jczs/",
+      "publishedYear": 2026,
+      "reviewAfter": "2027-06-30"
+    },
+    {
+      "id": "src-b2-csindex",
+      "branchId": "B2",
+      "trackId": "b2-main",
+      "topic": "中证指数有限公司公开指数投教资源",
+      "sourceOrg": "中证指数有限公司",
+      "url": "https://www.csindex.com.cn/",
+      "publishedYear": 2026,
+      "reviewAfter": "2027-06-30"
+    },
+    {
+      "id": "src-b3-openstax-bias",
+      "branchId": "B3",
+      "trackId": "b3-main",
+      "topic": "OpenStax Psychology 2e · 7.3 决策陷阱与认知偏误 (CC BY 4.0)",
+      "sourceOrg": "OpenStax / Rice University",
+      "url": "https://openstax.org/books/psychology-2e/pages/7-3-problem-solving"
+    },
+    {
+      "id": "src-b3-openstax-emotion",
+      "branchId": "B3",
+      "trackId": "b3-main",
+      "topic": "OpenStax Psychology 2e · 10.4 情绪理论与认知评估调节 (CC BY 4.0)",
+      "sourceOrg": "OpenStax / Rice University",
+      "url": "https://openstax.org/books/psychology-2e/pages/10-4-emotion"
+    },
+    {
+      "id": "src-b3-who-stress",
+      "branchId": "B3",
+      "trackId": "b3-main",
+      "topic": "WHO 压力应对公开图文手册",
+      "sourceOrg": "世界卫生组织 (WHO)",
+      "url": "https://www.who.int/publications/i/item/9789240003927"
+    },
+    {
+      "id": "src-b4-who-activity",
+      "branchId": "B4",
+      "trackId": "b4-main",
+      "topic": "WHO 身体活动和久坐行为指南",
+      "sourceOrg": "世界卫生组织 (WHO)",
+      "url": "https://www.who.int/zh/publications/i/item/9789240015128",
+      "publishedYear": 2020,
+      "reviewAfter": "2027-12-31"
+    },
+    {
+      "id": "src-b6-dunlosky",
+      "branchId": "B6",
+      "trackId": "b6-main",
+      "topic": "学习策略有效性认知科学公开综述（主动提取与间隔练习）",
+      "sourceOrg": "American Educator / AFT",
+      "url": "https://www.aft.org/ae/fall2013/dunlosky"
+    },
+    {
+      "id": "src-b7-npc-law",
+      "branchId": "B7",
+      "trackId": "b7-main",
+      "topic": "国家法律法规数据库公开入口",
+      "sourceOrg": "全国人大常委会办公厅",
+      "url": "https://flk.npc.gov.cn/",
+      "publishedYear": 2026,
+      "reviewAfter": "2027-06-30"
+    }
+  ]
+}

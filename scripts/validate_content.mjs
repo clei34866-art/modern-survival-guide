@@ -36,6 +36,8 @@ async function main() {
   const tipsPath = path.join(dataDir, 'daily-tips.json');
   const eventPacksPath = path.join(dataDir, 'event-packs.json');
   const toolboxPath = path.join(dataDir, 'toolbox-packs.json');
+  const gapsPath = path.join(dataDir, 'content-gaps.json');
+  const whitelistPath = path.join(rootDir, 'config', 'whitelist.json');
   const unitsDir = path.join(dataDir, 'units');
 
   const catalog = await readJson(catalogPath);
@@ -169,6 +171,30 @@ async function main() {
   const toolboxData = await readJson(toolboxPath);
   assert(Array.isArray(toolboxData.toolboxes) && toolboxData.toolboxes.length > 0, 'toolbox-packs 缺少 toolboxes');
   assert(Array.isArray(toolboxData.stagePrepPacks) && toolboxData.stagePrepPacks.length > 0, 'toolbox-packs 缺少 stagePrepPacks');
+
+  // M8：校验白名单配置、缺口清单与已抓取素材元数据
+  const whitelist = await readJson(whitelistPath);
+  assert(
+    Array.isArray(whitelist.allowedDomains) && whitelist.allowedDomains.length > 0,
+    'whitelist.allowedDomains 不能为空'
+  );
+  assert(
+    Array.isArray(whitelist.targets) && whitelist.targets.length > 0,
+    'whitelist.targets 不能为空'
+  );
+  const gapsData = await readJson(gapsPath);
+  assert(Array.isArray(gapsData.gaps), 'content-gaps.gaps 必须为数组');
+
+  const scrapedPath = path.join(dataDir, 'scraped-sources.json');
+  try {
+    const scraped = await readJson(scrapedPath);
+    assert(Array.isArray(scraped.items), 'scraped-sources.items 必须为数组');
+    for (const item of scraped.items) {
+      assert(item.sourceUrl && item.sourceOrg && item.fetchedAt, `scraped 条目 ${item.id} 缺少出处或抓取日期`);
+    }
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err;
+  }
 
   console.log(
     `[check:content] 校验通过：${catalog.branches.length} 个分支、${trackMap.size} 条路径/软件分包、${conceptIds.size} 个知识图谱节点、${totalUnits} 个学习单元、${tipsBundle.tips.length} 条每日一招、${eventPacks.packs.length} 个生活事件包全部符合 Schema 与红线规则。`

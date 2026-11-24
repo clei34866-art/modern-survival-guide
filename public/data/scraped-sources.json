@@ -1,0 +1,363 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2026-11-24T15:23:02.434Z",
+  "engine": "scrapling-mcp+node-whitelist-archiver",
+  "totalTargets": 17,
+  "fetchedCount": 13,
+  "items": [
+    {
+      "id": "src-b1-anthropic-prompt",
+      "branchId": "B1",
+      "trackId": "b1-ai-l1",
+      "topic": "提示工程最佳实践与结构化约束",
+      "sourceOrg": "Anthropic Claude Platform Docs",
+      "sourceUrl": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices",
+      "finalUrl": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices",
+      "fetchedAt": "2026-11-24",
+      "pageTitle": "Prompting best practices - Claude Platform Docs",
+      "headings": [
+        "Prompting best practices",
+        "Model-specific guidance",
+        "General principles",
+        "Be clear and direct",
+        "Example: Creating an analytics dashboard ",
+        "Add context to improve performance",
+        "Example: Formatting preferences ",
+        "Use examples effectively",
+        "Structure prompts with XML tags",
+        "Give Claude a role"
+      ],
+      "excerpts": [
+        "Claude Platform Docs Messages Managed Agents Admin Resources  Best practices  Models & pricing SDKs, CLI, and libraries Claude API skill R",
+        "This is the reference for prompt engineering with current Claude models, including Claude Fable 5.2, Claude Mythos 5.2, Claude Fable 5.1, Cl",
+        "For an overview of model capabilities, see Models overview . For Claude Fable 5.2 capabilities and API changes, see What’s new in Claude Fab"
+      ]
+    },
+    {
+      "id": "src-b1-anthropic-hallucination",
+      "branchId": "B1",
+      "trackId": "b1-ai-l1",
+      "topic": "AI 输出核查与幻觉抑制指南 (Reduce Hallucinations)",
+      "sourceOrg": "Anthropic Claude Platform Docs",
+      "sourceUrl": "https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations",
+      "finalUrl": "https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations",
+      "fetchedAt": "2026-11-24",
+      "pageTitle": "Reduce hallucinations - Claude Platform Docs",
+      "headings": [
+        "Reduce hallucinations",
+        "Basic hallucination minimization strategies",
+        "Example: Analyzing a merger and acquisition report ",
+        "Example: Auditing a data privacy policy ",
+        "Example: Drafting a press release on a product launch ",
+        "Advanced techniques",
+        "Solutions",
+        "Partners",
+        "Learn",
+        "Company"
+      ],
+      "excerpts": [
+        "Claude Platform Docs Messages Managed Agents Admin Resources  Best practices  Models & pricing SDKs, CLI, and libraries Claude API skill R",
+        "Even the most advanced language models, such as Claude, can sometimes generate text that is factually incorrect or inconsistent with the giv",
+        "As our M&A advisor, analyze this report on the potential acquisition of AcmeCo by ExampleCorp. <report> {{REPORT}} </report> Focus on financ"
+      ]
+    },
+    {
+      "id": "src-b1-deeplearning-short",
+      "branchId": "B1",
+      "trackId": "b1-ai-l1",
+      "topic": "吴恩达 DeepLearning.AI 提示工程与 Agent 工作流公开短课目录",
+      "sourceOrg": "DeepLearning.AI",
+      "sourceUrl": "https://www.deeplearning.ai/short-courses/",
+      "finalUrl": "https://www.deeplearning.ai/courses",
+      "fetchedAt": "2026-11-24",
+      "pageTitle": "DeepLearning.AI",
+      "headings": [
+        "AI Courses",
+        "Featured",
+        "AI Code Review",
+        "AI Prompting for Everyone",
+        "Build with Andrew",
+        "Learn",
+        "Company",
+        "Top Rated",
+        "Advanced Retrieval for AI with Chroma",
+        "Machine Learning Specialization"
+      ],
+      "excerpts": [
+        "✨ New Course! Enroll in Tabular Foundation Models for Data Science Agents",
+        "The Batch Andrew&#x27;s Letter Data Points ML Research Blog Community Forum Resources Membership For Business Overview Plans & Pricing Learn",
+        "Qodo AI Code Review AI Code Review AI can write more code than any team can review by hand. In this hands-on course with Qodo, you&#x27;ll l"
+      ]
+    },
+    {
+      "id": "src-b1-blender-quickstart",
+      "branchId": "B1",
+      "trackId": "b1-sw-blender",
+      "topic": "Blender Python API (bpy) 快速入门与数据访问",
+      "sourceOrg": "Blender Foundation Official Docs",
+      "sourceUrl": "https://docs.blender.org/api/current/info_quickstart.html",
+      "finalUrl": "https://docs.blender.org/api/current/info_quickstart.html",
+      "fetchedAt": "2026-11-24",
+      "pageTitle": "Quickstart - Blender Python API",
+      "headings": [
+        "November 24 : Pay it forward.",
+        "Quickstart ¶",
+        "Before Starting ¶",
+        "Running Scripts ¶",
+        "Key Concepts ¶",
+        "Data Access ¶",
+        "Context ¶",
+        "Operators (Tools) ¶",
+        "Integration ¶",
+        "Example Operator ¶"
+      ],
+      "excerpts": [
+        "Someone’s donation made Blender free for you. The next artist who opens Blender for the first time is counting on the same thing.",
+        "Now it’s your turn to invest in a brighter future. For everyone.",
+        "Today, we're asking for $10."
+      ]
+    },
+    {
+      "id": "src-b1-blender-overview",
+      "branchId": "B1",
+      "trackId": "b1-sw-blender",
+      "topic": "Blender Python API 架构：bpy.context / bpy.data / bpy.ops 边界",
+      "sourceOrg": "Blender Foundation Official Docs",
+      "sourceUrl": "https://docs.blender.org/api/current/info_overview.html",
+      "finalUrl": "https://docs.blender.org/api/current/info_overview.html",
+      "fetchedAt": "2026-11-24",
+      "pageTitle": "API Overview - Blender Python API",
+      "headings": [
+        "November 24 : Pay it forward.",
+        "API Overview ¶",
+        "Python in Blender ¶",
+        "The Default Environment ¶",
+        "Script Loading ¶",
+        "Add-ons ¶",
+        "Integration through Classes ¶",
+        "Construction & Destruction ¶",
+        "Registration ¶",
+        "Module Registration ¶"
+      ],
+      "excerpts": [
+        "Someone’s donation made Blender free for you. The next artist who opens Blender for the first time is counting on the same thing.",
+        "Now it’s your turn to invest in a brighter future. For everyone.",
+        "Today, we're asking for $10."
+      ]
+    },
+    {
+      "id": "src-b1-numpy-beginner",
+      "branchId": "B1",
+      "trackId": "b1-ai-l2",
+      "topic": "NumPy 数组与向量化基础",
+      "sourceOrg": "NumPy Official Docs",
+      "sourceUrl": "https://numpy.org/doc/stable/user/absolute_beginners.html",
+      "finalUrl": "https://numpy.org/doc/stable/user/absolute_beginners.html",
+      "fetchedAt": "2026-11-24",
+      "pageTitle": "NumPy: the absolute basics for beginners &#8212; NumPy v2.5 Manual",
+      "headings": [
+        "NumPy: the absolute basics for beginners #",
+        "How to import NumPy #",
+        "Reading the example code #",
+        "Why use NumPy? #",
+        "What is an “array”? #",
+        "Array fundamentals #",
+        "Array attributes #",
+        "How to create a basic array #",
+        "Adding, removing, and sorting elements #",
+        "How do you know the shape and size of an array? #"
+      ],
+      "excerpts": [
+        "Collapse Sidebar Expand Sidebar Section Navigation",
+        "Advanced usage and interoperability",
+        "Welcome to the absolute beginner’s guide to NumPy!"
+      ]
+    },
+    {
+      "id": "src-b1-git-progit",
+      "branchId": "B1",
+      "trackId": "b1-sw-git",
+      "topic": "Pro Git 开源中文教材",
+      "sourceOrg": "Git SCM",
+      "sourceUrl": "https://git-scm.com/book/zh/v2",
+      "finalUrl": "https://git-scm.com/book/zh/v2",
+      "fetchedAt": "2026-11-24",
+      "pageTitle": "Git",
+      "headings": [
+        "Book",
+        "Download Ebook",
+        "1. 起步",
+        "2. Git 基础",
+        "3. Git 分支",
+        "4. 服务器上的 Git",
+        "5. 分布式 Git",
+        "6. GitHub",
+        "7. Git 工具",
+        "8. 自定义 Git"
+      ],
+      "excerpts": [
+        "This book is available in English .",
+        "Full translation available in azərbaycan dili , български език , Deutsch , Español , فارسی , Français , Ελληνικά , 日本語 , 한국어 , Nederlands , ",
+        "Partial translations available in Čeština , Македонски , Polski , Ўзбекча , 繁體中文 ,"
+      ]
+    },
+    {
+      "id": "src-b1-hylee-ml",
+      "branchId": "B1",
+      "trackId": "b1-ai-l3",
+      "topic": "李宏毅机器学习公开课讲义索引",
+      "sourceOrg": "台湾大学李宏毅实验室",
+      "sourceUrl": "https://speech.ee.ntu.edu.tw/~hylee/ml/2023-spring.php",
+      "finalUrl": "https://speech.ee.ntu.edu.tw/~hylee/ml/2023-spring.php",
+      "fetchedAt": "2026-11-24",
+      "pageTitle": "ML 2023 Spring",
+      "headings": [
+        "Hung-yi Lee (李宏毅)",
+        "Machine Learning 2023 Spring",
+        "News",
+        "May",
+        "6/2 無實體課程 將以錄影方式公布HW13~15",
+        "Jun",
+        "HW13~15 has been released",
+        "Content",
+        "Homework",
+        "Contact"
+      ],
+      "excerpts": [
+        "TA hour 請見 NTU COOL 公告 2 Jun HW13~15 has been released HW13~15 已上線，請見網頁 HOMEWORK 處。",
+        "The information here is tentative and subject to change. Please read the requirement of each homework before deadline. You should finish you",
+        "Email: mlta-2023-spring@googlegroups.com"
+      ]
+    },
+    {
+      "id": "src-b1-arxiv-transformer",
+      "branchId": "B1",
+      "trackId": "b1-ai-l4",
+      "topic": "Attention Is All You Need 开放获取论文元数据",
+      "sourceOrg": "arXiv Open Access",
+      "sourceUrl": "https://arxiv.org/abs/1706.03762",
+      "finalUrl": "https://arxiv.org/abs/1706.03762",
+      "fetchedAt": "2026-11-24",
+      "pageTitle": "[1706.03762] Attention Is All You Need",
+      "headings": [
+        "Computer Science > Computation and Language",
+        "Title: Attention Is All You Need",
+        "Submission history",
+        "Access Paper:",
+        "Additional Features",
+        "Current browse context:",
+        "References & Citations",
+        "123 blog links",
+        "DBLP - CS Bibliography",
+        "BibTeX formatted citation"
+      ],
+      "excerpts": [
+        "Press Enter to search &middot; Advanced search",
+        "Focus to learn more arXiv-issued DOI via DataCite Submission history From: Llion Jones [ view email ] [v1] Mon, 12 Jun 2017 17:57:34 UTC (1,",
+        "Both individuals and organizations that work with arXivLabs have embraced and accepted our values of openness, community, excellence, and us"
+      ]
+    },
+    {
+      "id": "src-b3-openstax-bias",
+      "branchId": "B3",
+      "trackId": "b3-main",
+      "topic": "OpenStax Psychology 2e · 7.3 决策陷阱与认知偏误 (CC BY 4.0)",
+      "sourceOrg": "OpenStax / Rice University",
+      "sourceUrl": "https://openstax.org/books/psychology-2e/pages/7-3-problem-solving",
+      "finalUrl": "https://openstax.org/books/psychology-2e/pages/7-3-problem-solving",
+      "fetchedAt": "2026-11-24",
+      "pageTitle": "7.3 Problem Solving - Psychology 2e | OpenStax",
+      "headings": [
+        "7.3 Problem Solving",
+        "Learning Objectives",
+        "Problem-Solving Strategies",
+        "Everyday Connection",
+        "Pitfalls to Problem Solving",
+        "Link to Learning",
+        "OpenStax’s mission is to make an amazing education accessible for all.",
+        "Help",
+        "OpenStax",
+        "Policies"
+      ],
+      "excerpts": [
+        "Psychology 2e 7.3 Problem Solving Psychology 2e 7.3 Problem Solving Contents Highlights Print Search Search Close Search 7.3 Problem Solving",
+        "People face problems every day—usually, multiple problems throughout the day. Sometimes these problems are straightforward: To double a reci",
+        "When you are presented with a problem—whether it is a complex mathematical problem or a broken printer, how do you solve it? Before finding "
+      ]
+    },
+    {
+      "id": "src-b3-openstax-emotion",
+      "branchId": "B3",
+      "trackId": "b3-main",
+      "topic": "OpenStax Psychology 2e · 10.4 情绪理论与认知评估调节 (CC BY 4.0)",
+      "sourceOrg": "OpenStax / Rice University",
+      "sourceUrl": "https://openstax.org/books/psychology-2e/pages/10-4-emotion",
+      "finalUrl": "https://openstax.org/books/psychology-2e/pages/10-4-emotion",
+      "fetchedAt": "2026-11-24",
+      "pageTitle": "10.4 Emotion - Psychology 2e | OpenStax",
+      "headings": [
+        "10.4 Emotion",
+        "Learning Objectives",
+        "Theories of Emotion",
+        "Link to Learning",
+        "The Biology of Emotions",
+        "Facial Expression and Recognition of Emotions",
+        "Connect the Concepts",
+        "OpenStax’s mission is to make an amazing education accessible for all.",
+        "Help",
+        "OpenStax"
+      ],
+      "excerpts": [
+        "Psychology 2e 10.4 Emotion Psychology 2e 10.4 Emotion Contents Highlights Print Search Search Close Search 10.4 Emotion Learning Objectives ",
+        "As we move through our daily lives, we experience a variety of emotions. An emotion is a subjective state of being that we often describe as",
+        "The words emotion and mood are sometimes used interchangeably, but psychologists use these words to refer to two different things. Typically"
+      ]
+    },
+    {
+      "id": "src-b3-who-stress",
+      "branchId": "B3",
+      "trackId": "b3-main",
+      "topic": "WHO 压力应对公开图文手册",
+      "sourceOrg": "世界卫生组织 (WHO)",
+      "sourceUrl": "https://www.who.int/publications/i/item/9789240003927",
+      "finalUrl": "https://www.who.int/publications/i/item/9789240003927",
+      "fetchedAt": "2026-11-24",
+      "pageTitle": "Doing What Matters in Times of Stress",
+      "headings": [
+        "Doing What Matters in Times of Stress",
+        "Overview"
+      ],
+      "excerpts": [
+        "Doing What Matters in Times of Stress: An Illustrated Guide is a stress management guide for coping with adversity. The guide aims to equip ",
+        "Informed by evidence and extensive field testing, the guide is for anyone who experiences stress, wherever they live and whatever their circ"
+      ]
+    },
+    {
+      "id": "src-b6-dunlosky",
+      "branchId": "B6",
+      "trackId": "b6-main",
+      "topic": "学习策略有效性认知科学公开综述（主动提取与间隔练习）",
+      "sourceOrg": "American Educator / AFT",
+      "sourceUrl": "https://www.aft.org/ae/fall2013/dunlosky",
+      "finalUrl": "https://www.aft.org/ae/fall2013/dunlosky",
+      "fetchedAt": "2026-11-24",
+      "pageTitle": "Strengthening the Student Toolbox",
+      "headings": [
+        "Breadcrumb",
+        "Strengthening the Student Toolbox",
+        "Study Strategies to Boost Learning",
+        "The Most Effective Learning Strategies",
+        "Strategies with Much Promise",
+        "Less Useful Strategies (That Students Use a Lot)",
+        "Tips for Using Effective Learning Strategies",
+        "Stay Connected",
+        "Our Mission"
+      ],
+      "excerpts": [
+        "It's the night before her biology exam, and the high school student has just begun to study. She takes out her highlighter and reads her tex",
+        "Quite often, students believe these relatively ineffective strategies are actually the most effective, 1 and at least on the surface they do",
+        "So, why aren't students learning about the best strategies? I can only speculate, but several reasons seem likely. Curricula are developed t"
+      ]
+    }
+  ]
+}

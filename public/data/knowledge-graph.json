@@ -17,6 +17,36 @@
       ]
     },
     {
+      "id": "b1.fewshot_xml_structure",
+      "branchId": "B1",
+      "label": "长材料置顶与 XML 标签隔离",
+      "plainDefinition": "处理几万字论文或多份文档时，把原始材料用 <documents> 标签包好放在最顶部，具体提问放在最末尾，并给 3～5 个真实输入输出样例。",
+      "cardPrompt": "向大模型投喂多篇长文献并提问时，指令放开头好还是放文档末尾好？",
+      "cardAnswer": "把长文档用 XML 标签包裹放在顶部、具体查询与指令放在末尾，实测在复杂多文档任务上可显著提升响应准确度。",
+      "prerequisites": ["b1.prompt_context_boundary"],
+      "crossLinks": []
+    },
+    {
+      "id": "b1.agent_tool_reversibility",
+      "branchId": "B1",
+      "label": "Agent 工具循环与可逆性门禁",
+      "plainDefinition": "给 AI 配工具不是放任不管：本地只读检索尽量并行提速，而删除文件、强推分支、对外发消息或动钱等难逆操作必须卡人工确认门禁。",
+      "cardPrompt": "设计个人 Agent 工作流时，区分哪些动作可自动执行、哪些必须停下等人工确认的核心标尺是什么？",
+      "cardAnswer": "看「可逆性与外部影响半径」：本地读文件、跑测试等完全可逆动作可自动并批执行；删除、覆盖、外发或涉财操作必须人工审批。",
+      "prerequisites": ["b1.fewshot_xml_structure"],
+      "crossLinks": []
+    },
+    {
+      "id": "b1.quote_first_verification",
+      "branchId": "B1",
+      "label": "先引原句再推论（Quote-First 核查）",
+      "plainDefinition": "让 AI 分析长报告或论文前，强制它先把逐字原句抽进 <quotes> 标签，再仅基于抽出的原句回答；找不到原句的论断一律撤回。",
+      "cardPrompt": "为什么「先抽取逐字原句，再基于原句做总结」比「直接总结并附带出处」更防幻觉？",
+      "cardAnswer": "自回归生成具有顺序依赖：先把真实原句写进上文 token，后续总结就被锚定在真实文本上，而不是先编结论再硬凑假引文。",
+      "prerequisites": ["b1.prompt_context_boundary"],
+      "crossLinks": []
+    },
+    {
       "id": "math.matrix_transform",
       "branchId": "B1",
       "label": "三维齐次变换矩阵（共用数学节点）",
@@ -34,11 +64,31 @@
     {
       "id": "b1.bpy_scene_data",
       "branchId": "B1",
-      "label": "bpy.data 数据块与场景树",
-      "plainDefinition": "Blender 内部把网格、材质、相机都存成独立数据块（Data-Blocks），用 Python 直接改 bpy.data 比模拟鼠标点击稳定十倍。",
-      "cardPrompt": "在 Blender Python 脚本里，优先用 bpy.data 还是 bpy.ops 批量生成百个科研小球？为什么？",
-      "cardAnswer": "优先用 bpy.data；bpy.ops 依赖当前视图上下文且每次触发场景重算，循环百次极慢且易报错。",
+      "label": "bpy.data 数据块与集合管理",
+      "plainDefinition": "Blender 把网格、材质、相机全归口在 bpy.data 数据库里管理，新建或删除必须走 bpy.data.<集合>.new()/remove() 而不能直接实例化类。",
+      "cardPrompt": "在 Blender Python 中直接调用 bpy.types.Mesh() 为什么会报 TypeError？正确新建网格的方法是什么？",
+      "cardAnswer": "Blender 不允许存在游离于主数据库之外的数据块；必须通过 bpy.data.meshes.new(name='MyMesh') 创建。",
       "prerequisites": ["math.matrix_transform"],
+      "crossLinks": []
+    },
+    {
+      "id": "b1.bpy_context_readonly",
+      "branchId": "B1",
+      "label": "bpy.context 只读属性与 poll() 边界",
+      "plainDefinition": "bpy.context 反映鼠标当前所在的区域和选中态且本身只读；科研批处理脚本应绕开依赖界面焦点的 bpy.ops，直接读写数据块。",
+      "cardPrompt": "为什么在脚本里写 bpy.context.active_object = obj 会报错？怎样正确切换活动物体？",
+      "cardAnswer": "bpy.context 属性为只读视图；应通过数据层 bpy.context.view_layer.objects.active = obj 修改活动对象。",
+      "prerequisites": ["b1.bpy_scene_data"],
+      "crossLinks": []
+    },
+    {
+      "id": "b1.bpy_mathutils_ref",
+      "branchId": "B1",
+      "label": "mathutils 原地引用与 .copy() 隔离",
+      "plainDefinition": "Blender 的 Vector 和 Matrix 属性默认持有底层物体数据的活引用，赋值给变量后直接乘改会连带把原物体拖跑，独立计算前务必调 .copy()。",
+      "cardPrompt": "执行 loc = obj.location; loc *= 2.0 后，原物体 obj 的空间位置会发生什么变化？如何避免误改？",
+      "cardAnswer": "obj 会直接被移动两倍距离，因为 loc 持有内部数据引用；若只需读取计算，应写 loc = obj.location.copy()。",
+      "prerequisites": ["math.matrix_transform", "b1.bpy_scene_data"],
       "crossLinks": []
     },
     {

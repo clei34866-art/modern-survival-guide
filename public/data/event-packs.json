@@ -16,7 +16,7 @@
           "branchId": "B1",
           "roleTitle": "AI 与软件：资料提炼、引文核查与图表精简",
           "actionGuide": "用锚定原文模式让 AI 协助压缩长段落，所有数据与文献 DOI 必须逐条回源核实，杜绝幽灵引用上屏。",
-          "unitId": "unit-b1-l1-sample"
+          "unitId": "unit-b1-l1-verify"
         },
         {
           "branchId": "B3",

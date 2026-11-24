@@ -1,0 +1,294 @@
+{
+  "version": "1.0.0",
+  "units": [
+    {
+      "id": "unit-b1-blender-data",
+      "branchId": "B1",
+      "trackId": "b1-sw-blender",
+      "title": "Blender 脚本破冰：用 bpy.data 直控场景数据块，告别手点百遍鼠标",
+      "estimatedMinutes": 22,
+      "recommendedEnergy": "peak",
+      "isPlaceholder": false,
+      "scenarioHook": {
+        "sceneTitle": "论文配图要改 64 个纳米颗粒半径和配色，手工一个个点到眼花",
+        "story": "审稿人建议把示意图里所有掺杂原子的球体半径缩小 15% 并换成高对比青色。如果是纯鼠标流，你得在大纲视图里狂点半小时；而懂 `bpy.data` 的同学在 Scripting 面板敲 4 行循环，0.1 秒全部精准改完。",
+        "guidingQuestion": "Blender 内部到底是怎么存放物体、网格和材质的？怎样一秒查到任意界面按钮对应的 Python 属性名？"
+      },
+      "prediction": {
+        "question": "熟悉常规面向对象 Python 的人初学 Blender 脚本时，直接在控制台执行 `mesh = bpy.types.Mesh()` 试图新建一个网格，会发生什么？",
+        "options": [
+          "成功创建一个空白游离网格对象",
+          "直接抛出 TypeError：Blender 严禁创建游离于主数据库外的数据块，必须通过 `bpy.data.meshes.new(name='MyMesh')` 创建",
+          "自动在原点生成一个立方体并渲染保存",
+          "导致电脑重启"
+        ],
+        "commonTrapIndex": 0,
+        "answerIndex": 1,
+        "whyCounterIntuitive": "Blender 为了统一管理存盘、撤销（Undo）与跨文件链接，规定一切 ID 数据块都必须登记在 `bpy.data` 集合下，不能用普通 Python 类构造器凭空实例化。"
+      },
+      "guide": {
+        "blocks": [
+          {
+            "heading": "开局先把「透视眼」打开：Python Tooltips 与控制台补全",
+            "markdown": "写 `bpy` 不用死背几千个 API：先在 `Edit -> Preferences -> Interface` 勾选 **Developer Extras** 与 **Python Tooltips**。此后鼠标悬停在 Blender 任何滑块或按钮上，都会直接浮出对应的 Python 数据路径（如 `Scene.render.resolution_percentage`）；切到顶部 **Scripting** 工作区，在内置 Python Console 按 Tab 即可实时自动补全探索当前 `.blend` 文件里的真实属性。",
+            "keyTakeaway": "悬停看 Python Tooltips + 控制台 Tab 补全，是查 bpy 属性最快的一手捷径。"
+          },
+          {
+            "heading": "bpy.data 主数据库：按名字拿数据块，通过集合增删",
+            "markdown": "当前工程里的所有场景、物体、网格、材质都存放在 `bpy.data` 下（如 `bpy.data.objects`、`bpy.data.materials`）。虽然集合同时支持数字下标 `objects[0]` 和字符串键 `objects['Cube']`，但运行过程中增删物体会改变数字下标顺序，脚本里应始终优先按名称或保存变量引用访问。新建与清理统一走集合方法：`mat = bpy.data.materials.new('LabCyan')`，不用时调 `bpy.data.materials.remove(mat)`。",
+            "keyTakeaway": "凡是界面上能改的参数，都能通过 `bpy.data` 精确读写且可 100% 复现。"
+          }
+        ],
+        "visuals": [
+          {
+            "kind": "exact_svg",
+            "caption": "Blender bpy.data 核心数据块集合关系与科研高频占比示意（基于官方 Quickstart 文档绘制）",
+            "svgSpec": {
+              "template": "tree_breakdown",
+              "data": {
+                "buckets": [
+                  { "name": "bpy.data.objects", "ratio": 90 },
+                  { "name": "bpy.data.meshes", "ratio": 75 },
+                  { "name": "bpy.data.materials", "ratio": 70 },
+                  { "name": "bpy.data.scenes", "ratio": 55 }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "conceptNodeIds": ["b1.bpy_scene_data"],
+      "quiz": {
+        "mode": "standard_mcq",
+        "passRatio": 0.8,
+        "questions": [
+          {
+            "id": "q-b1-bl-1",
+            "stem": "在自动化科研绘图脚本中访问特定相机对象时，为什么官方推荐用 `bpy.data.objects['MainCam']` 而非 `bpy.data.objects[0]`？",
+            "options": [
+              "因为数字下标语法在 Blender 中不支持",
+              "因为运行期间增删或重排对象会导致数字下标漂移，按明确命名索引才稳定可复现",
+              "因为字符串索引会让渲染画质更高",
+              "两者完全没有任何区别"
+            ],
+            "correctIndex": 1,
+            "explanation": "Blender 官方文档明确指出集合成员的数值索引在运行期可能随数据变动而改变，脚本中按命名或对象引用操作更安全。",
+            "relatedConceptId": "b1.bpy_scene_data"
+          }
+        ]
+      },
+      "actionTask": {
+        "id": "act-b1-blender-data",
+        "title": "开启 Python Tooltips 并在 Scripting 控制台写出 5 行材质与属性批改脚本",
+        "lifeContext": "打开 Blender 切到 Scripting 标签页，3 分钟即可验证",
+        "steps": [
+          "在偏好设置中勾选 Developer Extras 与 Python Tooltips",
+          "用 `bpy.data.materials.new('SciMat')` 新建一个材质并赋给默认物体",
+          "用循环遍历 `bpy.data.objects` 打印所有对象名称与类型"
+        ],
+        "deliverablePrompt": "贴入你在 Blender Scripting 面板实测跑通的几行代码或控制台输出",
+        "feynmanCheckPrompt": "用一句话说明：为什么 Blender 不让你直接 `bpy.types.Mesh()` 新建网格？",
+        "matchPoolCategory": "research_data"
+      },
+      "sources": [
+        {
+          "sourceOrg": "Blender 5.3 Python API Official Docs · Quickstart",
+          "sourceUrl": "https://docs.blender.org/api/current/info_quickstart.html",
+          "fetchedAt": "2026-11-24"
+        }
+      ]
+    },
+    {
+      "id": "unit-b1-blender-context",
+      "branchId": "B1",
+      "trackId": "b1-sw-blender",
+      "title": "跨越新手最大报错坑：搞清 bpy.context 只读规则与 bpy.ops.poll() 边界",
+      "estimatedMinutes": 20,
+      "recommendedEnergy": "peak",
+      "isPlaceholder": false,
+      "scenarioHook": {
+        "sceneTitle": "网上抄来的脚本一跑就炸：`RuntimeError: Operator ... poll() failed, context is incorrect`",
+        "story": "几乎每个学 Blender 脚本的人都在这句报错上卡过半天：从操作记录里复制了一连串 `bpy.ops.*` 放进文本编辑器点运行，结果鼠标刚好停在文本区没停在 3D 视口，脚本直接崩溃退出。",
+        "guidingQuestion": "为什么 `bpy.ops` 这么挑鼠标位置？写无人值守批处理脚本时该怎么绕开这个坑？"
+      },
+      "prediction": {
+        "question": "你想在脚本里把变量 `obj` 设为当前场景的活动物体（Active Object），直接写 `bpy.context.active_object = obj` 会怎样？",
+        "options": [
+          "顺利切换活动物体",
+          "直接报错：`bpy.context` 的属性全部是只读视图，必须通过数据层 `bpy.context.view_layer.objects.active = obj` 修改",
+          "会把原物体删除",
+          "只在 Windows 下生效"
+        ],
+        "commonTrapIndex": 0,
+        "answerIndex": 1,
+        "whyCounterIntuitive": "`bpy.context` 只是反映当前界面区域与选中状态的只读快照；要改动状态，必须去改底层 `bpy.data` 或 `view_layer` 数据结构。"
+      },
+      "guide": {
+        "blocks": [
+          {
+            "heading": "bpy.ops 是「给人类界面按钮用的工具」，不是批处理首选",
+            "markdown": "每个 `bpy.ops` 操作符内部都有一个 `poll()` 检查函数，用来判断当前鼠标所在编辑器区域（3D 视口还是控制台）以及当前模式（物体模式还是编辑模式）是否合法。一旦上下文不对就会抛 `RuntimeError`；而且每调一次 `bpy.ops.mesh.primitive_uv_sphere_add()` 都会触发整场依赖图刷新，循环生成上千个粒子时会慢如蜗牛。",
+            "keyTakeaway": "必须调操作符前先用 `if bpy.ops.xxx.poll():` 检查；批量造物体优先复用同一个 Mesh 数据块挂到集合中。"
+          },
+          {
+            "heading": "高效科研建模标准姿势：一份网格数据 + 多个 Object 链接集合",
+            "markdown": "生成 200 个晶格原子球时，只需准备一份球体 `mesh`，循环里调 `obj = bpy.data.objects.new(f'Atom_{i}', mesh)` 并 `bpy.context.collection.objects.link(obj)`。完全不依赖鼠标在哪、不触发百次重算，瞬间生成且内存极省。",
+            "keyTakeaway": "读状态看 `bpy.context`，改状态与批量建模走 `bpy.data` + `collection.objects.link()`。"
+          }
+        ],
+        "visuals": [
+          {
+            "kind": "exact_svg",
+            "caption": "无人值守 bpy 脚本稳定生成科研结构四步标准流（绕开 UI 上下文报错）",
+            "svgSpec": {
+              "template": "flow_pipeline",
+              "data": {
+                "steps": [
+                  "准备单份Mesh数据",
+                  "objects.new建对象",
+                  "collection.link入场",
+                  "赋坐标与材质渲染"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "conceptNodeIds": ["b1.bpy_scene_data", "b1.bpy_context_readonly"],
+      "quiz": {
+        "mode": "standard_mcq",
+        "passRatio": 0.8,
+        "questions": [
+          {
+            "id": "q-b1-bl-2",
+            "stem": "为什么在 Python Console 里直接调用 `bpy.ops.view3d.render_border()` 会抛出 `poll() failed, context is incorrect`？",
+            "options": [
+              "因为 Blender 没有安装渲染器",
+              "因为该操作符的 poll() 要求当前上下文区域必须是带活动相机的 3D 视口，而非 Python 控制台区域",
+              "因为函数名拼写错误",
+              "因为需要先保存文件"
+            ],
+            "correctIndex": 1,
+            "explanation": "界面类操作符强依赖当前编辑器 Space/Area 上下文，跨区域调用会导致 poll() 返回 False 并抛异常。",
+            "relatedConceptId": "b1.bpy_context_readonly"
+          }
+        ]
+      },
+      "actionTask": {
+        "id": "act-b1-blender-context",
+        "title": "不用 bpy.ops 循环，改用 `bpy.data.objects.new` 批量链接 10 个共享网格物体",
+        "lifeContext": "科研晶体晶胞、分子球棍或阵列示意图的通用底层写法",
+        "steps": [
+          "新建一个独立集合 `col = bpy.data.collections.new('Atoms')` 并挂入当前场景",
+          "获取或创建一个基础网格，用 `for i in range(10):` 调用 `bpy.data.objects.new` 创建实例并 `col.objects.link(obj)`",
+          "验证鼠标停在文本编辑器直接点 Run Script 零报错通过"
+        ],
+        "deliverablePrompt": "记录你的集合创建与对象链接核心代码片段",
+        "feynmanCheckPrompt": "用一句话告诉同学：为什么批量生成 500 个粒子不该在 for 循环里连调 500 次 `bpy.ops`？",
+        "matchPoolCategory": "research_data"
+      },
+      "sources": [
+        {
+          "sourceOrg": "Blender 5.3 Python API Official Docs · Context & Operators Poll()",
+          "sourceUrl": "https://docs.blender.org/api/current/info_quickstart.html",
+          "fetchedAt": "2026-11-24"
+        },
+        {
+          "sourceOrg": "Blender 5.3 Python API Official Docs · API Overview",
+          "sourceUrl": "https://docs.blender.org/api/current/info_overview.html",
+          "fetchedAt": "2026-11-24"
+        }
+      ]
+    },
+    {
+      "id": "unit-b1-blender-transform",
+      "branchId": "B1",
+      "trackId": "b1-sw-blender",
+      "title": "三维空间精准摆位：mathutils 4×4 矩阵、活引用陷阱与一键出图",
+      "estimatedMinutes": 25,
+      "recommendedEnergy": "peak",
+      "isPlaceholder": false,
+      "scenarioHook": {
+        "sceneTitle": "只是拿变量存了一下物体坐标做加减，怎么原来的基准球自己飞走了？",
+        "story": "你写了 `base_loc = ref_obj.location`，接着为了算下一个球的位置写了 `base_loc.z += 2.0`，一抬头发现原本不该动的基准球 `ref_obj` 居然跟着往上蹿了 2 米——整张科研示意图坐标全乱套了。",
+        "guidingQuestion": "`mathutils` 向量和矩阵跟普通 Python 元组有什么本质区别？怎样把实验 CSV 坐标精确变成高清渲染图？"
+      },
+      "prediction": {
+        "question": "在 Blender Python 中执行 `loc = obj.location; loc *= 2.0` 后，`obj` 的位置会变吗？",
+        "options": [
+          "不会变，loc 只是拷贝出来的一组普通数字",
+          "会直接把 obj 原地放大移动两倍！因为 mathutils 属性默认持有内部数据的活引用，独立计算前必须调用 `obj.location.copy()`",
+          "会报语法错误",
+          "只有保存文件后才会变"
+        ],
+        "commonTrapIndex": 0,
+        "answerIndex": 1,
+        "whyCounterIntuitive": "为了原地修改高性能，Blender 的 `mathutils.Vector/Matrix` 属性直接绑定底层 C 结构内存；忘记 `.copy()` 是脚本坐标莫名错位的头号隐形杀手。"
+      },
+      "guide": {
+        "blocks": [
+          {
+            "heading": "4×4 齐次矩阵与 `@` 运算符：一行算清世界坐标",
+            "markdown": "每个物体的局部顶点坐标 `v.co` 乘上该物体的 4×4 世界变换矩阵，就能直接得到全局三维坐标：`world_pos = obj.matrix_world @ v.co`（注意在现代 Python / `mathutils` 中矩阵乘法统一使用 `@` 运算符）。需要基于某点派生新位置时，养成肌肉记忆先写 `pos = obj.location.copy()` 断开活引用。",
+            "keyTakeaway": "矩阵乘向量认准 `@`；读向量做中间运算先写 `.copy()`。"
+          },
+          {
+            "heading": "脚本闭环收尾：关键帧动画与固定相机一键渲染 PNG",
+            "markdown": "排好三维阵列并架好相机与灯光后，动画只需设属性再调 `obj.keyframe_insert(data_path='location', frame=10, index=2)`；静态科研配图则直接指定 `scene.render.filepath = '//fig_output.png'` 并调用 `bpy.ops.render.render(write_still=True)`，改一行实验参数就能全自动重新出图，再也不怕审稿人要求微调视角重画。",
+            "keyTakeaway": "把相机角度、焦距、分辨率与输出路径全写进同一份 `.py` 脚本，实现科研配图「代码级可复现」。"
+          }
+        ],
+        "visuals": [
+          {
+            "kind": "exact_svg",
+            "caption": "Blender 右手三维坐标系（+Z 向上）与 obj.matrix_world (4×4) 变换示意",
+            "svgSpec": {
+              "template": "coordinate_3d",
+              "data": {}
+            }
+          }
+        ]
+      },
+      "conceptNodeIds": ["math.matrix_transform", "b1.bpy_mathutils_ref"],
+      "quiz": {
+        "mode": "standard_mcq",
+        "passRatio": 0.8,
+        "questions": [
+          {
+            "id": "q-b1-bl-3",
+            "stem": "要把网格第 0 号顶点的局部坐标转换为场景世界坐标，且不篡改原物体属性，正确的写法是？",
+            "options": [
+              "`world_co = obj.matrix_world * obj.data.vertices[0].co` 且直接原地改 `obj.location`",
+              "`world_co = obj.matrix_world @ obj.data.vertices[0].co`，且派生偏移向量时使用 `.copy()`",
+              "`world_co = obj.location + 4`",
+              "只能手工在界面测量无法用脚本计算"
+            ],
+            "correctIndex": 1,
+            "explanation": "`mathutils` 使用 `@` 进行矩阵与向量乘法，配合 `.copy()` 可彻底避免误改原对象底层数据。",
+            "relatedConceptId": "b1.bpy_mathutils_ref"
+          }
+        ]
+      },
+      "actionTask": {
+        "id": "act-b1-blender-transform",
+        "title": "写一份一键生成 3×3×3 晶格小球阵列并自动渲染 PNG 的 bpy 脚本（Blender 包实战产出）",
+        "lifeContext": "材料科学晶格示意、传感器阵列或三维矩阵可视化直接可用",
+        "steps": [
+          "用三层循环或坐标列表计算 27 个三维格点坐标（练习使用 `mathutils.Vector` 与 `.copy()`）",
+          "用脚本设置场景相机位置、朝向与 `render.resolution_x / y`",
+          "调用渲染输出一张高清示意图并保存该 `.py` 脚本"
+        ],
+        "deliverablePrompt": "记录你的阵列脚本关键参数或输出图片路径（可同步登记完成 Blender 分包实战产出）",
+        "feynmanCheckPrompt": "用一句话解释：为什么 `loc = obj.location` 改 `loc` 会把原物体拖跑？",
+        "matchPoolCategory": "research_data"
+      },
+      "sources": [
+        {
+          "sourceOrg": "Blender 5.3 Python API Official Docs · Mathutils Types & Animation",
+          "sourceUrl": "https://docs.blender.org/api/current/info_quickstart.html",
+          "fetchedAt": "2026-11-24"
+        }
+      ]
+    }
+  ]
+}

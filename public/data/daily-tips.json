@@ -8,9 +8,21 @@
       "tipBody": "只要之前 commit 过，执行 git reflog 就能看到本地每一次 HEAD 移动记录，找到误操作前的哈希值再 git checkout 或 git reset 即可找回。",
       "actionHint": "记住口诀：commit 过就有后悔药，未 commit 慎敲 --hard。",
       "readSeconds": 25,
-      "isPlaceholder": true,
-      "sourceOrg": "Pro Git 第二版（开源中文版 · 示例占位）",
+      "isPlaceholder": false,
+      "sourceOrg": "Pro Git 第二版（开源中文版）",
       "sourceUrl": "https://git-scm.com/book/zh/v2",
+      "fetchedAt": "2026-11-24"
+    },
+    {
+      "id": "tip-b1-blender-tooltip",
+      "branchId": "B1",
+      "title": "Blender 忘掉 API 名字不用搜半天：打开悬停透视",
+      "tipBody": "在 Edit → Preferences → Interface 勾选 Python Tooltips 后，鼠标移到任何界面参数上都会直接显示对应的 bpy 数据路径，右键还能一键跳转官方文档。",
+      "actionHint": "写 bpy 脚本前先把这个开关设成永久默认开启。",
+      "readSeconds": 20,
+      "isPlaceholder": false,
+      "sourceOrg": "Blender Python API Official Quickstart",
+      "sourceUrl": "https://docs.blender.org/api/current/info_quickstart.html",
       "fetchedAt": "2026-11-24"
     },
     {

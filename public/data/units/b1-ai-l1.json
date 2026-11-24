@@ -1,0 +1,411 @@
+{
+  "version": "1.0.0",
+  "units": [
+    {
+      "id": "unit-b1-l1-prompt",
+      "branchId": "B1",
+      "trackId": "b1-ai-l1",
+      "title": "提示工程原理：把模糊愿望改写成可复现的结构化指令",
+      "estimatedMinutes": 20,
+      "recommendedEnergy": "peak",
+      "isPlaceholder": false,
+      "scenarioHook": {
+        "sceneTitle": "同样读一篇 30 页综述，为什么别人一次问出对比表，你连追五轮还在车轱辘话？",
+        "story": "你把一整篇英文综述连同「帮我总结重点并看看和我的课题有什么关系」混成一大段发给 AI，结果它只挑了引言前两段泛泛而谈，还把你的课题假设当成了原文结论。",
+        "guidingQuestion": "当输入同时包含长篇背景材料、格式要求与判断标准时，怎样排布结构才能让模型零误读？"
+      },
+      "prediction": {
+        "question": "需要大模型处理两万字以上的实验记录或多篇文献并回答具体问题时，把「具体问题与指令」放在哪个位置效果最好？",
+        "options": [
+          "放在最开头第一句，后面直接裸贴所有文献正文",
+          "把长文档用 <documents> 等 XML 标签包好放在最顶部，具体查询与输出指令放在最末尾",
+          "把同一个指令每隔两千字穿插复制一遍",
+          "只给标题不给正文，靠模型自带记忆回答"
+        ],
+        "commonTrapIndex": 0,
+        "answerIndex": 1,
+        "whyCounterIntuitive": "人习惯先听问题再翻书，但对注意力机制而言，长文本置顶、查询指令置尾能让输出阶段直接紧邻目标约束——Anthropic 官方多文档基准测试显示这种排布可提升响应质量最高达 30%。"
+      },
+      "guide": {
+        "blocks": [
+          {
+            "heading": "同事可读性测试：别让模型猜你的潜台词",
+            "markdown": "把大模型当成一位刚进组、聪明但完全不了解你默认习惯的新同事。发指令前做一次「同事测试」：把你写的提示词拿给一位不熟悉背景的同学看，如果他也搞不清输出几列、按什么口径筛选，模型一样会靠概率瞎猜。说明「为什么要这样限制」（例如：结果将直接导入 CSV 脚本解析，因此不要输出开场寒暄），模型能更准确泛化边界。",
+            "keyTakeaway": "正向说清「要什么结构」，比连写十句「不要做什么」更稳。"
+          },
+          {
+            "heading": "XML 标签隔离与 3～5 个少样本示范（Few-Shot）",
+            "markdown": "当提示词里混杂了原始文献、参考样例和待处理输入时，用一致的标签（如 `<documents>`、`<examples>`、`<instructions>`）物理隔开各层语义。若对输出口吻或字段颗粒度要求严格，附上 3～5 个覆盖边界情况的 `<example>` 示范，远胜于抽象形容词。",
+            "keyTakeaway": "长文档置顶 + XML 分层包裹 + 末尾下达明确指令 + 关键格式给样例。"
+          }
+        ],
+        "visuals": [
+          {
+            "kind": "exact_svg",
+            "caption": "高可靠长上下文结构化提示四层排布流（基于 Anthropic 官方最佳实践绘制）",
+            "svgSpec": {
+              "template": "flow_pipeline",
+              "data": {
+                "steps": [
+                  "<documents>长文置顶",
+                  "<examples>3-5个示范",
+                  "<instructions>明确步骤",
+                  "末尾输出格式约束"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "conceptNodeIds": ["b1.prompt_context_boundary", "b1.fewshot_xml_structure"],
+      "quiz": {
+        "mode": "standard_mcq",
+        "passRatio": 0.8,
+        "questions": [
+          {
+            "id": "q-b1-l1-p1",
+            "stem": "为了防止模型把你给的「输出格式参考样例」当成「待分析的真实实验数据」，最稳妥的做法是？",
+            "options": [
+              "把样例字号调小",
+              "用 <examples><example>...</example></examples> 与 <input> 标签明确区分示范与真实输入",
+              "只用自然段空行隔开，不加任何标记",
+              "完全不给样例，每次生成错了再手工改"
+            ],
+            "correctIndex": 1,
+            "explanation": "显式 XML 标签能消除指令、示范样本与待处理变量之间的解析歧义。",
+            "relatedConceptId": "b1.fewshot_xml_structure"
+          },
+          {
+            "id": "q-b1-l1-p2",
+            "stem": "希望模型输出纯段落文本用于语音朗读、不要夹杂省略号，哪种写法更利于模型准确执行？",
+            "options": [
+              "只写一句全大写：禁止省略号！！！",
+              "交代背景动机并正面说明：输出将交由语音合成朗读，无法识别省略号，请全程使用完整陈述句自然分段",
+              "先让它随便写再自己全局替换",
+              "要求它扮演播音系教授"
+            ],
+            "correctIndex": 1,
+            "explanation": "交代约束背后的真实用途（Why）并给出正面格式目标，能显著提升模型遵循稳定性。",
+            "relatedConceptId": "b1.prompt_context_boundary"
+          }
+        ]
+      },
+      "actionTask": {
+        "id": "act-b1-l1-prompt",
+        "title": "把你最常用的一条文献总结或代码改写指令升级为 XML 四段式模板",
+        "lifeContext": "直接拿你本周要精读的一篇论文摘要/引言，或一段需要重构的实验数据处理代码实测",
+        "steps": [
+          "顶部用 <documents> 放入原始材料及来源文件名",
+          "中间用 <examples> 给 1～2 个你理想的输出条目示范",
+          "末尾用 <instructions> 写清判定标准与未知项退路"
+        ],
+        "deliverablePrompt": "贴入你定型的结构化 Prompt 模板，并简述相比裸问的改进点",
+        "feynmanCheckPrompt": "用一句话说明：为什么多文档提问要把长材料放最上面、问题放最下面？",
+        "matchPoolCategory": "research_data"
+      },
+      "sources": [
+        {
+          "sourceOrg": "Anthropic Claude Platform Docs · Prompting Best Practices",
+          "sourceUrl": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices",
+          "fetchedAt": "2026-11-24"
+        }
+      ]
+    },
+    {
+      "id": "unit-b1-l1-agent",
+      "branchId": "B1",
+      "trackId": "b1-ai-l1",
+      "title": "Agent 工具链原理：搞懂「思考—调工具—观察」循环与安全刹车",
+      "estimatedMinutes": 22,
+      "recommendedEnergy": "peak",
+      "isPlaceholder": false,
+      "scenarioHook": {
+        "sceneTitle": "让编码 Agent 清理临时文件，差点顺手把未提交实验结果 git clean 掉",
+        "story": "越来越多人开始用带终端、文件读写和网页检索能力的 Agent。它能十秒钟并行读完五个配置定位报错，但如果不设边界，它遇到阻碍时也可能为了「快速跑通」擅自覆盖你没备份的数据。",
+        "guidingQuestion": "普通聊天窗口和真正的 Agent 到底差在哪一步？该给它装哪道安全门？"
+      },
+      "prediction": {
+        "question": "当 Agent 需要同时读取本地 4 个互不依赖的配置文件来排查环境问题时，最高效且安全的调用策略是什么？",
+        "options": [
+          "每次只读 1 个文件，等用户手工点四次继续",
+          "无依赖的本地只读工具单轮并行批量发起；遇到删除分支、覆盖未追踪文件或外发消息等难逆操作则必须停下请求确认",
+          "为了省时间，给所有终端命令默认加上 --force 和免确认最高权限",
+          "不读真实文件，直接根据文件名猜测里面的配置"
+        ],
+        "commonTrapIndex": 2,
+        "answerIndex": 1,
+        "whyCounterIntuitive": "很多人要么把 Agent 当残废一步一催，要么彻底撒手给全盘写权限；真正专业的用法是按「可逆性×影响半径」分级：只读与可逆验证全速并行，不可逆动作硬性卡人工审批。"
+      },
+      "guide": {
+        "blocks": [
+          {
+            "heading": "Agent 不是更会聊天的模型，而是接上了「手和眼」的闭环",
+            "markdown": "单次对话模型只能靠脑内参数输出文字；而 Agent 运行在「目标理解 → 选择工具（搜索/读文件/跑脚本） → 观察工具真实返回结果 → 反思修正下一步」的循环中。工具参数若有先后依赖（如先查出文件路径再读取该文件），必须串行等待真实返回，绝不能拿占位符瞎猜参数；若各次查询彼此独立，则应并行调用大幅缩短等待。",
+            "keyTakeaway": "独立只读查询并行批处理，有前后依赖的参数严格串行。"
+          },
+          {
+            "heading": "自主性与安全的黄金分界线：可逆性（Reversibility）",
+            "markdown": "评估任何 Agent 操作前只问两个问题：① 做错了能不能一秒撤回？② 会不会影响他人或外部系统？本地读取代码、运行单元测试完全可逆，应鼓励自动完成；而 `rm -rf`、`git reset --hard`、`git push --force`、修改共享云服务或涉及账号与资金的操作难以逆转，必须在系统提示或权限层设置明确的人工确认门禁。",
+            "keyTakeaway": "绝不允许 Agent 用破坏性操作（如跳过校验或删测试）当作绕过报错的捷径。"
+          }
+        ],
+        "visuals": [
+          {
+            "kind": "exact_svg",
+            "caption": "Agent 动作分级矩阵：可逆性 × 影响范围四象限（基于官方文档安全准则绘制）",
+            "svgSpec": {
+              "template": "two_axis_matrix",
+              "data": {
+                "xAxis": "操作不可逆程度 →",
+                "yAxis": "↑ 外部/共享影响面",
+                "quadrants": [
+                  "共享只读检索（限频自动执行）",
+                  "强推远端/外发消息/涉财（强制人工审批）",
+                  "本地读文件/跑单测（并行自动放行）",
+                  "rm -rf / reset --hard（高危拦截确认）"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "conceptNodeIds": ["b1.agent_tool_reversibility"],
+      "quiz": {
+        "mode": "standard_mcq",
+        "passRatio": 0.8,
+        "questions": [
+          {
+            "id": "q-b1-l1-a1",
+            "stem": "下列哪组任务适合让本地科研辅助 Agent 直接并行自动执行，无需停下等待人工逐条放行？",
+            "options": [
+              "删除旧实验目录并强制覆盖推送到团队主分支",
+              "同时读取三份本地公开数据表头并运行只读统计脚本检查缺失值",
+              "用你的邮箱账号向期刊编辑自动发送撤稿说明",
+              "遇到测试报错时直接删掉报错的测试文件让构建变绿"
+            ],
+            "correctIndex": 1,
+            "explanation": "读取本地文件与运行只读检查完全可逆、无外部副作用，最适合并行自动执行；其余三项均属高危破坏性或对外不可逆动作。",
+            "relatedConceptId": "b1.agent_tool_reversibility"
+          }
+        ]
+      },
+      "actionTask": {
+        "id": "act-b1-l1-agent",
+        "title": "为你日常使用的 AI 编程或科研助手写一段 5 行「安全护栏规则」",
+        "lifeContext": "可直接放进你本地项目的 AGENTS.md / CLAUDE.md 或工具自定义规则里",
+        "steps": [
+          "列出允许自动并行的只读与测试命令（如读文件、跑校验脚本）",
+          "列出必须先询问你确认的不可逆命令清单（如删除数据、git reset/push）",
+          "明确规定：遇报错只准定位根因，严禁删改校验脚本蒙混过关"
+        ],
+        "deliverablePrompt": "记录你写好的个人 Agent 权限边界规则文本",
+        "feynmanCheckPrompt": "用一句话区分：什么时候该让 Agent 并行调工具，什么时候必须串行等上一步结果？",
+        "matchPoolCategory": "research_data"
+      },
+      "sources": [
+        {
+          "sourceOrg": "Anthropic Claude Platform Docs · Tool Use & Agentic Systems",
+          "sourceUrl": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices",
+          "fetchedAt": "2026-11-24"
+        },
+        {
+          "sourceOrg": "DeepLearning.AI · AI Agentic Design Patterns Short Courses",
+          "sourceUrl": "https://www.deeplearning.ai/short-courses/",
+          "fetchedAt": "2026-11-24"
+        }
+      ]
+    },
+    {
+      "id": "unit-b1-l1-workflow",
+      "branchId": "B1",
+      "trackId": "b1-ai-l1",
+      "title": "工作流搭建：把长链路科研与写作拆成「带检查点的流水线」",
+      "estimatedMinutes": 25,
+      "recommendedEnergy": "peak",
+      "isPlaceholder": false,
+      "scenarioHook": {
+        "sceneTitle": "一口气让 AI 「读完十篇文献直接写出开题报告」，结果改得比自己重写还累",
+        "story": "很多同学试图用一个超级提示词一步登天生成几千字成稿，结果第一步提取方向就偏了，后面几千字全在错误假设上精美扩写，推倒重来白白浪费一晚上。",
+        "guidingQuestion": "面对跨阶段复杂任务，怎样设计可中断、可续接、每步可验收的个人工作流？"
+      },
+      "prediction": {
+        "question": "处理跨多轮或大体量的个人科研/工程任务时，怎样在多窗口间保持状态最稳妥？",
+        "options": [
+          "把所有历史废话一直留在同一个超长聊天框里直到超限报错",
+          "用结构化 JSON 记录客观完成态与待测项，用简短文本记进度摘要，配合 Git 提交做可回退检查点",
+          "全靠脑子记上次改到了哪一行",
+          "每轮都让模型把全部代码从头重新输出一遍"
+        ],
+        "commonTrapIndex": 0,
+        "answerIndex": 1,
+        "whyCounterIntuitive": "超长单对话越往后噪声越多；把状态外化落盘为结构化 JSON + 进度简记 + Git 检查点，哪怕随时开新窗口也能一秒精准续接。"
+      },
+      "guide": {
+        "blocks": [
+          {
+            "heading": "提示词链（Prompt Chaining）：单步单一职责",
+            "markdown": "把容易出错的复合任务拆成 3～4 个串行节点：① 抽取节点（只从原文提取结构化卡片，不写评论）；② 对比合成节点（对比多张卡片异同，列出大纲供你扫一眼确认）；③ 成稿与自检节点（按确认后的大纲展开，并用独立核查清单逐项复核）。中间花 30 秒人工看一眼大纲，就能避免整篇跑偏。",
+            "keyTakeaway": "在关键分岔口插一个 30 秒人工或脚本检查点，返工率立降八成。"
+          },
+          {
+            "heading": "状态外化三件套：结构化清单 + 进度笔记 + Git 存档",
+            "markdown": "做超过一小时的项目时，照搬现代长周期 Agent 工程规范：客观验收项存成 JSON（对错分明），本轮踩坑与下一步计划写进几行纯文本进度条，每跑通一小步立刻 `git commit`。这样无论是你自己隔天接着干，还是换一个新会话接力，都能直接从文件系统恢复现场。",
+            "keyTakeaway": "好工作流不赌单次灵感，靠落盘文件与检查点保证每次都能接着往下走。"
+          }
+        ],
+        "visuals": [
+          {
+            "kind": "exact_svg",
+            "caption": "三段式带检查点个人 AI 工作流（抽取 → 人工30秒确认大纲 → 生成与校验）",
+            "svgSpec": {
+              "template": "flow_pipeline",
+              "data": {
+                "steps": [
+                  "1.原文结构化抽取",
+                  "2.大纲人工微调",
+                  "3.分段受控成稿",
+                  "4.清单核查&存档"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "conceptNodeIds": ["b1.fewshot_xml_structure", "b1.agent_tool_reversibility"],
+      "quiz": {
+        "mode": "standard_mcq",
+        "passRatio": 0.8,
+        "questions": [
+          {
+            "id": "q-b1-l1-w1",
+            "stem": "为什么把「整理 8 篇文献写成综述小节」拆成「单篇结构化抽取 → 汇总对比表 → 确认逻辑后成文」三步，比单步直出更省时间？",
+            "options": [
+              "因为分步消耗字数更多",
+              "每步目标单一易检验，能在写长文前提前拦截理解偏差与漏项，避免长篇废稿返工",
+              "只是为了看起来更复杂",
+              "单步提示词无法输入中文"
+            ],
+            "correctIndex": 1,
+            "explanation": "拆解流水线让中间产物（抽取表、大纲）透明可查，把错误消灭在低成本阶段。",
+            "relatedConceptId": "b1.fewshot_xml_structure"
+          }
+        ]
+      },
+      "actionTask": {
+        "id": "act-b1-l1-workflow",
+        "title": "搭建一条你自己的可复用三步 AI 工作流文档（L1 核心实战产出）",
+        "lifeContext": "任选「周报文献精读」「实验报错排查」「推文初稿打磨」之一写成固定流程",
+        "steps": [
+          "定义输入材料格式与第 1 步抽取提示词",
+          "设定中间 30 秒人工检查点（看哪 2 个指标决定放行）",
+          "定义最终输出与核查归档方式，拿一件真事跑通一遍"
+        ],
+        "deliverablePrompt": "提交你的三步工作流各节点说明及一次真实运行小结（可直接作为 L1 层级实战产出）",
+        "feynmanCheckPrompt": "用一句话解释：为什么跨天做复杂任务时要把状态写进本地 JSON 和 Git，而不是一直聊同一个长窗口？",
+        "matchPoolCategory": "tweet_writing"
+      },
+      "sources": [
+        {
+          "sourceOrg": "Anthropic Claude Platform Docs · Long-Horizon Workflows & State Management",
+          "sourceUrl": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices",
+          "fetchedAt": "2026-11-24"
+        }
+      ]
+    },
+    {
+      "id": "unit-b1-l1-verify",
+      "branchId": "B1",
+      "trackId": "b1-ai-l1",
+      "title": "AI 输出核查：四道防线掐灭幻觉与「伪造引文」",
+      "estimatedMinutes": 20,
+      "recommendedEnergy": "peak",
+      "isPlaceholder": false,
+      "scenarioHook": {
+        "sceneTitle": "看着天衣无缝的公式推导与政策条款，一查原文全是「张冠李戴」",
+        "story": "哪怕是最顶级的大模型，在面对模糊上下文或超出训练记忆的冷门细节时，依然可能顺滑地编出不存在的条款编号、张冠李戴的实验数值或失效的软件参数。",
+        "guidingQuestion": "怎样用工程化核查动作，确保从你手里交出去的每一行数据与结论都经得起导师或审稿人追问？"
+      },
+      "prediction": {
+        "question": "基于一篇 40 页英文技术报告让 AI 撰写合规审查结论时，哪种提示顺序最能压低编造率？",
+        "options": [
+          "先让它写出完整漂亮结论，最后顺便补一句「请附上参考页码」",
+          "第一步强制先从报告中逐字提取相关原句放进 <quotes>；找不到原句写「未找到」；第二步仅允许引用已提取的原句编号做分析，无原句支撑的论断一律删除",
+          "把模型温度调高让它发散思考",
+          "只看结论语气自不自信，语气肯定就不用核对原文"
+        ],
+        "commonTrapIndex": 0,
+        "answerIndex": 1,
+        "whyCounterIntuitive": "如果先写结论再补引文，模型为了圆前面已经生成的结论极易篡改或捏造引文；反过来「先抽逐字原句、无原句必须撤回论断」，就把推理锁死在了真实证据上。"
+      },
+      "guide": {
+        "blocks": [
+          {
+            "heading": "防线一与二：给足「答不知」许可 + 强制逐字原句先行（Quote-First）",
+            "markdown": "根据 Anthropic 幻觉抑制指南，最立竿见影的两招是：① 明确授权模型说「现有材料信息不足，无法确认」，卸下它强行迎合回答的压力；② 对长文档采用两步法——先将字面原句原封不动抽进 `<quotes>`，再要求每条分析按编号回指该原句，严禁调用文档外的模糊常识脑补。",
+            "keyTakeaway": "没有逐字原句锚点的具体数字与引文，一律视为待核实高危项。"
+          },
+          {
+            "heading": "防线三与四：自审撤回机制 + 外部独立信源验真",
+            "markdown": "在成稿指令末尾加上「逐句回查机制」：要求模型在起草后逐句回原文找原句支撑，找不到的论断必须主动删去并用 `[]` 标出缺口。最关键的最后一步永远在模型之外：代码必须在本地解释器或测试沙箱真实跑通，论文 DOI、法律法规与金融数据必须点开权威官网原页逐字核对。",
+            "keyTakeaway": "AI 可以帮你十倍速起草和初筛，但最终署名负责的永远是你自己。"
+          }
+        ],
+        "visuals": [
+          {
+            "kind": "exact_svg",
+            "caption": "裸问直出模式 vs 「允许答未知 + 原句先行 + 外部验真」幻觉残留风险趋势示意",
+            "svgSpec": {
+              "template": "curve_compare",
+              "data": {
+                "series": [
+                  { "label": "分层防线后事实可靠度", "points": [55, 78, 90, 96, 99] },
+                  { "label": "无锚点裸问幻觉混入率", "points": [45, 42, 48, 52, 50] }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "conceptNodeIds": ["b1.prompt_context_boundary", "b1.quote_first_verification"],
+      "quiz": {
+        "mode": "standard_mcq",
+        "passRatio": 0.8,
+        "questions": [
+          {
+            "id": "q-b1-l1-v1",
+            "stem": "当你用相同提示词对一个冷门事实连跑三次，发现模型三次给出的具体年份和数值各不相同（Best-of-N 不一致），这说明什么？",
+            "options": [
+              "取三次的平均值就是正确答案",
+              "强烈提示该细节超出了模型可靠记忆或材料未覆盖，正处于高幻觉风险区，必须回查原始权威文献",
+              "选字数最多那次的结果即可",
+              "说明那篇论文有三个不同年份版本"
+            ],
+            "correctIndex": 1,
+            "explanation": "多次采样结果在客观事实上相互矛盾是典型的幻觉信号，绝不能取均值，必须检索一手权威源核实。",
+            "relatedConceptId": "b1.quote_first_verification"
+          }
+        ]
+      },
+      "actionTask": {
+        "id": "act-b1-l1-verify",
+        "title": "对一份 AI 生成的摘要或代码做一次「原句回指 + 外部实跑」核查演练",
+        "lifeContext": "直接拿你最近一次组会资料整理、课程报告初稿或推文事实核对来做",
+        "steps": [
+          "用 Quote-First 指令要求 AI 先列出 `<quotes>` 原句再给结论",
+          "挑出其中全部数字、人名、API 名或引文，逐一回原文档或代码环境实测核对",
+          "记下本次拦截到的 1 处潜在偏差或确认无误的核查清单"
+        ],
+        "deliverablePrompt": "写下你本次核查的具体材料及抓出的偏差点（或验证通过的核查步骤）",
+        "feynmanCheckPrompt": "用一句话解释：为什么「先抽原句再写结论」比「写完结论再补出处」更能防瞎编？",
+        "matchPoolCategory": "course_slides"
+      },
+      "sources": [
+        {
+          "sourceOrg": "Anthropic Claude Platform Docs · Strengthen Guardrails: Reduce Hallucinations",
+          "sourceUrl": "https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations",
+          "fetchedAt": "2026-11-24"
+        }
+      ]
+    }
+  ]
+}

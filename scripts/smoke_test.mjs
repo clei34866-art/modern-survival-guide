@@ -6,10 +6,27 @@ async function main() {
     throw new Error('dist/ 静态构建产物缺失，请先运行 npm run build');
   }
 
+  const b1L1Units = JSON.parse(fs.readFileSync('public/data/units/b1-ai-l1.json', 'utf8')).units;
+  const b1BlenderUnits = JSON.parse(
+    fs.readFileSync('public/data/units/b1-sw-blender.json', 'utf8')
+  ).units;
+  const placeholderUnits = JSON.parse(
+    fs.readFileSync('public/data/units/placeholders.json', 'utf8')
+  ).units;
+
+  if (
+    b1L1Units.length < 4 ||
+    b1L1Units.some((u) => u.isPlaceholder) ||
+    b1BlenderUnits.length < 3 ||
+    b1BlenderUnits.some((u) => u.isPlaceholder)
+  ) {
+    throw new Error('M9 B1 AI L1 或 Blender 首批正式单元未全部脱去占位标记');
+  }
+
   const bundle = {
     catalog: JSON.parse(fs.readFileSync('public/data/catalog.json', 'utf8')),
     knowledgeGraph: JSON.parse(fs.readFileSync('public/data/knowledge-graph.json', 'utf8')),
-    units: JSON.parse(fs.readFileSync('public/data/units/placeholders.json', 'utf8')).units,
+    units: [...b1L1Units, ...b1BlenderUnits, ...placeholderUnits],
     dailyTips: JSON.parse(fs.readFileSync('public/data/daily-tips.json', 'utf8')).tips,
     wallConfig: JSON.parse(fs.readFileSync('public/data/wall-config.json', 'utf8')),
     eventPacks: JSON.parse(fs.readFileSync('public/data/event-packs.json', 'utf8')).packs,
@@ -112,25 +129,36 @@ async function main() {
     throw new Error('时效到期「待复核」判定异常');
   }
 
-  // 模拟走通 unit-b1-l1-sample：预测/自测作答留痕 + 用时 + 行动任务&费曼检查 + L1 产出验收
-  await m.recordStudyDuration({
-    branchId: 'B1',
-    trackId: 'b1-ai-l1',
-    unitId: 'unit-b1-l1-sample',
-    activity: 'guide',
-    durationMs: 420000,
-  });
-  await m.recordQuizAttempt({
-    unitId: 'unit-b1-l1-sample',
-    branchId: 'B1',
-    trackId: 'b1-ai-l1',
-    questionId: 'q-b1-sample-1',
-    conceptId: 'b1.prompt_context_boundary',
-    kind: 'quiz',
-    selectedIndex: 1,
-    isCorrect: true,
-    durationMs: 9500,
-  });
+  // 模拟走通 B1 AI L1 全部 4 节正式单元 + L1 产出验收 -> 自动解锁 AI L2
+  for (const u of b1L1Units) {
+    await m.recordStudyDuration({
+      branchId: 'B1',
+      trackId: 'b1-ai-l1',
+      unitId: u.id,
+      activity: 'guide',
+      durationMs: 300000,
+    });
+    await m.recordQuizAttempt({
+      unitId: u.id,
+      branchId: 'B1',
+      trackId: 'b1-ai-l1',
+      questionId: u.quiz.questions[0].id,
+      conceptId: u.quiz.questions[0].relatedConceptId,
+      kind: 'quiz',
+      selectedIndex: u.quiz.questions[0].correctIndex,
+      isCorrect: true,
+      durationMs: 8500,
+    });
+    await m.recordActionSubmission({
+      unitId: u.id,
+      branchId: 'B1',
+      trackId: 'b1-ai-l1',
+      deliverableSummary: `已完成 ${u.id} 实战模板沉淀`,
+      feynmanOneLiner: '给原文锚点并留未知退路，阻断概率硬凑。',
+      quizPassScoreRatio: 1.0,
+      isCleared: true,
+    });
+  }
 
   const gateFail = m.evaluateUnitPassGate({
     quizScoreRatio: 0.5,
@@ -154,15 +182,6 @@ async function main() {
     throw new Error('自测达标且行动、费曼均填写时应允许过关');
   }
 
-  await m.recordActionSubmission({
-    unitId: 'unit-b1-l1-sample',
-    branchId: 'B1',
-    trackId: 'b1-ai-l1',
-    deliverableSummary: '已沉淀个人文献核查 Prompt 模板',
-    feynmanOneLiner: '给原文锚点并允许答未知，阻断模型概率硬凑。',
-    quizPassScoreRatio: 1.0,
-    isCleared: true,
-  });
   await m.recordMilestoneSubmission({
     trackId: 'b1-ai-l1',
     branchId: 'B1',
@@ -172,7 +191,7 @@ async function main() {
   });
 
   const afterM3 = await m.loadTelemetry();
-  if (!m.isUnitCleared('unit-b1-l1-sample', afterM3)) {
+  if (!m.isUnitCleared('unit-b1-l1-prompt', afterM3)) {
     throw new Error('单元过关状态未持久化');
   }
   if (!m.isTrackUnlocked(l2Track, b1Tracks, afterM3)) {

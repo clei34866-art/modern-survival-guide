@@ -26,17 +26,27 @@
               "产出一份在真实学习或科研任务中跑通的工作流说明"
             ]
           },
-          "unitIds": ["unit-b1-l1-sample"],
+          "unitIds": [
+            "unit-b1-l1-prompt",
+            "unit-b1-l1-agent",
+            "unit-b1-l1-workflow",
+            "unit-b1-l1-verify"
+          ],
           "curatedResources": [
             {
-              "title": "DeepLearning.AI Prompt Engineering 公开课程指南",
-              "org": "DeepLearning.AI",
-              "url": "https://www.deeplearning.ai/short-courses/"
+              "title": "Anthropic Prompting Best Practices 官方指南",
+              "org": "Anthropic Claude Platform Docs",
+              "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices"
             },
             {
-              "title": "Anthropic Prompt Engineering 官方文档",
-              "org": "Anthropic Docs",
-              "url": "https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview"
+              "title": "Strengthen Guardrails: Reduce Hallucinations 官方手册",
+              "org": "Anthropic Claude Platform Docs",
+              "url": "https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations"
+            },
+            {
+              "title": "DeepLearning.AI Prompt Engineering & Agentic Workflows 公开短课",
+              "org": "DeepLearning.AI",
+              "url": "https://www.deeplearning.ai/short-courses/"
             }
           ]
         },
@@ -135,12 +145,21 @@
             "title": "用一份 bpy Python 脚本一键生成可复现实验结构/晶体/流程图渲染",
             "criteria": ["脚本在 Blender Scripting 面板无报错运行并输出高清 PNG"]
           },
-          "unitIds": [],
+          "unitIds": [
+            "unit-b1-blender-data",
+            "unit-b1-blender-context",
+            "unit-b1-blender-transform"
+          ],
           "curatedResources": [
             {
               "title": "Blender Python API Quickstart 官方文档",
               "org": "Blender Foundation",
               "url": "https://docs.blender.org/api/current/info_quickstart.html"
+            },
+            {
+              "title": "Blender Python API Overview 架构总览",
+              "org": "Blender Foundation",
+              "url": "https://docs.blender.org/api/current/info_overview.html"
             }
           ]
         },
@@ -150,7 +169,13 @@
           "title": "软件包 S2 · Office / WPS 高效排版与表格",
           "summary": "长文档样式自动化、数据透视表核账、清爽学术汇报页母版",
           "unitIds": [],
-          "curatedResources": []
+          "curatedResources": [
+            {
+              "title": "Microsoft 365 Word 样式与长文档排版官方支持中心",
+              "org": "Microsoft Support",
+              "url": "https://support.microsoft.com/zh-cn/office"
+            }
+          ]
         },
         {
           "id": "b1-sw-git",
@@ -172,7 +197,13 @@
           "title": "软件包 S4 · 笔记工具与科研知识库",
           "summary": "Markdown 双链笔记、文献阅读卡片流与防囤积检索结构",
           "unitIds": [],
-          "curatedResources": []
+          "curatedResources": [
+            {
+              "title": "Obsidian 官方中文帮助文档（双链与本地 Markdown 库）",
+              "org": "Obsidian Help",
+              "url": "https://publish.obsidian.md/help-zh/"
+            }
+          ]
         },
         {
           "id": "b1-sw-video",
@@ -180,7 +211,13 @@
           "title": "软件包 S5 · 剪辑工具与快速成片",
           "summary": "粗剪节奏、音画对齐、字幕批处理与课程/推文短视频交付",
           "unitIds": [],
-          "curatedResources": []
+          "curatedResources": [
+            {
+              "title": "FFmpeg 音视频命令行快速处理官方文档",
+              "org": "FFmpeg Project",
+              "url": "https://ffmpeg.org/documentation.html"
+            }
+          ]
         }
       ]
     },

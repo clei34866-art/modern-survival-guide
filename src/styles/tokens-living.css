@@ -1323,6 +1323,50 @@ body {
   color: var(--accent-clay);
 }
 
+/* M6 · eudaimonia 生存技能树与真实任务池 */
+.skill-tree-caption-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding-top: 10px;
+  margin-top: 8px;
+  border-top: 1px solid var(--border-warm);
+  font-size: 13px;
+}
+
+.skill-tree-rule-hint {
+  color: var(--ink-secondary);
+}
+
+.skill-tree-wall-box {
+  width: 100%;
+  max-width: 152px;
+}
+
+.task-pool-form {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.8fr) minmax(150px, 1fr) minmax(130px, 0.8fr) auto;
+  gap: 10px;
+}
+
+@media (max-width: 780px) {
+  .task-pool-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+.task-pool-form input,
+.task-pool-form select {
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-warm);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  background: #ffffff;
+}
+
 .hero-header {
   display: flex;
   flex-wrap: wrap;

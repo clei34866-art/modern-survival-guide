@@ -5,6 +5,8 @@ import type {
   DailyPlanSnapshot,
   MilestoneDeliverableRecord,
   QuizAttemptLog,
+  RealLifeTask,
+  RealTaskCategory,
   RetestStage,
   ScheduledTaskItem,
   StudyDurationLog,
@@ -60,7 +62,8 @@ export function hasLiveTelemetry(snapshot: TelemetrySnapshot): boolean {
     Object.keys(snapshot.cardStats).length > 0 ||
     Object.keys(snapshot.unitSubmissions).length > 0 ||
     Object.keys(snapshot.milestoneSubmissions).length > 0 ||
-    (snapshot.currentDailyPlan?.completedTaskIds.length ?? 0) > 0
+    (snapshot.currentDailyPlan?.completedTaskIds.length ?? 0) > 0 ||
+    (snapshot.realTasks?.some((t) => t.status === 'completed') ?? false)
   );
 }
 
@@ -321,19 +324,33 @@ export async function recordCardReview(
   });
 }
 
-/** 记录单元行动任务与过关状态 */
+/** 记录单元行动任务与过关状态（若关联了真实任务池待办，同步将该真实任务标记为已完成抵扣） */
 export async function recordActionSubmission(
   submission: Omit<UnitActionSubmission, 'updatedAt'>
 ): Promise<TelemetrySnapshot> {
   const snap = await loadTelemetry();
+  const nowIso = new Date().toISOString();
+
+  const updatedRealTasks = (snap.realTasks ?? []).map((rt) =>
+    submission.linkedRealTaskId && rt.id === submission.linkedRealTaskId
+      ? {
+          ...rt,
+          status: 'completed' as const,
+          linkedUnitId: submission.unitId,
+          completedAt: nowIso,
+        }
+      : rt
+  );
+
   return saveTelemetry({
     ...snap,
     activeDates: touchActiveDate(snap.activeDates),
+    realTasks: updatedRealTasks,
     unitSubmissions: {
       ...snap.unitSubmissions,
       [submission.unitId]: {
         ...submission,
-        updatedAt: new Date().toISOString(),
+        updatedAt: nowIso,
       },
     },
   });
@@ -386,8 +403,63 @@ export async function importTelemetryJson(rawJson: string): Promise<TelemetrySna
     unitSubmissions: parsed.unitSubmissions ?? {},
     milestoneSubmissions: parsed.milestoneSubmissions ?? {},
     currentDailyPlan: parsed.currentDailyPlan,
+    realTasks: parsed.realTasks ?? [],
   };
   return saveTelemetry(normalized);
+}
+
+/** M6 真实任务池：新增一条真实生活/科研/学习待办 */
+export async function addRealLifeTask(input: {
+  title: string;
+  category: RealTaskCategory;
+  branchId: BranchId;
+  notes?: string;
+}): Promise<TelemetrySnapshot> {
+  const snap = await loadTelemetry();
+  const item: RealLifeTask = {
+    id: `rt_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    title: input.title.trim(),
+    category: input.category,
+    branchId: input.branchId,
+    notes: input.notes?.trim() || undefined,
+    status: 'open',
+    createdAt: new Date().toISOString(),
+  };
+  return saveTelemetry({
+    ...snap,
+    realTasks: [item, ...(snap.realTasks ?? [])],
+  });
+}
+
+/** M6 真实任务池：切换真实待办完成状态 */
+export async function toggleRealLifeTask(taskId: string): Promise<TelemetrySnapshot> {
+  const snap = await loadTelemetry();
+  const nowIso = new Date().toISOString();
+  const nextTasks = (snap.realTasks ?? []).map((t) => {
+    if (t.id !== taskId) return t;
+    const nextStatus = t.status === 'completed' ? ('open' as const) : ('completed' as const);
+    return {
+      ...t,
+      status: nextStatus,
+      completedAt: nextStatus === 'completed' ? nowIso : undefined,
+    };
+  });
+  const anyJustCompleted = nextTasks.some(
+    (t) => t.id === taskId && t.status === 'completed'
+  );
+  return saveTelemetry({
+    ...snap,
+    activeDates: anyJustCompleted ? touchActiveDate(snap.activeDates) : snap.activeDates,
+    realTasks: nextTasks,
+  });
+}
+
+export async function removeRealLifeTask(taskId: string): Promise<TelemetrySnapshot> {
+  const snap = await loadTelemetry();
+  return saveTelemetry({
+    ...snap,
+    realTasks: (snap.realTasks ?? []).filter((t) => t.id !== taskId),
+  });
 }
 
 /** 保存或初始化「今天」静态计划快照（仅初始化时不记活跃天，避免空打开污染留痕） */

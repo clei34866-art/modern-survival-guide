@@ -273,6 +273,26 @@ export interface MilestoneDeliverableRecord {
   updatedAt: string;
 }
 
+export type RealTaskCategory =
+  | 'tweet_writing'
+  | 'research_data'
+  | 'course_slides'
+  | 'running_health'
+  | 'finance_sheet'
+  | 'general';
+
+export interface RealLifeTask {
+  id: string;
+  title: string;
+  category: RealTaskCategory;
+  branchId: BranchId;
+  notes?: string;
+  status: 'open' | 'completed';
+  linkedUnitId?: string;
+  createdAt: string;
+  completedAt?: string;
+}
+
 export interface TelemetrySnapshot {
   schemaVersion: 1;
   updatedAt: string;
@@ -283,6 +303,7 @@ export interface TelemetrySnapshot {
   unitSubmissions: Record<string, UnitActionSubmission>;
   milestoneSubmissions: Record<string, MilestoneDeliverableRecord>;
   currentDailyPlan?: DailyPlanSnapshot; // 当日静态任务快照，持久化支持刷新不丢与状态墙联动
+  realTasks?: RealLifeTask[]; // M6 真实任务池（推文/大创数据/汇报/跑步等真实生活待办）
 }
 
 export interface WallCountdownItem {

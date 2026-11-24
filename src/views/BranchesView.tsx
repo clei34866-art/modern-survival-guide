@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks';
+import { SkillTreeSvg } from '../components/SkillTreeSvg';
 import type { PlatformContentBundle } from '../core/contentLoader';
 import {
   getTrackClearanceStatus,
@@ -242,6 +243,17 @@ export function BranchesView({
 
   return (
     <div class="branches-view">
+      {/* M6：eudaimonia 七分支生存技能树可视化 */}
+      <section class="section-card" aria-label="eudaimonia 生存技能树">
+        <SkillTreeSvg
+          content={content}
+          telemetry={telemetry}
+          variant="living"
+          selectedBranchId={branch.id}
+          onSelectBranch={setSelectedBranchId}
+        />
+      </section>
+
       {/* 顶部分支切换卡片带 */}
       <div class="branch-tabs-strip" role="tablist" aria-label="七大生存分支切换">
         {content.catalog.branches.map((b) => {

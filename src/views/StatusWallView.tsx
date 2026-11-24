@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
+import { SkillTreeSvg } from '../components/SkillTreeSvg';
 import type { PlatformContentBundle } from '../core/contentLoader';
 import { fetchServerSyncSnapshot, getLocalDateKey } from '../core/db';
 import { computeWallViewModel } from '../core/wallAdapter';
@@ -309,18 +310,15 @@ export function StatusWallView({
           </div>
 
           <div class="wall-learning-body">
-            {/* 左栏：eudaimonia 小树缩略与活跃天数 */}
+            {/* 左栏：eudaimonia 七分支技能树实况组件与活跃天数 */}
             <div class="wall-tree-summary-col">
               <div class="wall-kpi-sub">eudaimonia 技能树</div>
-              <svg width="96" height="104" viewBox="0 0 96 104" aria-hidden="true">
-                <ellipse cx="48" cy="94" rx="32" ry="6" fill="#26302B" />
-                <path d="M48 92V44" stroke="#8C6D53" stroke-width="4" stroke-linecap="round" />
-                <path d="M48 68L26 50" stroke="#8C6D53" stroke-width="2.5" stroke-linecap="round" />
-                <path d="M48 62L70 46" stroke="#8C6D53" stroke-width="2.5" stroke-linecap="round" />
-                <circle cx="48" cy="34" r="16" fill="#63C787" fill-opacity="0.88" />
-                <circle cx="26" cy="46" r="11" fill="#3D7A8A" fill-opacity="0.85" />
-                <circle cx="70" cy="42" r="11" fill="#F0B35A" fill-opacity="0.85" />
-              </svg>
+              <SkillTreeSvg
+                content={content}
+                telemetry={telemetry}
+                variant="wall"
+                demoFallback={vm.dataMode === 'DEMO'}
+              />
               <div>
                 <div class="wall-big-kpi">{vm.learning.activeDaysTotal}</div>
                 <div class="wall-kpi-sub">

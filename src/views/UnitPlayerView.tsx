@@ -76,6 +76,9 @@ export function UnitPlayerView({
   const [feynmanText, setFeynmanText] = useState<string>(
     existingSub?.feynmanOneLiner ?? ''
   );
+  const [linkedRealTaskId, setLinkedRealTaskId] = useState<string | undefined>(
+    existingSub?.linkedRealTaskId
+  );
   const parentBranch = content.catalog.branches.find((b) => b.id === unit.branchId);
   const parentTrack = parentBranch?.tracks.find((t) => t.id === unit.trackId);
   const existingMilestone = parentTrack
@@ -213,6 +216,7 @@ export function UnitPlayerView({
       trackId: unit.trackId,
       deliverableSummary: deliverableText.trim(),
       feynmanOneLiner: feynmanText.trim() || undefined,
+      linkedRealTaskId,
       quizPassScoreRatio: quizScoreRatio,
       isCleared: true,
     });
@@ -635,6 +639,49 @@ export function UnitPlayerView({
               <li key={s}>{s}</li>
             ))}
           </ol>
+
+          {/* M6：关联真实任务池待办一键抵扣 */}
+          {(() => {
+            const matchingPoolTasks = (telemetry.realTasks ?? []).filter(
+              (rt) =>
+                rt.status === 'open' &&
+                (rt.category === unit.actionTask.matchPoolCategory ||
+                  rt.branchId === unit.branchId)
+            );
+            if (matchingPoolTasks.length === 0) return null;
+            return (
+              <div class="milestone-inline-check" style={{ marginBottom: '14px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>
+                  真实任务池匹配项（点选后提交本节，同步将该真实待办标为已交付）：
+                </div>
+                <div class="btn-row">
+                  {matchingPoolTasks.map((rt) => {
+                    const isPicked = linkedRealTaskId === rt.id;
+                    return (
+                      <button
+                        key={rt.id}
+                        type="button"
+                        class={`btn-sm ${isPicked ? 'btn-primary' : ''}`}
+                        onClick={() => {
+                          if (isPicked) {
+                            setLinkedRealTaskId(undefined);
+                          } else {
+                            setLinkedRealTaskId(rt.id);
+                            if (!deliverableText.trim()) {
+                              setDeliverableText(`【真实待办交付】${rt.title}`);
+                            }
+                          }
+                        }}
+                      >
+                        {isPicked ? '✓ 已绑定：' : '+ 绑定：'}
+                        {rt.title}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
           <div class="form-field-block">
             <label class="form-label">{unit.actionTask.deliverablePrompt}</label>

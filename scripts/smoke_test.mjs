@@ -270,8 +270,44 @@ async function main() {
     throw new Error('产生真实留痕后状态墙未自动转实或双线时长统计不准确');
   }
 
+  // 8. M6 真实任务池联动单元行动过关 + 状态墙同步验证
+  let snapM6 = await m.addRealLifeTask({
+    title: '梳理 12 月生活费三桶预算表',
+    category: 'finance_sheet',
+    branchId: 'B2',
+  });
+  const addedTask = snapM6.realTasks[0];
+  if (!addedTask || addedTask.status !== 'open') {
+    throw new Error('真实任务池新增待办失败');
+  }
+
+  snapM6 = await m.recordActionSubmission({
+    unitId: 'unit-b2-budget-sample',
+    branchId: 'B2',
+    trackId: 'b2-main',
+    deliverableSummary: `【真实待办交付】${addedTask.title}`,
+    linkedRealTaskId: addedTask.id,
+    quizPassScoreRatio: 1.0,
+    isCleared: true,
+  });
+
+  const syncedRealTask = snapM6.realTasks.find((t) => t.id === addedTask.id);
+  if (
+    syncedRealTask?.status !== 'completed' ||
+    syncedRealTask.linkedUnitId !== 'unit-b2-budget-sample' ||
+    !m.isUnitCleared('unit-b2-budget-sample', snapM6)
+  ) {
+    throw new Error('真实任务关联提交后未同步完成真实待办与单元过关');
+  }
+
+  const wallAfterM6 = m.computeWallViewModel(bundle, snapM6, null, '2026-11-24');
+  const b2WallProg = wallAfterM6.learning.branchProgress.find((b) => b.id === 'B2');
+  if (!b2WallProg || b2WallProg.clearedUnits < 1 || b2WallProg.percent <= 0) {
+    throw new Error('单元联动过关后状态墙 B2 分支与技能树进度未同步增加');
+  }
+
   console.log(
-    '[smoke] 通过：第一步「骨架阶段」(M1–M5) 全流程验证通过（含 1080P 状态墙 DEMO→LIVE 自动转实与双线看板）。'
+    '[smoke] 通过：M1–M6 全流程验证通过（含真实任务池联动过关、技能树点亮与状态墙同步）。'
   );
 }
 

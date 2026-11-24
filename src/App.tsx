@@ -18,6 +18,7 @@ import type { BranchId, ScheduledTaskItem, TelemetrySnapshot } from './types/sch
 import { BranchesView } from './views/BranchesView';
 import { ReviewDeckView } from './views/ReviewDeckView';
 import { StatusWallView } from './views/StatusWallView';
+import { TaskPoolView } from './views/TaskPoolView';
 import { TodayView } from './views/TodayView';
 import { UnitPlayerView } from './views/UnitPlayerView';
 
@@ -328,13 +329,20 @@ export function App() {
         )}
 
         {route.page === 'lab' && (
-          <section class="section-card" aria-label="留痕与数据备份面板">
-            <h1 class="section-heading">
-              <span>本地留痕快照与数据备份（真实任务池与生活实验室将于 M6–M7 挂载）</span>
-              <span class={`badge-pill ${isLive ? 'badge-live' : 'badge-demo'}`}>
-                {isLive ? '● LIVE · 已有真实留痕' : '○ DEMO · 尚无留痕'}
-              </span>
-            </h1>
+          <div>
+            <TaskPoolView
+              content={content}
+              telemetry={telemetry}
+              onTelemetryChange={setTelemetry}
+              onOpenUnit={handleOpenUnit}
+            />
+            <section class="section-card" aria-label="留痕与数据备份面板">
+              <h2 class="section-heading">
+                <span>本地留痕快照与数据备份（生活实验室与简版周报将于 M7 挂载）</span>
+                <span class={`badge-pill ${isLive ? 'badge-live' : 'badge-demo'}`}>
+                  {isLive ? '● LIVE · 已有真实留痕' : '○ DEMO · 尚无留痕'}
+                </span>
+              </h2>
             <div class="metrics-grid">
               <div class="metric-box">
                 <div class="metric-label">累计点亮天数</div>
@@ -385,7 +393,8 @@ export function App() {
                 }}
               />
             )}
-          </section>
+            </section>
+          </div>
         )}
       </main>
     </div>

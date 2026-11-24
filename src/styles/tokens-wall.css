@@ -1,0 +1,406 @@
+/* DESIGN.md 第二部分：1080P 个人状态墙（静谧深底 · 常亮总览风 · 严格一屏零滚动） */
+.wall-viewport {
+  --wall-bg: #0f1215;
+  --wall-surface: #171b20;
+  --wall-surface-2: #1f252c;
+  --wall-border: #2a313a;
+  --wall-text-main: #f2efe9;
+  --wall-text-muted: #949ca6;
+  --wall-green: #63c787;
+  --wall-amber: #f0b35a;
+  --wall-coral: #e26d63;
+
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--wall-bg);
+  color: var(--wall-text-main);
+  font-family: var(--font-sans);
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  user-select: none;
+}
+
+/* 默认主视图：12列 × 6行 六宫格状态墙 */
+.wall-bento-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-rows: repeat(6, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.wall-panel {
+  background: var(--wall-surface);
+  border: 1px solid var(--wall-border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.wall-panel-today {
+  grid-column: 1 / span 4;
+  grid-row: 1 / span 3;
+}
+
+.wall-panel-learning {
+  grid-column: 5 / span 5;
+  grid-row: 1 / span 4;
+}
+
+.wall-panel-countdown {
+  grid-column: 10 / span 3;
+  grid-row: 1 / span 3;
+}
+
+.wall-panel-life {
+  grid-column: 1 / span 4;
+  grid-row: 4 / span 3;
+}
+
+.wall-panel-status {
+  grid-column: 5 / span 5;
+  grid-row: 5 / span 2;
+}
+
+.wall-panel-content {
+  grid-column: 10 / span 3;
+  grid-row: 4 / span 2;
+}
+
+.wall-panel-footerbar {
+  grid-column: 10 / span 3;
+  grid-row: 6 / span 1;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+}
+
+.wall-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.wall-panel-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wall-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--wall-green);
+}
+
+.wall-tag {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--wall-surface-2);
+  color: var(--wall-text-muted);
+  border: 1px solid var(--wall-border);
+  white-space: nowrap;
+}
+
+.wall-tag-live {
+  color: var(--wall-green);
+  border-color: rgba(99, 199, 135, 0.4);
+  background: rgba(99, 199, 135, 0.1);
+}
+
+.wall-tag-demo {
+  color: var(--wall-amber);
+  border-color: rgba(240, 179, 90, 0.45);
+  border-style: dashed;
+  background: rgba(240, 179, 90, 0.1);
+}
+
+.wall-clock {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(40px, 3.3vw, 56px);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+}
+
+.wall-date-weather {
+  font-size: 15px;
+  color: var(--wall-text-muted);
+  margin: 6px 0 12px;
+}
+
+.wall-todo-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  overflow: hidden;
+}
+
+.wall-todo-item {
+  font-size: 15px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--wall-surface-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wall-countdown-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  flex: 1;
+  justify-content: space-between;
+}
+
+.wall-cd-card {
+  background: var(--wall-surface-2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.wall-cd-label {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.wall-cd-date {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--wall-text-muted);
+}
+
+.wall-cd-days {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(26px, 2.2vw, 36px);
+  font-weight: 700;
+  color: var(--wall-amber);
+}
+
+.wall-cd-days.is-urgent {
+  color: var(--wall-coral);
+}
+
+/* 学习块内部紧凑双栏 */
+.wall-learning-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  gap: 14px;
+}
+
+.wall-tree-summary-col {
+  background: var(--wall-surface-2);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  text-align: center;
+}
+
+.wall-big-kpi {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--wall-green);
+  line-height: 1.1;
+}
+
+.wall-kpi-sub {
+  font-size: 12px;
+  color: var(--wall-text-muted);
+}
+
+.wall-branches-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 0;
+  gap: 8px;
+}
+
+.wall-branch-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wall-bar-row {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr) 42px;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.wall-bar-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--wall-surface-2);
+  overflow: hidden;
+}
+
+.wall-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.wall-weakness-box {
+  background: var(--wall-surface-2);
+  border-radius: 10px;
+  padding: 9px 12px;
+  overflow: hidden;
+}
+
+.wall-weakness-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.wall-weak-chip {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(240, 179, 90, 0.14);
+  color: var(--wall-amber);
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wall-kv-list {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  flex: 1;
+  gap: 8px;
+}
+
+.wall-kv-row {
+  background: var(--wall-surface-2);
+  border-radius: 9px;
+  padding: 9px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+}
+
+.wall-kv-val {
+  color: var(--wall-text-main);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wall-quote-text {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 1.5;
+  margin: 4px 0 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.wall-btn {
+  background: var(--wall-surface-2);
+  color: var(--wall-text-main);
+  border: 1px solid var(--wall-border);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.wall-btn:hover {
+  border-color: var(--wall-green);
+  background: #262e37;
+}
+
+/* 二级切换视图：B1 AI 与软件专项数字看板（同样 1080P 零滚动） */
+.wall-b1-subview {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 14px;
+}
+
+.wall-b1-topbar {
+  grid-column: 1 / span 12;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--wall-surface);
+  border: 1px solid var(--wall-border);
+  border-radius: 14px;
+  padding: 12px 18px;
+}
+
+.wall-b1-kpis {
+  grid-column: 1 / span 12;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.wall-b1-layers {
+  grid-column: 1 / span 7;
+}
+
+.wall-b1-duration {
+  grid-column: 8 / span 5;
+}
+
+.wall-layer-row {
+  background: var(--wall-surface-2);
+  border-radius: 10px;
+  padding: 11px 14px;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1.4fr) minmax(0, 1fr) 110px;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}

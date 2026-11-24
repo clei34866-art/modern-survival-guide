@@ -17,6 +17,7 @@ import { ensureTodayPlanSnapshot } from './core/scheduler';
 import type { BranchId, ScheduledTaskItem, TelemetrySnapshot } from './types/schema';
 import { BranchesView } from './views/BranchesView';
 import { ReviewDeckView } from './views/ReviewDeckView';
+import { StatusWallView } from './views/StatusWallView';
 import { TodayView } from './views/TodayView';
 import { UnitPlayerView } from './views/UnitPlayerView';
 
@@ -25,6 +26,7 @@ interface ParsedRoute {
   unitId?: string;
   branchId?: BranchId;
   reviewTab?: 'retest' | 'cards';
+  wallSub?: 'main' | 'b1';
 }
 
 function parseHashRoute(hash: string): ParsedRoute {
@@ -46,7 +48,9 @@ function parseHashRoute(hash: string): ParsedRoute {
   }
   if (segments[0] === 'events') return { page: 'events' };
   if (segments[0] === 'lab') return { page: 'lab' };
-  if (segments[0] === 'wall') return { page: 'wall' };
+  if (segments[0] === 'wall') {
+    return { page: 'wall', wallSub: params.get('sub') === 'b1' ? 'b1' : 'main' };
+  }
   return { page: 'today' };
 }
 
@@ -197,6 +201,17 @@ export function App() {
       ? content.units.find((u) => u.id === route.unitId)
       : undefined;
 
+  // 独立全屏 1080P 大屏状态墙路由（不挂载站内暖纸顶栏，确保严格 100vw×100vh 零滚动）
+  if (route.page === 'wall') {
+    return (
+      <StatusWallView
+        content={content}
+        telemetry={telemetry}
+        initialSubView={route.wallSub ?? 'main'}
+      />
+    );
+  }
+
   return (
     <div>
       {/* DESIGN.md 1.5.1 全站轻量五项导航栏 */}
@@ -236,7 +251,7 @@ export function App() {
             </a>
             <a
               href="#/wall"
-              class={`site-nav-link is-wall-link ${route.page === 'wall' ? 'is-active' : ''}`}
+              class="site-nav-link is-wall-link"
             >
               状态墙 ↗
             </a>
@@ -370,18 +385,6 @@ export function App() {
                 }}
               />
             )}
-          </section>
-        )}
-
-        {route.page === 'wall' && (
-          <section class="section-card">
-            <h1 class="section-heading">1080P 个人状态墙（M5 实装留位）</h1>
-            <p class="hero-subtitle" style={{ marginBottom: '14px' }}>
-              独立深底高对比零滚动六宫格状态墙（主视图）及 B1 二级切换看板将于 M5 里程碑实装。
-            </p>
-            <a href="#/" class="site-nav-link is-active">
-              ← 返回「今天」
-            </a>
           </section>
         )}
       </main>

@@ -285,6 +285,40 @@ export interface TelemetrySnapshot {
   currentDailyPlan?: DailyPlanSnapshot; // 当日静态任务快照，持久化支持刷新不丢与状态墙联动
 }
 
+export interface WallCountdownItem {
+  id: string;
+  label: string;
+  targetDate: string;
+  isSample?: boolean;
+}
+
+export interface WallConfigManifest {
+  version: string;
+  externalSyncUrl: string;
+  refreshIntervalSeconds: number;
+  todayPlaceholder: {
+    weather: string;
+    todos: string[];
+  };
+  countdowns: WallCountdownItem[];
+  reservedBlocksSample: {
+    life: {
+      running: string;
+      sleep: string;
+      water: string;
+    };
+    content: {
+      quote: string;
+      quoteSource: string;
+      movie: string;
+    };
+    serviceStatus: {
+      serverExpiry: string;
+      cloudSync: string;
+    };
+  };
+}
+
 export interface WallExternalSyncPayload {
   updatedAt?: string;
   weather?: string;

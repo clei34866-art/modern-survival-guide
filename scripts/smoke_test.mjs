@@ -11,6 +11,7 @@ async function main() {
     knowledgeGraph: JSON.parse(fs.readFileSync('public/data/knowledge-graph.json', 'utf8')),
     units: JSON.parse(fs.readFileSync('public/data/units/placeholders.json', 'utf8')).units,
     dailyTips: JSON.parse(fs.readFileSync('public/data/daily-tips.json', 'utf8')).tips,
+    wallConfig: JSON.parse(fs.readFileSync('public/data/wall-config.json', 'utf8')),
   };
 
   const out = await esbuild.build({
@@ -20,6 +21,7 @@ async function main() {
         export * from './src/core/scheduler.ts';
         export * from './src/core/gatekeeper.ts';
         export * from './src/core/srs.ts';
+        export * from './src/core/wallAdapter.ts';
       `,
       resolveDir: process.cwd(),
     },
@@ -245,8 +247,31 @@ async function main() {
     throw new Error('7 天重测答对后未标记为 graduated 已掌握');
   }
 
+  // 7. M5 1080P 状态墙与二级看板 DEMO -> LIVE 自动转实验证
+  const emptyForWall = m.createEmptyTelemetry();
+  const demoVm = m.computeWallViewModel(bundle, emptyForWall, null, '2026-11-24');
+  if (demoVm.dataMode !== 'DEMO' || demoVm.countdowns.length < 3) {
+    throw new Error('无留痕时状态墙应处于 DEMO 示例演示模式且包含倒计时块');
+  }
+
+  await m.recordStudyDuration({
+    branchId: 'B1',
+    trackId: 'b1-sw-blender',
+    activity: 'action_task',
+    durationMs: 20 * 60 * 1000,
+  });
+  const liveSnap = await m.loadTelemetry();
+  const liveVm = m.computeWallViewModel(bundle, liveSnap, null, '2026-11-24');
+  if (
+    liveVm.dataMode !== 'LIVE' ||
+    liveVm.b1Kanban.aiLineMinutes <= 0 ||
+    liveVm.b1Kanban.softwareLineMinutes < 20
+  ) {
+    throw new Error('产生真实留痕后状态墙未自动转实或双线时长统计不准确');
+  }
+
   console.log(
-    '[smoke] 通过：M1–M4 全链路（含知识图谱闪卡、薄弱 TOP5 归档与 1→3→7→已掌握重测流转）验证通过。'
+    '[smoke] 通过：第一步「骨架阶段」(M1–M5) 全流程验证通过（含 1080P 状态墙 DEMO→LIVE 自动转实与双线看板）。'
   );
 }
 

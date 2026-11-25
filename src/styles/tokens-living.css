@@ -1539,3 +1539,356 @@ button.btn-primary:hover {
   font-size: 13px;
   color: var(--accent-growth);
 }
+
+.task-action-link {
+  flex-shrink: 0;
+  font-size: 13px;
+  padding: 6px 12px;
+}
+
+.prereq-links-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-secondary);
+  margin-bottom: 10px;
+}
+
+/* 防止长链接、代码块或公式撑破窄屏卡片 */
+.section-card,
+.path-track-card,
+.branch-card,
+.today-status-bar,
+.daily-tip-card,
+.slot-card,
+.concept-flashcard,
+.origin-card,
+.compliance-sources-footer {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* ============================================================================
+   全站响应式与手机端适配（平板 ≤768px · 手机 ≤480px 单栏与 ≥44px 触控标准）
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .page-shell {
+    padding: 16px 16px 56px;
+  }
+
+  .site-topbar-inner {
+    padding: 10px 16px;
+  }
+
+  .section-card,
+  .today-status-bar,
+  .path-track-card,
+  .unit-reading-card {
+    padding: 18px 18px;
+  }
+
+  .software-packs-grid,
+  .branches-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section-heading {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+    font-size: 16px;
+    line-height: 1.7;
+  }
+
+  .page-shell {
+    padding: 14px 14px 48px;
+  }
+
+  /* 1. 手机端主导航：取消吸顶遮挡，双行全宽清晰铺开，所有触控项 ≥44px */
+  .site-topbar {
+    position: relative;
+  }
+
+  .site-topbar-inner {
+    padding: 10px 14px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .site-brand {
+    min-height: 44px;
+    min-width: 44px;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 2px;
+  }
+
+  .site-brand-title {
+    font-size: 19px;
+  }
+
+  .site-brand-sub {
+    font-size: 13px;
+  }
+
+  .site-nav {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .site-nav .site-nav-link {
+    flex: 1 1 auto;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .site-nav-link,
+  .task-action-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+
+  /* 2. 全站交互控件统一满足 ≥44px × 44px 触控热区，输入控件 16px 防缩放 */
+  button,
+  .btn-sm,
+  .slot-collapse-btn,
+  .stepper-node,
+  .quiz-option-btn,
+  .branch-tab-btn {
+    min-height: 44px;
+    min-width: 44px;
+    font-size: 15px;
+  }
+
+  .low-battery-toggle {
+    position: relative;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 8px 14px;
+    font-size: 14px;
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .low-battery-toggle input,
+  .task-check-wrap input {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+  }
+
+  .task-check-wrap {
+    min-height: 44px;
+    min-width: 44px;
+    align-items: center;
+  }
+
+  .task-row > .task-check-wrap {
+    width: 44px;
+    height: 44px;
+    margin-top: 0;
+    margin-left: -6px;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .task-pool-form input,
+  .task-pool-form select,
+  .milestone-editor textarea,
+  .form-field-block textarea,
+  .form-field-block input {
+    min-height: 44px;
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+
+  .curated-resources-list li a,
+  .source-main-line a,
+  .visual-caption-bar a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* 3. ≤480px 严格单栏排版，消除双列挤压与横向溢出 */
+  .branch-tabs-strip,
+  .software-packs-grid,
+  .branches-grid,
+  .metrics-grid,
+  .task-pool-form {
+    grid-template-columns: 1fr;
+  }
+
+  .branch-tab-btn {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 14px;
+    width: 100%;
+  }
+
+  .branch-tab-btn .branch-tag {
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .branch-tab-name {
+    flex: 1;
+    font-size: 15px;
+  }
+
+  .branch-tab-stat {
+    flex-shrink: 0;
+    font-size: 13px;
+  }
+
+  .section-card,
+  .today-status-bar,
+  .daily-tip-card,
+  .path-track-card,
+  .branch-card,
+  .unit-reading-card,
+  .wrap-up-card {
+    padding: 16px;
+    border-radius: 14px;
+  }
+
+  .today-greeting,
+  .hero-title,
+  .unit-main-title {
+    font-size: 22px;
+    line-height: 1.38;
+  }
+
+  .section-heading {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 18px;
+  }
+
+  .today-rhythm-note,
+  .daily-tip-body,
+  .guide-block-body,
+  .scenario-story-box,
+  .scenario-question-box,
+  .guide-takeaway-box,
+  .task-hint {
+    font-size: 16px;
+    line-height: 1.72;
+  }
+
+  .slot-card-header {
+    padding: 14px 16px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .slot-header-right {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .slot-tasks-list {
+    padding: 12px 14px;
+  }
+
+  .task-row {
+    flex-wrap: wrap;
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .task-row > .task-body {
+    flex: 1 1 calc(100% - 52px);
+  }
+
+  .task-row > a,
+  .task-row > button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .wrap-up-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .track-unit-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .track-unit-item > button {
+    width: 100%;
+  }
+
+  .milestone-header-row,
+  .quiz-result-bar,
+  .unit-topbar,
+  .daily-tip-top,
+  .daily-tip-collapsed-bar,
+  .crosslink-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .unit-stepper {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    gap: 8px;
+  }
+
+  .stepper-node {
+    flex-shrink: 0;
+    padding: 8px 14px;
+  }
+
+  .scenario-story-box {
+    padding: 14px 16px;
+  }
+
+  .quiz-option-btn {
+    padding: 12px 14px;
+    font-size: 16px;
+    line-height: 1.55;
+  }
+
+  .step-footer-nav > button,
+  .quiz-result-bar .btn-row > button {
+    width: 100%;
+  }
+
+  .weakness-pill-card {
+    width: 100%;
+  }
+}

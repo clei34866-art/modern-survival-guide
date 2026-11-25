@@ -210,7 +210,7 @@ export function SkillTreeSvg({
                   x={geo.labelX}
                   y={geo.labelY}
                   text-anchor="middle"
-                  font-size="12"
+                  font-size="13.5"
                   font-weight={isSelected ? '700' : '600'}
                   fill={isSelected ? branch.accentToken : labelColor}
                 >

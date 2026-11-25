@@ -290,8 +290,7 @@ export function TodayView({
                         {task.unitId && !isExempted && (
                           <a
                             href={`#/unit/${task.unitId}`}
-                            class="site-nav-link is-active"
-                            style={{ flexShrink: 0, fontSize: '13px', padding: '5px 11px' }}
+                            class="site-nav-link is-active task-action-link"
                           >
                             打开单元 →
                           </a>
@@ -303,8 +302,7 @@ export function TodayView({
                                 ? '#/review?tab=retest'
                                 : '#/review?tab=cards'
                             }
-                            class="site-nav-link is-active"
-                            style={{ flexShrink: 0, fontSize: '13px', padding: '5px 11px' }}
+                            class="site-nav-link is-active task-action-link"
                           >
                             {task.kind === 'retest_review' ? '去重测 →' : '去刷卡 →'}
                           </a>

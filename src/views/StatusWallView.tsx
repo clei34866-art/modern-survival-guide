@@ -81,7 +81,7 @@ export function StatusWallView({
       <div class="wall-viewport" aria-label="1080P B1 AI与软件专项数字看板（二级视图）">
         <div class="wall-b1-subview">
           <header class="wall-b1-topbar">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div class="wall-b1-topbar-group">
               <button
                 type="button"
                 class="wall-btn"
@@ -94,7 +94,7 @@ export function StatusWallView({
                 B1 · AI 与软件专项数字看板（二级视图）
               </h1>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div class="wall-b1-topbar-group">
               <span
                 class={`wall-tag ${
                   vm.dataMode === 'LIVE' ? 'wall-tag-live' : 'wall-tag-demo'

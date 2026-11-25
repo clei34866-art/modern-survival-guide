@@ -23,6 +23,10 @@ export interface PlatformContentBundle {
 }
 
 export async function loadPlatformContent(): Promise<PlatformContentBundle> {
+  const rawBase =
+    (import.meta as unknown as { env?: { BASE_URL?: string } }).env?.BASE_URL || './';
+  const dataPrefix = rawBase.endsWith('/') ? `${rawBase}data` : `${rawBase}/data`;
+
   const [
     catalogRes,
     kgRes,
@@ -35,16 +39,16 @@ export async function loadPlatformContent(): Promise<PlatformContentBundle> {
     eventsRes,
     toolsRes,
   ] = await Promise.all([
-    fetch('./data/catalog.json'),
-    fetch('./data/knowledge-graph.json'),
-    fetch('./data/units/b1-ai-l1.json'),
-    fetch('./data/units/b1-sw-blender.json'),
-    fetch('./data/units/b2-finance.json'),
-    fetch('./data/units/b3-psych.json'),
-    fetch('./data/daily-tips.json'),
-    fetch('./data/wall-config.json'),
-    fetch('./data/event-packs.json'),
-    fetch('./data/toolbox-packs.json'),
+    fetch(`${dataPrefix}/catalog.json`),
+    fetch(`${dataPrefix}/knowledge-graph.json`),
+    fetch(`${dataPrefix}/units/b1-ai-l1.json`),
+    fetch(`${dataPrefix}/units/b1-sw-blender.json`),
+    fetch(`${dataPrefix}/units/b2-finance.json`),
+    fetch(`${dataPrefix}/units/b3-psych.json`),
+    fetch(`${dataPrefix}/daily-tips.json`),
+    fetch(`${dataPrefix}/wall-config.json`),
+    fetch(`${dataPrefix}/event-packs.json`),
+    fetch(`${dataPrefix}/toolbox-packs.json`),
   ]);
 
   if (

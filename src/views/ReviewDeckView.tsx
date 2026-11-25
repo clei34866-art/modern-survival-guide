@@ -388,14 +388,13 @@ export function ReviewDeckView({
                   </div>
 
                   {concept.prerequisites.length > 0 && (
-                    <div style={{ fontSize: '12px', color: 'var(--ink-secondary)', marginBottom: '8px' }}>
-                      先修共用概念：
+                    <div class="prereq-links-row">
+                      <span>先修共用概念：</span>
                       {concept.prerequisites.map((preId) => (
                         <button
                           key={preId}
                           type="button"
                           class="btn-sm"
-                          style={{ marginLeft: '6px', padding: '2px 8px' }}
                           onClick={() => handleJumpCrossLink(preId)}
                         >
                           {preId} ↗

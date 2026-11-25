@@ -372,10 +372,18 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   background: var(--wall-surface);
   border: 1px solid var(--wall-border);
   border-radius: 14px;
   padding: 12px 18px;
+}
+
+.wall-b1-topbar-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
 }
 
 .wall-b1-kpis {
@@ -403,4 +411,118 @@
   gap: 12px;
   margin-bottom: 8px;
   font-size: 14px;
+}
+
+/* ============================================================================
+   窄屏与手机端兜底适配（>960px 严格保持 1080P 一屏零滚动；≤960px 自动转为纵向可读流，不叠字不裁切）
+   ============================================================================ */
+@media (max-width: 960px) {
+  .wall-viewport {
+    width: 100%;
+    max-width: 100vw;
+    height: auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 16px 14px 36px;
+    user-select: auto;
+  }
+
+  .wall-bento-grid,
+  .wall-b1-subview {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: auto;
+  }
+
+  .wall-panel {
+    overflow: visible;
+    padding: 16px;
+  }
+
+  .wall-panel-head {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .wall-learning-body {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .wall-tree-summary-col {
+    padding: 14px;
+    gap: 8px;
+  }
+
+  .wall-todo-item,
+  .wall-kv-val,
+  .wall-weak-chip {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+  }
+
+  .wall-kv-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .wall-quote-text {
+    -webkit-line-clamp: unset;
+    overflow: visible;
+  }
+
+  .wall-panel-footerbar {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .wall-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 8px 14px;
+    font-size: 14px;
+  }
+
+  .wall-b1-topbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 14px 16px;
+  }
+
+  .wall-b1-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .wall-layer-row {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .wall-clock {
+    font-size: 34px;
+  }
+
+  .wall-b1-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .wall-layer-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .wall-panel-footerbar > .wall-btn,
+  .wall-b1-topbar-group > .wall-btn {
+    flex: 1 1 auto;
+  }
 }

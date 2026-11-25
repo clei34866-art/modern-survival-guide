@@ -1,9 +1,9 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-11-24T15:23:02.434Z",
+  "generatedAt": "2026-11-25T01:54:35.935Z",
   "engine": "scrapling-mcp+node-whitelist-archiver",
-  "totalTargets": 17,
-  "fetchedCount": 13,
+  "totalTargets": 19,
+  "fetchedCount": 14,
   "items": [
     {
       "id": "src-b1-anthropic-prompt",
@@ -13,7 +13,7 @@
       "sourceOrg": "Anthropic Claude Platform Docs",
       "sourceUrl": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices",
       "finalUrl": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices",
-      "fetchedAt": "2026-11-24",
+      "fetchedAt": "2026-11-25",
       "pageTitle": "Prompting best practices - Claude Platform Docs",
       "headings": [
         "Prompting best practices",
@@ -41,7 +41,7 @@
       "sourceOrg": "Anthropic Claude Platform Docs",
       "sourceUrl": "https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations",
       "finalUrl": "https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations",
-      "fetchedAt": "2026-11-24",
+      "fetchedAt": "2026-11-25",
       "pageTitle": "Reduce hallucinations - Claude Platform Docs",
       "headings": [
         "Reduce hallucinations",
@@ -69,24 +69,24 @@
       "sourceOrg": "DeepLearning.AI",
       "sourceUrl": "https://www.deeplearning.ai/short-courses/",
       "finalUrl": "https://www.deeplearning.ai/courses",
-      "fetchedAt": "2026-11-24",
+      "fetchedAt": "2026-11-25",
       "pageTitle": "DeepLearning.AI",
       "headings": [
         "AI Courses",
         "Featured",
-        "AI Code Review",
         "AI Prompting for Everyone",
         "Build with Andrew",
+        "Agentic AI",
         "Learn",
         "Company",
         "Top Rated",
-        "Advanced Retrieval for AI with Chroma",
-        "Machine Learning Specialization"
+        "ChatGPT Prompt Engineering for Developers",
+        "Safe and reliable AI via guardrails"
       ],
       "excerpts": [
         "✨ New Course! Enroll in Tabular Foundation Models for Data Science Agents",
         "The Batch Andrew&#x27;s Letter Data Points ML Research Blog Community Forum Resources Membership For Business Overview Plans & Pricing Learn",
-        "Qodo AI Code Review AI Code Review AI can write more code than any team can review by hand. In this hands-on course with Qodo, you&#x27;ll l"
+        "DeepLearning.AI AI Prompting for Everyone AI Prompting for Everyone Become an AI power user in this new course taught by Andrew Ng. From fin"
       ]
     },
     {
@@ -97,10 +97,10 @@
       "sourceOrg": "Blender Foundation Official Docs",
       "sourceUrl": "https://docs.blender.org/api/current/info_quickstart.html",
       "finalUrl": "https://docs.blender.org/api/current/info_quickstart.html",
-      "fetchedAt": "2026-11-24",
+      "fetchedAt": "2026-11-25",
       "pageTitle": "Quickstart - Blender Python API",
       "headings": [
-        "November 24 : Pay it forward.",
+        "November 25 : Pay it forward.",
         "Quickstart ¶",
         "Before Starting ¶",
         "Running Scripts ¶",
@@ -125,10 +125,10 @@
       "sourceOrg": "Blender Foundation Official Docs",
       "sourceUrl": "https://docs.blender.org/api/current/info_overview.html",
       "finalUrl": "https://docs.blender.org/api/current/info_overview.html",
-      "fetchedAt": "2026-11-24",
+      "fetchedAt": "2026-11-25",
       "pageTitle": "API Overview - Blender Python API",
       "headings": [
-        "November 24 : Pay it forward.",
+        "November 25 : Pay it forward.",
         "API Overview ¶",
         "Python in Blender ¶",
         "The Default Environment ¶",
@@ -153,7 +153,7 @@
       "sourceOrg": "NumPy Official Docs",
       "sourceUrl": "https://numpy.org/doc/stable/user/absolute_beginners.html",
       "finalUrl": "https://numpy.org/doc/stable/user/absolute_beginners.html",
-      "fetchedAt": "2026-11-24",
+      "fetchedAt": "2026-11-25",
       "pageTitle": "NumPy: the absolute basics for beginners &#8212; NumPy v2.5 Manual",
       "headings": [
         "NumPy: the absolute basics for beginners #",
@@ -181,7 +181,7 @@
       "sourceOrg": "Git SCM",
       "sourceUrl": "https://git-scm.com/book/zh/v2",
       "finalUrl": "https://git-scm.com/book/zh/v2",
-      "fetchedAt": "2026-11-24",
+      "fetchedAt": "2026-11-25",
       "pageTitle": "Git",
       "headings": [
         "Book",
@@ -209,7 +209,7 @@
       "sourceOrg": "台湾大学李宏毅实验室",
       "sourceUrl": "https://speech.ee.ntu.edu.tw/~hylee/ml/2023-spring.php",
       "finalUrl": "https://speech.ee.ntu.edu.tw/~hylee/ml/2023-spring.php",
-      "fetchedAt": "2026-11-24",
+      "fetchedAt": "2026-11-25",
       "pageTitle": "ML 2023 Spring",
       "headings": [
         "Hung-yi Lee (李宏毅)",
@@ -237,7 +237,7 @@
       "sourceOrg": "arXiv Open Access",
       "sourceUrl": "https://arxiv.org/abs/1706.03762",
       "finalUrl": "https://arxiv.org/abs/1706.03762",
-      "fetchedAt": "2026-11-24",
+      "fetchedAt": "2026-11-25",
       "pageTitle": "[1706.03762] Attention Is All You Need",
       "headings": [
         "Computer Science > Computation and Language",
@@ -265,7 +265,7 @@
       "sourceOrg": "OpenStax / Rice University",
       "sourceUrl": "https://openstax.org/books/psychology-2e/pages/7-3-problem-solving",
       "finalUrl": "https://openstax.org/books/psychology-2e/pages/7-3-problem-solving",
-      "fetchedAt": "2026-11-24",
+      "fetchedAt": "2026-11-25",
       "pageTitle": "7.3 Problem Solving - Psychology 2e | OpenStax",
       "headings": [
         "7.3 Problem Solving",
@@ -293,7 +293,7 @@
       "sourceOrg": "OpenStax / Rice University",
       "sourceUrl": "https://openstax.org/books/psychology-2e/pages/10-4-emotion",
       "finalUrl": "https://openstax.org/books/psychology-2e/pages/10-4-emotion",
-      "fetchedAt": "2026-11-24",
+      "fetchedAt": "2026-11-25",
       "pageTitle": "10.4 Emotion - Psychology 2e | OpenStax",
       "headings": [
         "10.4 Emotion",
@@ -314,6 +314,36 @@
       ]
     },
     {
+      "id": "src-b3-nimh-selfcare",
+      "branchId": "B3",
+      "trackId": "b3-main",
+      "topic": "NIMH 心理健康自我照护与两周专业求助边界指南",
+      "sourceOrg": "National Institute of Mental Health (NIMH)",
+      "sourceUrl": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+      "finalUrl": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+      "fetchedAt": "2026-11-25",
+      "pageTitle": "Caring for Your Mental Health - National Institute of Mental Health (NIMH)",
+      "headings": [
+        "Health Topics",
+        "Statistics",
+        "Brochures and Fact Sheets",
+        "Help for Mental Illnesses",
+        "Clinical Trials",
+        "Stakeholder Engagement",
+        "Connect with NIMH",
+        "Digital Shareables",
+        "Science Education",
+        "Research Funded by NIMH"
+      ],
+      "excerpts": [
+        "An official website of the United States government",
+        "Official websites use .gov A .gov website belongs to an official government organization in the United States.",
+        "Secure .gov websites use HTTPS A lock ( Lock Locked padlock icon ) or https:// means you’ve safely connected to the .gov website. Share sens"
+      ],
+      "publishedYear": 2026,
+      "reviewAfter": "2027-12-31"
+    },
+    {
       "id": "src-b3-who-stress",
       "branchId": "B3",
       "trackId": "b3-main",
@@ -321,7 +351,7 @@
       "sourceOrg": "世界卫生组织 (WHO)",
       "sourceUrl": "https://www.who.int/publications/i/item/9789240003927",
       "finalUrl": "https://www.who.int/publications/i/item/9789240003927",
-      "fetchedAt": "2026-11-24",
+      "fetchedAt": "2026-11-25",
       "pageTitle": "Doing What Matters in Times of Stress",
       "headings": [
         "Doing What Matters in Times of Stress",
@@ -340,7 +370,7 @@
       "sourceOrg": "American Educator / AFT",
       "sourceUrl": "https://www.aft.org/ae/fall2013/dunlosky",
       "finalUrl": "https://www.aft.org/ae/fall2013/dunlosky",
-      "fetchedAt": "2026-11-24",
+      "fetchedAt": "2026-11-25",
       "pageTitle": "Strengthening the Student Toolbox",
       "headings": [
         "Breadcrumb",

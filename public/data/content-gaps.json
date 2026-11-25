@@ -1,8 +1,8 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-11-24T15:23:02.434Z",
+  "generatedAt": "2026-11-25T01:54:35.935Z",
   "policy": "严格限定公开可访问与开放授权页面，单次礼貌只读请求，遇登录墙、付费墙、反爬验证或超时立即停止并记入 content-gaps.json。",
-  "gapCount": 4,
+  "gapCount": 5,
   "gaps": [
     {
       "id": "src-b2-investor-edu",
@@ -11,7 +11,7 @@
       "sourceOrg": "中国证监会投资者保护局 / 中国投资者网",
       "url": "https://www.investor.org.cn/xxzx/tzzkt/jj/jczs/",
       "reason": "公开静态请求仅返回前端 SPA 空壳（无服务端渲染正文），记入缺口待人工核阅",
-      "recordedAt": "2026-11-24T15:23:02.434Z"
+      "recordedAt": "2026-11-25T01:54:35.935Z"
     },
     {
       "id": "src-b2-csindex",
@@ -20,7 +20,16 @@
       "sourceOrg": "中证指数有限公司",
       "url": "https://www.csindex.com.cn/",
       "reason": "公开静态请求仅返回前端 SPA 空壳（无服务端渲染正文），记入缺口待人工核阅",
-      "recordedAt": "2026-11-24T15:23:02.434Z"
+      "recordedAt": "2026-11-25T01:54:35.935Z"
+    },
+    {
+      "id": "src-b2-nfra-consumer",
+      "branchId": "B2",
+      "topic": "国家金融监督管理总局金融消费者权益保护门户",
+      "sourceOrg": "国家金融监督管理总局",
+      "url": "https://www.nfra.gov.cn/",
+      "reason": "公开网络直连超时或中断 (fetch failed)",
+      "recordedAt": "2026-11-25T01:54:35.935Z"
     },
     {
       "id": "src-b4-who-activity",
@@ -29,7 +38,7 @@
       "sourceOrg": "世界卫生组织 (WHO)",
       "url": "https://www.who.int/zh/publications/i/item/9789240015128",
       "reason": "HTTP 404 页面不存在或暂时不可用",
-      "recordedAt": "2026-11-24T15:23:02.434Z"
+      "recordedAt": "2026-11-25T01:54:35.935Z"
     },
     {
       "id": "src-b7-npc-law",
@@ -38,7 +47,7 @@
       "sourceOrg": "全国人大常委会办公厅",
       "url": "https://flk.npc.gov.cn/",
       "reason": "公开网络直连超时或中断 (fetch failed)",
-      "recordedAt": "2026-11-24T15:23:02.434Z"
+      "recordedAt": "2026-11-25T01:54:35.935Z"
     }
   ]
 }

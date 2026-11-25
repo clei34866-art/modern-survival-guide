@@ -235,16 +235,21 @@
           "id": "b2-main",
           "kind": "branch_path",
           "title": "个人财务生存主路径",
-          "summary": "记账与预算 → 消费、信用与负债 → 保险常识 → 社保与税务常识 → 投资基础 → 经济学常识",
-          "unitIds": ["unit-b2-budget-sample"],
+          "summary": "已上线首批三节：记账与预算 → 保险常识 → 投资基础；后续章节目录（消费信用与负债 / 社保与税务常识 / 利率通胀与经济周期常识）随内容滚动扩充",
+          "unitIds": ["unit-b2-budget", "unit-b2-insurance", "unit-b2-investing"],
           "curatedResources": [
             {
-              "title": "中国投资者网 · 投资者教育知识读本",
+              "title": "中国投资者网 · 投资者课堂（基金、股票、债券基础与风险提示）",
               "org": "中国证监会投资者保护局 / 中国投资者网",
-              "url": "https://www.investor.org.cn/"
+              "url": "https://www.investor.org.cn/xxzx/tzzkt/jj/jczs/"
             },
             {
-              "title": "中证指数有限公司 · 指数投资百问百答",
+              "title": "国家金融监督管理总局 · 消费者权益保护专栏",
+              "org": "国家金融监督管理总局",
+              "url": "https://www.nfra.gov.cn/"
+            },
+            {
+              "title": "中证指数有限公司 · 指数知识与投教专栏",
               "org": "中证指数有限公司",
               "url": "https://www.csindex.com.cn/"
             }
@@ -259,7 +264,7 @@
       "accentToken": "#A86472",
       "redLineRules": [
         "仅做心理学应用科普与日常自助练习，不做任何临床心理或精神医学诊断与治疗建议",
-        "每节显著标注专业求助边界（持续两周以上功能受损或危机状态须及时寻求校医院/精神科/心理热线）",
+        "每节显著标注专业求助边界（持续两周以上功能受损或危机状态须及时寻求校医院/精神科/12356心理热线）",
         "经典实验与概念配备「溯源卡」，如实呈现原始样本与后续复现争议"
       ],
       "tracks": [
@@ -267,18 +272,23 @@
           "id": "b3-main",
           "kind": "branch_path",
           "title": "应用心理与决策主路径",
-          "summary": "情绪管理 → 压力与睡眠心理 → 认知偏误与决策 → 沟通与冲突 → 亲密关系 → 自我认知",
-          "unitIds": ["unit-b3-bias-sample"],
+          "summary": "已上线首批两节：情绪管理 → 认知偏误与决策；后续章节目录（压力与睡眠心理 / 沟通与冲突 / 亲密关系 / 自我认知）随内容滚动扩充",
+          "unitIds": ["unit-b3-emotion", "unit-b3-decision"],
           "curatedResources": [
             {
-              "title": "OpenStax Psychology 2e (CC BY 4.0 开放获取教材)",
+              "title": "OpenStax Psychology 2e · 10.4 Emotion 开放获取教材",
               "org": "OpenStax / Rice University",
-              "url": "https://openstax.org/details/books/psychology-2e"
+              "url": "https://openstax.org/books/psychology-2e/pages/10-4-emotion"
             },
             {
-              "title": "WHO 压力管理实用指南《Doing What Matters in Times of Stress》",
-              "org": "世界卫生组织 (WHO)",
-              "url": "https://www.who.int/publications/i/item/9789240003927"
+              "title": "OpenStax Psychology 2e · 7.3 Problem Solving & Decision Biases",
+              "org": "OpenStax / Rice University",
+              "url": "https://openstax.org/books/psychology-2e/pages/7-3-problem-solving"
+            },
+            {
+              "title": "NIMH · Caring for Your Mental Health（自我照护与专业求助指征）",
+              "org": "National Institute of Mental Health",
+              "url": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health"
             }
           ]
         }

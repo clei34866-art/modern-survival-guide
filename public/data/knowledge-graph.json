@@ -94,30 +94,60 @@
     {
       "id": "b2.budget_three_buckets",
       "branchId": "B2",
-      "label": "月度现金流三桶分流法",
-      "plainDefinition": "生活费或收入一到账，先按「固定刚需 / 弹性生活 / 应急与储蓄」分桶隔离，而不是月底看还剩多少。",
-      "cardPrompt": "为什么「月末结余储蓄」几乎总会失败，而「到账先划拨应急桶」更容易执行？",
-      "cardAnswer": "账户混合会放大心理账户错觉，看到总余额充裕就不自觉提高日常消费基准。",
+      "label": "50/30/20 三桶预算与应急金防火墙",
+      "plainDefinition": "收入或生活费到账当天先按「必要刚需 / 弹性生活 / 应急与储蓄」分账户隔离，并优先攒够 3～6 个月基本生活费的高流动安全应急金。",
+      "cardPrompt": "为什么应急缓冲金必须放在活期或货币市场等高流动性低风险载体，而绝不能拿去买股票基金？",
+      "cardAnswer": "突发疾病或急用钱往往不挑牛熊市；若应急金押在高波动资产上，急用时可能被迫在大幅回撤底部割肉变现。",
       "prerequisites": [],
       "crossLinks": [
         {
           "targetId": "b3.loss_aversion",
-          "bridgeNote": "先分桶相当于提前设好心理参照点，花超弹性桶会立刻触发真实感知。"
+          "bridgeNote": "事前物理分桶提前锚定了消费边界，避免月底透支触发恐慌或高息分期。"
+        }
+      ]
+    },
+    {
+      "id": "b2.insurance_protection_first",
+      "branchId": "B2",
+      "label": "先保障后理财、如实健康告知与犹豫期",
+      "plainDefinition": "买保险的核心是花小钱转移「生大病、出意外」等家庭扛不住的极端财务风险；投保须逐条如实健康告知，签收后 10～15 天犹豫期内可无条件退保。",
+      "cardPrompt": "投保人身保险时若故意隐瞒体检异常未履行如实健康告知义务，日后出险会面临什么法律后果？",
+      "cardAnswer": "依《保险法》规定，足以影响承保决定的未如实告知，保险公司有权解除合同，且对解除前发生的保险事故不承担赔付责任。",
+      "prerequisites": ["b2.budget_three_buckets"],
+      "crossLinks": [
+        {
+          "targetId": "b3.cognitive_anchoring_availability",
+          "bridgeNote": "警惕被销售话术的「返本高息」数字锚定，而忽略真正关键的保额与免责条款。"
         }
       ]
     },
     {
       "id": "b2.risk_drawdown_tolerance",
       "branchId": "B2",
-      "label": "最大回撤与真实风险承受力",
-      "plainDefinition": "看一项投资不能只看年化收益，先问自己账面跌掉 20%～30% 时会不会睡不着觉、被迫急用钱割肉。",
-      "cardPrompt": "短期三年内必定要用的学费或租房押金，能不能放进宽基股票指数基金？",
-      "cardAnswer": "不能；权益资产短期回撤周期可能超过两三年，刚性期限资金一旦遇上熊市会被迫在底部变现亏损。",
+      "label": "宽基指数分散、最大回撤与期限匹配",
+      "plainDefinition": "被动宽基指数基金通过持有一篮子成分股分散单家公司暴雷风险，但仍有市场周期波动；必须坚持闲钱长期配置，3 年内刚性必用钱绝不入股市。",
+      "cardPrompt": "主动型基金与被动型指数基金的核心差异是什么？为什么短期必用的学费/房租不能买股票型或宽基指数基金？",
+      "cardAnswer": "被动指数基金复制特定指数成分股、费率低且规则透明；但权益类资产短期回撤周期可能跨越数年，期限错配会导致被迫低位止损。",
       "prerequisites": ["b2.budget_three_buckets"],
       "crossLinks": [
         {
           "targetId": "b3.loss_aversion",
-          "bridgeNote": "同幅度的亏损带来的痛苦感约为收益快感的两倍，高估承受力是恐慌抛售主因。"
+          "bridgeNote": "同幅度亏损痛感显著强于收益快感，高估自身回撤承受力是追涨杀跌的心理根源。"
+        }
+      ]
+    },
+    {
+      "id": "b3.emotion_cognitive_reappraisal",
+      "branchId": "B3",
+      "label": "生理唤醒与认知重评（Cognitive Reappraisal）",
+      "plainDefinition": "情绪由「生理唤醒」与「大脑对处境的认知评价/预测」共同构成；改写对心跳出汗的灾难化解读，比强行压抑表情更能平稳情绪。",
+      "cardPrompt": "上台汇报前心跳加快、手心出汗，强忍着逼自己「绝对不准紧张」好，还是将其重评为「身体正在供氧帮我备战」更有效？",
+      "cardAnswer": "认知重评更有效；同样的交感神经唤醒在不同认知标签下会建构出截然不同的情绪体验，强行压抑反而额外消耗工作记忆。",
+      "prerequisites": [],
+      "crossLinks": [
+        {
+          "targetId": "b6.spaced_retrieval",
+          "bridgeNote": "考前充分做过闭卷提取演练能提升掌控感评价，从源头降低威胁型焦虑唤醒。"
         }
       ]
     },
@@ -125,14 +155,33 @@
       "id": "b3.loss_aversion",
       "branchId": "B3",
       "label": "损失厌恶与沉没成本陷阱",
-      "plainDefinition": "人对「失去 100 元」的肉痛感远强于「捡到 100 元」的开心，所以常常为了挽回已沉没的投入而继续加注错误决定。",
-      "cardPrompt": "买错的难穿鞋子或跑不通的死胡同实验方案舍不得停，背后是什么认知偏误在推你？",
-      "cardAnswer": "损失厌恶叠加沉没成本效应——把已经无法收回的历史投入当成了继续消耗未来精力的理由。",
+      "plainDefinition": "人对损失的心理抗拒远强于等额收益的愉悦，导致常为无法挽回的历史投入（沉没成本）继续追加宝贵的未来时间与资金。",
+      "cardPrompt": "面对跑不通的实验支线或买错的闲置物品，怎样用一句话做「零基止损测试」？",
+      "cardAnswer": "问自己：「假设过去没投过一分钱一分钟，今天让我从零选择，我还会开启这件事吗？」若不会，立即止损就是赚回未来。",
       "prerequisites": [],
       "crossLinks": [
         {
           "targetId": "b2.risk_drawdown_tolerance",
-          "bridgeNote": "投资与日常止损共用同一套反直觉纪律：只看未来期望，不替沉没成本买单。"
+          "bridgeNote": "投资与人生止损同源：只评估未来边际风险收益，不为沉没成本买单。"
+        }
+      ]
+    },
+    {
+      "id": "b3.cognitive_anchoring_availability",
+      "branchId": "B3",
+      "label": "锚定偏误、确认偏误与可得性启发式",
+      "plainDefinition": "大脑省力走捷径时，极易被第一口开价锁死参照系（锚定）、只搜顺耳证据（确认偏误），或把刚刷到的热搜个案当成普遍概率（可得性启发式）。",
+      "cardPrompt": "为什么做重大购买或科研假设判断前，必须刻意去搜一条「反面证据」？",
+      "cardAnswer": "因为确认偏误会让人自动过滤反例、只收集支持既有观点的信息；主动寻找反例能打破单向信息茧房。",
+      "prerequisites": [],
+      "crossLinks": [
+        {
+          "targetId": "b1.quote_first_verification",
+          "bridgeNote": "核查 AI 输出时同样要防确认偏误——不能因为 AI 顺着你的猜想说就免去回源查证。"
+        },
+        {
+          "targetId": "b2.insurance_protection_first",
+          "bridgeNote": "买保险与做消费预算时，先脱离销售给出的价格锚点，独立核算自身真实需求。"
         }
       ]
     },

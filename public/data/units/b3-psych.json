@@ -1,0 +1,260 @@
+{
+  "version": "1.0.0",
+  "units": [
+    {
+      "id": "unit-b3-emotion",
+      "branchId": "B3",
+      "trackId": "b3-main",
+      "title": "情绪管理：看懂身体的报警信号，用「认知重评」替代硬憋内耗",
+      "estimatedMinutes": 20,
+      "recommendedEnergy": "fragment",
+      "isPlaceholder": false,
+      "scenarioHook": {
+        "sceneTitle": "越在心里默念「别紧张、别生气」，心跳反而越像敲鼓",
+        "story": "上台汇报前手脚冰凉，或者被一句误解气得胸口发闷时，很多人第一反应是死死压住情绪假装没事，结果不仅话没说利索，回宿舍还反复回放内耗到凌晨两点睡不着。",
+        "guidingQuestion": "情绪到底是怎么在身体和大脑里组装出来的？不靠硬憋，怎样科学给情绪降温？"
+      },
+      "prediction": {
+        "question": "在心理学经典的肾上腺素唤醒实验中，所有受试者体内都被引起了相同的心跳加速与手抖反应，哪群人最不容易被旁边演员的愤怒或狂喜带偏情绪？",
+        "options": [
+          "完全不知道注射会引起心跳手抖的人",
+          "提前被如实告知「接下来几分钟心跳手抖只是正常生理药效反应」的人",
+          "拼命咬牙控制面部表情一动不动的人",
+          "心率跳得最快的人"
+        ],
+        "commonTrapIndex": 2,
+        "answerIndex": 1,
+        "whyCounterIntuitive": "当大脑清楚知道身体唤醒来自正常生理机制时，就不会到处抓负面线索把它误贴上「我失控了/我完蛋了」的恐慌标签——认知评价决定了同一份生理激动最终变成什么情绪。"
+      },
+      "guide": {
+        "blocks": [
+          {
+            "heading": "分清短暂「情绪」与持续「心境」，看懂唤醒 + 评价双引擎",
+            "markdown": "心理学中，**情绪（Emotion）**通常是针对具体事件产生的强烈、短暂状态；而**心境（Mood）**则是持续时间较长、起因模糊的背景底色。综合 Schachter-Singer 双因素模型、Lazarus 认知中介评价理论与 Barrett 情绪建构论：情绪并非大脑里无法控制的死开关，而是「生理唤醒信号 + 大脑基于处境的认知评价/预测」。就像胃里翻腾在面包店门口会被大脑建构为「馋和饿」，在等成绩单前却会被建构为「焦虑」。",
+            "keyTakeaway": "心跳加速不等于「我要搞砸了」，换个标签它就是「交感神经正在给大脑供氧备战」。"
+          },
+          {
+            "heading": "日常自助三步法：生理底座降噪 + 认知重评 + 明确求助红线",
+            "markdown": "比起事后死憋表情的「表达抑制」，在评价环节改写解读的**认知重评（Cognitive Reappraisal）**对身心负担小得多：① **先稳生理底座**（NIMH 自我照护建议：每天哪怕分段快走 30 分钟、规律饮食饮水、睡前减少手机蓝光守护睡眠）；② **命名并重评想法**（把「导师皱眉=我的课题全废了」拆解为「这一页图的数据还需要补对照」）；③ **设定优先级学会说不**，把精力放回当下可做的一件最小具体动作上。",
+            "keyTakeaway": "日常自助适用于短期压力波动；若严重痛苦持续两周以上并损害睡眠、食欲或日常功能，请果断寻求专业支持。"
+          }
+        ],
+        "visuals": [
+          {
+            "kind": "exact_svg",
+            "caption": "情绪产生与认知重评干预路径图（基于 OpenStax 10.4 认知评价模型绘制）",
+            "svgSpec": {
+              "template": "flow_pipeline",
+              "data": {
+                "steps": [
+                  "外部事件触发",
+                  "心跳呼吸生理唤醒",
+                  "认知重评改写标签",
+                  "平稳聚焦具体行动"
+                ]
+              }
+            }
+          }
+        ],
+        "originCards": [
+          {
+            "conceptOrExperiment": "Schachter & Singer (1962) 情绪双因素理论与肾上腺素归因实验",
+            "citation": "Schachter, S., & Singer, J. E. (1962). Cognitive, social, and physiological determinants of emotional state. Psychological Review, 69(5), 379–399.",
+            "originalSampleAndData": "184 名男性大学生受试者注射肾上腺素（或安慰剂）后，被分为「准确告知生理副作用组」「未告知/误导组」，并与表现欣快或愤怒的实验助手同处一室；结果预先知晓生理反应来源的组几乎不受助手情绪传染，未获解释组显著依赖情境线索归因自身情绪。",
+            "replicationControversy": "后续复现（如 Marshall & Zimbardo, 1979）指出高剂量不明原因生理唤醒本身往往偏向不快而非绝对中性，且 Lazarus 与 LeDoux 的神经科学证据表明部分快速威胁反应（丘脑→杏仁核通路）可在有意识命名之前发生；但「认知重评能显著调节情绪强度」已在当代情绪调节研究中获得广泛稳健支持。"
+          }
+        ]
+      },
+      "conceptNodeIds": ["b3.emotion_cognitive_reappraisal"],
+      "quiz": {
+        "mode": "standard_mcq",
+        "passRatio": 0.8,
+        "questions": [
+          {
+            "id": "q-b3-emo-1",
+            "stem": "上台做课程展示前 5 分钟感到心跳变快、呼吸变浅，下列哪种应对最符合认知重评与科学自助原则？",
+            "options": [
+              "在心里反复责骂自己「怎么这么没用又紧张了」",
+              "做几次慢呼气平稳自主神经，并告诉自己「心跳快说明身体正在调动能量帮我集中注意力」，把视线放回第一页核心结论",
+              "临时喝大量浓咖啡叠加功能饮料提神",
+              "因为紧张直接放弃出席汇报"
+            ],
+            "correctIndex": 1,
+            "explanation": "接纳正常交感神经唤醒并将其重评为备战支持信号，能阻断「紧张→怕紧张→更紧张」的恶性循环。",
+            "relatedConceptId": "b3.emotion_cognitive_reappraisal"
+          },
+          {
+            "id": "q-b3-emo-2",
+            "stem": "根据美国国家精神卫生研究所（NIMH）公开健康指南，出现下列哪种情况时不应仅靠自助技巧硬扛，而应及时寻求专业医疗或心理机构帮助？",
+            "options": [
+              "看完一部感人电影后难过了半小时",
+              "严重失眠、食欲骤变、清晨因情绪低落难以起床、无法集中注意力或对平时热爱的事物丧失兴趣等痛苦症状持续 2 周及以上",
+              "组会前一天稍微有点紧迫感",
+              "运动完觉得肌肉酸痛想早睡"
+            ],
+            "correctIndex": 1,
+            "explanation": "症状严重且持续两周及以上、明显影响睡眠食欲与日常学习生活功能，是寻求专业评估与帮助的明确边界信号。",
+            "relatedConceptId": "b3.emotion_cognitive_reappraisal"
+          }
+        ]
+      },
+      "actionTask": {
+        "id": "act-b3-emotion",
+        "title": "做一次「触发事件—身体信号—认知重评」三栏实录",
+        "lifeContext": "抓本周任意一次让你心烦、焦虑或生闷气的真实小事，花 5 分钟写清",
+        "steps": [
+          "写下当时的客观事实（只写摄像机能拍到的事，不写脑补评价）",
+          "记下当时的身体感觉（如肩颈发紧、心跳快）与第一反应念头",
+          "写出一条更客观、留有行动余地的替代性解释（认知重评）"
+        ],
+        "deliverablePrompt": "简记你的「原念头 → 重评后新解释」对照句",
+        "matchPoolCategory": "general"
+      },
+      "sources": [
+        {
+          "sourceOrg": "OpenStax Psychology 2e · Section 10.4 Emotion (Rice University, CC BY-NC-SA 4.0)",
+          "sourceUrl": "https://openstax.org/books/psychology-2e/pages/10-4-emotion",
+          "fetchedAt": "2026-11-25",
+          "disclaimerKind": "psych_boundary",
+          "helpBoundaryText": "求助边界声明：本单元仅提供情绪科学科普与日常自我照护练习，绝不构成任何心理诊断或医疗建议。若出现持续两周及以上的严重失眠、食欲显著改变、无法完成日常事务、持续绝望感，请及时联系本校心理健康教育与咨询中心、三甲医院精神心理科；如遇心理危机请立即拨打全国统一心理援助热线 12356（24小时公益保密）。"
+        },
+        {
+          "sourceOrg": "National Institute of Mental Health (NIMH) · Caring for Your Mental Health (Reviewed Apr 2026)",
+          "sourceUrl": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+          "fetchedAt": "2026-11-25",
+          "publishedYear": 2026,
+          "reviewAfter": "2027-12-31",
+          "disclaimerKind": "psych_boundary",
+          "helpBoundaryText": "求助边界声明：日常自助不能替代专业诊疗；症状持续两周以上影响社会功能或出现自伤风险时，请立即就医或拨打 12356 心理援助热线。"
+        }
+      ]
+    },
+    {
+      "id": "unit-b3-decision",
+      "branchId": "B3",
+      "trackId": "b3-main",
+      "title": "认知偏误与决策：识破锚定、确认偏误与沉没成本，给判断装上纠偏器",
+      "estimatedMinutes": 22,
+      "recommendedEnergy": "peak",
+      "isPlaceholder": false,
+      "scenarioHook": {
+        "sceneTitle": "原价标 1999 划掉改写「限时 599」立刻觉得捡大便宜，买回来吃灰两年",
+        "story": "从租房议价、买数码大件，到科研死守一条走不通的旧方法、投资里死扛亏损股不肯看基本面——聪明人之所以反复掉进同一种坑，往往是因为大脑省电的「启发式捷径」被场景暗中利用了。",
+        "guidingQuestion": "大脑最常踩的五大决策偏误分别长什么样？怎样在拍板前用 60 秒做一次反偏误自检？"
+      },
+      "prediction": {
+        "question": "给你一盒图钉、一盒火柴和一根蜡烛，要求把蜡烛固定在竖直墙面上且点燃后蜡油不滴到桌上，为什么多数人半天想不出「把图钉盒倒空钉在墙上当烛台」？",
+        "options": [
+          "因为钉子不够结实",
+          "因为「功能固着（Functional Fixedness）」：图钉装在盒子里呈现时，大脑把盒子死死锁定为「装图钉的容器」，看不见它作为支撑平台的物理属性",
+          "因为蜡烛太重",
+          "只有受过现代工业教育的人才会出现功能固着"
+        ],
+        "commonTrapIndex": 3,
+        "answerIndex": 1,
+        "whyCounterIntuitive": "Duncker (1945) 发现只要事先把图钉倒在盒子旁边分开摆放，解题率立刻飙升；而跨文化研究证明无论工业化社会还是原始部落，人都会受工具惯常用途束缚。"
+      },
+      "guide": {
+        "blocks": [
+          {
+            "heading": "思维捷径的双面性：从功能固着到三大高频信息偏误",
+            "markdown": "根据 OpenStax 7.3 认知心理学总结，按部就班保证精确结果的公式叫**算法（Algorithm）**，而信息太多或时间紧迫时大脑依赖的经验法则叫**启发式（Heuristic）**。它平时省时省力，但在关键决策中易引发系统性偏差：① **锚定偏误（Anchoring）**：过度死盯听到的第一个数字（如虚标原价、中介先带看的差房报价）；② **确认偏误（Confirmation Bias）**：一旦先入为主认为某方案好，就只搜正面评价、自动无视反面警示；③ **可得性启发式（Availability Heuristic）**：刚刷到一两条极端个案新闻，就误把生动好记的例子当成真实统计概率。",
+            "keyTakeaway": "凡遇重要金钱、合同或课题路线决策，先问：我是不是被第一个数字锚住了？有没有主动查过反例？"
+          },
+          {
+            "heading": "跨分支联动（心理 ⇄ 财经）：损失厌恶与「零基止损提问」",
+            "markdown": "Kahneman 与 Tversky 的前景理论揭示了人类对得失的不对称敏感：**损失厌恶（Loss Aversion）**让人对亏损的痛感显著强于等额盈利的快感。反映在生活与财务中，一是面对账面浮亏盲目补仓或死扛垃圾资产，二是被已投入的时间金钱（沉没成本）绑架不肯停掉烂摊子。破解口诀只有一句**零基提问**：「假如今天是我第一天接手、过去零投入，仅看从今往后的代价与收益，我还会做这个选择吗？」",
+            "keyTakeaway": "过去的沉没成本已经归零，未来每一小时精力和每一分钱都只该投向期望值最优的方向。"
+          }
+        ],
+        "visuals": [
+          {
+            "kind": "exact_svg",
+            "caption": "前景理论心理价值感受不对称示意：等额损失带来的负向痛感陡于等额收益快感",
+            "svgSpec": {
+              "template": "curve_compare",
+              "data": {
+                "series": [
+                  { "label": "收益区边际愉悦感（趋缓）", "points": [50, 68, 78, 84, 88] },
+                  { "label": "等幅损失区心理痛感（陡降）", "points": [50, 22, 10, 4, 1] }
+                ]
+              }
+            }
+          }
+        ],
+        "originCards": [
+          {
+            "conceptOrExperiment": "Duncker (1945) 蜡烛盒实验与跨文化功能固着检验",
+            "citation": "Duncker, K. (1945). On problem-solving. Psychological Monographs, 58(5); German, T. P., & Barrett, H. C. (2005). Psychological Science, 16(1), 1–5.",
+            "originalSampleAndData": "Duncker 让被试利用蜡烛、火柴和一盒图钉将蜡烛固定在墙上；当图钉装在盒内呈现时解决率显著低于盒钉分离组。German & Barrett (2005) 在厄瓜多尔亚马逊流域 Shuar 群体中用勺子架桥等任务测试，证实非工业化文化同样存在功能固着。",
+            "replicationControversy": "现象本身高度稳健，现代研究进一步探讨通过「部件拆解描述法（Generic Parts Technique）」训练能否在工程创新中系统消除功能固着。"
+          },
+          {
+            "conceptOrExperiment": "Tversky & Kahneman (1974 / 1979) 启发式偏误与前景理论",
+            "citation": "Tversky, A., & Kahneman, D. (1974). Judgment under Uncertainty: Heuristics and Biases. Science, 185(4157), 1124–1131.",
+            "originalSampleAndData": "通过幸运轮盘随机数字估算联合国非洲国家占比（锚定）、词频判断（可得性）及风险赌局实验，系统证明人类在不确定性下的概率判断偏离经典理性人假设。",
+            "replicationControversy": "Gigerenzer 等生态理性学派指出，在真实环境信息有限时简单启发式往往比复杂统计模型更稳健（「少即是多」）；此外近年跨国大样本复现显示损失厌恶程度在小额日常消费中可能减弱甚至消失，不宜脱离金额量级机械套用。"
+          }
+        ]
+      },
+      "conceptNodeIds": [
+        "b3.cognitive_anchoring_availability",
+        "b3.loss_aversion",
+        "b2.risk_drawdown_tolerance"
+      ],
+      "quiz": {
+        "mode": "standard_mcq",
+        "passRatio": 0.8,
+        "questions": [
+          {
+            "id": "q-b3-dec-1",
+            "stem": "你想验证「某种新型饮食法是否真能提升专注力」，打开搜索框只搜「某某饮食法提升效率成功案例」，忽略所有营养学对照实验的阴性结果，这属于哪种典型偏误？",
+            "options": [
+              "功能固着",
+              "确认偏误（Confirmation Bias）",
+              "算法精确求解",
+              "肌肉记忆"
+            ],
+            "correctIndex": 1,
+            "explanation": "只搜集和关注支持自己既有假设的信息、忽视反面证据，正是确认偏误的核心表现。",
+            "relatedConceptId": "b3.cognitive_anchoring_availability"
+          },
+          {
+            "id": "q-b3-dec-2",
+            "stem": "买电脑或租房谈价格时，对付商家「高锚点报价」最直接有效的心理防身动作是什么？",
+            "options": [
+              "顺着商家的原价往回砍 50 块钱就立刻签单",
+              "去店里之前先独立查好同配置/同地段真实成交均价与自己的预算封顶线，用自己提前算好的客观底线做锚点",
+              "看店员态度热不热情决定买不买",
+              "越贵的型号一定越适合自己"
+            ],
+            "correctIndex": 1,
+            "explanation": "提前建立独立客观的市场基准价与自身预算上限，才能有效抵御外部人为设定的高价锚点。",
+            "relatedConceptId": "b3.cognitive_anchoring_availability"
+          }
+        ]
+      },
+      "actionTask": {
+        "id": "act-b3-decision",
+        "title": "拿你近期一个待拍板决定做一次「反偏误三问体检」",
+        "lifeContext": "可用于选购超 300 元物品、调整课题实验方向、选修课取舍或清理沉没项目",
+        "steps": [
+          "去锚定：遮住对方给的原价或沉没投入，独立写出这件事对你的真实价值上限",
+          "找反例：主动搜出或写出至少 1 条「这个方案可能失败/不值得」的硬理由",
+          "零基提问：若今天从零开始选，是否依然选择它？据此拍板下一步动作"
+        ],
+        "deliverablePrompt": "记录你体检的决策事项与三问后的最终决定",
+        "matchPoolCategory": "general"
+      },
+      "sources": [
+        {
+          "sourceOrg": "OpenStax Psychology 2e · Section 7.3 Problem Solving (Rice University, CC BY-NC-SA 4.0)",
+          "sourceUrl": "https://openstax.org/books/psychology-2e/pages/7-3-problem-solving",
+          "fetchedAt": "2026-11-25",
+          "disclaimerKind": "psych_boundary",
+          "helpBoundaryText": "求助边界声明：本节为认知与决策心理学日常应用科普，不涉及临床心理评估或治疗。若因重大决策压力引发持续两周以上严重焦虑、失眠或情绪崩溃，请及时联系高校心理咨询中心、医疗机构心理科或拨打 12356 全国心理援助热线。"
+        }
+      ]
+    }
+  ]
+}

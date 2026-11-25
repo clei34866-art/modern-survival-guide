@@ -21,7 +21,8 @@
         {
           "branchId": "B3",
           "roleTitle": "心理抗压：上台前躯体降温与去灾难化",
-          "actionGuide": "把心跳加速重新标记为「身体正在供氧备战」而非「我要搞砸了」，上台前做 3 组生理叹息（两短吸一长呼）。"
+          "actionGuide": "把心跳加速重新标记为「身体正在供氧备战」而非「我要搞砸了」，上台前做 3 组生理叹息（两短吸一长呼）。",
+          "unitId": "unit-b3-emotion"
         }
       ],
       "combinedActionChecklist": [
@@ -40,7 +41,7 @@
           "branchId": "B2",
           "roleTitle": "财经预算：出行总额封顶与弹性机动金",
           "actionGuide": "出发前先定死「大交通+住宿+餐饮门票」总封顶线，并单独留出 15% 应急机动金，回来不背消费贷账单。",
-          "unitId": "unit-b2-budget-sample"
+          "unitId": "unit-b2-budget"
         },
         {
           "branchId": "B4",

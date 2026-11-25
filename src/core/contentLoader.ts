@@ -28,7 +28,8 @@ export async function loadPlatformContent(): Promise<PlatformContentBundle> {
     kgRes,
     b1L1Res,
     b1BlenderRes,
-    sampleUnitsRes,
+    b2FinanceRes,
+    b3PsychRes,
     tipsRes,
     wallRes,
     eventsRes,
@@ -38,7 +39,8 @@ export async function loadPlatformContent(): Promise<PlatformContentBundle> {
     fetch('./data/knowledge-graph.json'),
     fetch('./data/units/b1-ai-l1.json'),
     fetch('./data/units/b1-sw-blender.json'),
-    fetch('./data/units/placeholders.json'),
+    fetch('./data/units/b2-finance.json'),
+    fetch('./data/units/b3-psych.json'),
     fetch('./data/daily-tips.json'),
     fetch('./data/wall-config.json'),
     fetch('./data/event-packs.json'),
@@ -50,7 +52,8 @@ export async function loadPlatformContent(): Promise<PlatformContentBundle> {
     !kgRes.ok ||
     !b1L1Res.ok ||
     !b1BlenderRes.ok ||
-    !sampleUnitsRes.ok ||
+    !b2FinanceRes.ok ||
+    !b3PsychRes.ok ||
     !tipsRes.ok ||
     !wallRes.ok ||
     !eventsRes.ok ||
@@ -64,7 +67,8 @@ export async function loadPlatformContent(): Promise<PlatformContentBundle> {
     knowledgeGraph,
     b1L1Bundle,
     b1BlenderBundle,
-    unitsBundle,
+    b2FinanceBundle,
+    b3PsychBundle,
     tipsBundle,
     wallConfig,
     eventsData,
@@ -74,7 +78,8 @@ export async function loadPlatformContent(): Promise<PlatformContentBundle> {
     kgRes.json(),
     b1L1Res.json(),
     b1BlenderRes.json(),
-    sampleUnitsRes.json(),
+    b2FinanceRes.json(),
+    b3PsychRes.json(),
     tipsRes.json(),
     wallRes.json(),
     eventsRes.json(),
@@ -82,6 +87,7 @@ export async function loadPlatformContent(): Promise<PlatformContentBundle> {
   ])) as [
     CatalogManifest,
     KnowledgeGraphManifest,
+    UnitsBundle,
     UnitsBundle,
     UnitsBundle,
     UnitsBundle,
@@ -94,7 +100,12 @@ export async function loadPlatformContent(): Promise<PlatformContentBundle> {
   return {
     catalog,
     knowledgeGraph,
-    units: [...b1L1Bundle.units, ...b1BlenderBundle.units, ...unitsBundle.units],
+    units: [
+      ...b1L1Bundle.units,
+      ...b1BlenderBundle.units,
+      ...b2FinanceBundle.units,
+      ...b3PsychBundle.units,
+    ],
     dailyTips: tipsBundle.tips,
     wallConfig,
     eventPacks: eventsData.packs,

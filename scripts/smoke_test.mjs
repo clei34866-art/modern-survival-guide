@@ -10,23 +10,24 @@ async function main() {
   const b1BlenderUnits = JSON.parse(
     fs.readFileSync('public/data/units/b1-sw-blender.json', 'utf8')
   ).units;
-  const placeholderUnits = JSON.parse(
-    fs.readFileSync('public/data/units/placeholders.json', 'utf8')
-  ).units;
+  const b2Units = JSON.parse(fs.readFileSync('public/data/units/b2-finance.json', 'utf8')).units;
+  const b3Units = JSON.parse(fs.readFileSync('public/data/units/b3-psych.json', 'utf8')).units;
 
+  const allLoadedUnits = [...b1L1Units, ...b1BlenderUnits, ...b2Units, ...b3Units];
   if (
     b1L1Units.length < 4 ||
-    b1L1Units.some((u) => u.isPlaceholder) ||
     b1BlenderUnits.length < 3 ||
-    b1BlenderUnits.some((u) => u.isPlaceholder)
+    b2Units.length < 3 ||
+    b3Units.length < 2 ||
+    allLoadedUnits.some((u) => u.isPlaceholder)
   ) {
-    throw new Error('M9 B1 AI L1 或 Blender 首批正式单元未全部脱去占位标记');
+    throw new Error('M10 首批 12 节正式学习单元（B1 L1+Blender / B2 三节 / B3 两节）未全部就绪');
   }
 
   const bundle = {
     catalog: JSON.parse(fs.readFileSync('public/data/catalog.json', 'utf8')),
     knowledgeGraph: JSON.parse(fs.readFileSync('public/data/knowledge-graph.json', 'utf8')),
-    units: [...b1L1Units, ...b1BlenderUnits, ...placeholderUnits],
+    units: allLoadedUnits,
     dailyTips: JSON.parse(fs.readFileSync('public/data/daily-tips.json', 'utf8')).tips,
     wallConfig: JSON.parse(fs.readFileSync('public/data/wall-config.json', 'utf8')),
     eventPacks: JSON.parse(fs.readFileSync('public/data/event-packs.json', 'utf8')).packs,
@@ -60,7 +61,10 @@ async function main() {
     throw new Error('清空后应处于 DEMO 无留痕状态');
   }
 
-  const r1 = m.ensureTodayPlanSnapshot(bundle, s0, '2026-11-24');
+  const todayKey = m.getLocalDateKey();
+  const tomorrowKey = m.addDaysToDateKey(todayKey, 1);
+
+  const r1 = m.ensureTodayPlanSnapshot(bundle, s0, todayKey);
   if (!r1.isNewlyGenerated || r1.plan.tasks.length !== 4) {
     throw new Error('「今天」应默认生成覆盖早/晚高能/实验后低能三时段的 4 项任务');
   }
@@ -89,14 +93,14 @@ async function main() {
   const reloaded = await m.loadTelemetry();
   if (
     reloaded.currentDailyPlan?.completedTaskIds.length !== 2 ||
-    !reloaded.activeDates.includes('2026-11-24') ||
+    !reloaded.activeDates.includes(todayKey) ||
     !m.hasLiveTelemetry(reloaded)
   ) {
     throw new Error('刷新重读后今日完成态或活跃天数持久化失败');
   }
 
   // 4. 隔日自动翻篇且不补昨日未完欠账
-  const rNext = m.ensureTodayPlanSnapshot(bundle, reloaded, '2026-11-25');
+  const rNext = m.ensureTodayPlanSnapshot(bundle, reloaded, tomorrowKey);
   if (
     !rNext.isNewlyGenerated ||
     rNext.plan.completedTaskIds.length !== 0 ||
@@ -200,10 +204,10 @@ async function main() {
 
   // 6. M4 错题建档、薄弱 TOP5 与 1->3->7->graduated 重测推进验证
   let snapM4 = await m.recordQuizAttempt({
-    unitId: 'unit-b2-budget-sample',
+    unitId: 'unit-b2-investing',
     branchId: 'B2',
     trackId: 'b2-main',
-    questionId: 'q-b2-sample-1',
+    questionId: 'q-b2-inv-1',
     conceptId: 'b2.risk_drawdown_tolerance',
     kind: 'quiz',
     selectedIndex: 0,
@@ -223,10 +227,10 @@ async function main() {
   }
 
   snapM4 = await m.recordQuizAttempt({
-    unitId: 'unit-b2-budget-sample',
+    unitId: 'unit-b2-investing',
     branchId: 'B2',
     trackId: 'b2-main',
-    questionId: 'q-b2-sample-1',
+    questionId: 'q-b2-inv-1',
     conceptId: 'b2.risk_drawdown_tolerance',
     kind: 'retest',
     selectedIndex: 1,
@@ -239,10 +243,10 @@ async function main() {
 
   // 第 3 天重测答对 -> 推进到 7 天
   snapM4 = await m.recordQuizAttempt({
-    unitId: 'unit-b2-budget-sample',
+    unitId: 'unit-b2-investing',
     branchId: 'B2',
     trackId: 'b2-main',
-    questionId: 'q-b2-sample-1',
+    questionId: 'q-b2-inv-1',
     conceptId: 'b2.risk_drawdown_tolerance',
     kind: 'retest',
     selectedIndex: 1,
@@ -255,10 +259,10 @@ async function main() {
 
   // 第 7 天重测答对 -> graduated 已掌握出列
   snapM4 = await m.recordQuizAttempt({
-    unitId: 'unit-b2-budget-sample',
+    unitId: 'unit-b2-investing',
     branchId: 'B2',
     trackId: 'b2-main',
-    questionId: 'q-b2-sample-1',
+    questionId: 'q-b2-inv-1',
     conceptId: 'b2.risk_drawdown_tolerance',
     kind: 'retest',
     selectedIndex: 1,
@@ -304,7 +308,7 @@ async function main() {
   }
 
   snapM6 = await m.recordActionSubmission({
-    unitId: 'unit-b2-budget-sample',
+    unitId: 'unit-b2-budget',
     branchId: 'B2',
     trackId: 'b2-main',
     deliverableSummary: `【真实待办交付】${addedTask.title}`,
@@ -316,13 +320,13 @@ async function main() {
   const syncedRealTask = snapM6.realTasks.find((t) => t.id === addedTask.id);
   if (
     syncedRealTask?.status !== 'completed' ||
-    syncedRealTask.linkedUnitId !== 'unit-b2-budget-sample' ||
-    !m.isUnitCleared('unit-b2-budget-sample', snapM6)
+    syncedRealTask.linkedUnitId !== 'unit-b2-budget' ||
+    !m.isUnitCleared('unit-b2-budget', snapM6)
   ) {
     throw new Error('真实任务关联提交后未同步完成真实待办与单元过关');
   }
 
-  const wallAfterM6 = m.computeWallViewModel(bundle, snapM6, null, '2026-11-24');
+  const wallAfterM6 = m.computeWallViewModel(bundle, snapM6, null, todayKey);
   const b2WallProg = wallAfterM6.learning.branchProgress.find((b) => b.id === 'B2');
   if (!b2WallProg || b2WallProg.clearedUnits < 1 || b2WallProg.percent <= 0) {
     throw new Error('单元联动过关后状态墙 B2 分支与技能树进度未同步增加');
@@ -330,7 +334,7 @@ async function main() {
 
   // 9. M7 生活事件包激活推入「今天」 + 生活实验室多日对比数据 + 简版周报汇总验证
   let snapM7 = await m.setActiveEventPackWithPlan('event-presentation', (updated) =>
-    m.buildDailyPlanSnapshot('2026-11-24', bundle, updated)
+    m.buildDailyPlanSnapshot(todayKey, bundle, updated)
   );
   if (
     snapM7.activeEventPackId !== 'event-presentation' ||
@@ -340,7 +344,7 @@ async function main() {
   }
 
   snapM7 = await m.createLifeLabExperiment({
-    monthLabel: '2026-11',
+    monthLabel: todayKey.slice(0, 7),
     title: '23:30 前熄灯睡眠实验',
     hypothesis: '早睡提升次日精力',
     independentVar: '23:30 关灯',
@@ -349,13 +353,13 @@ async function main() {
     baselineValue: 5.5,
   });
   const expId = snapM7.lifeLabExperiments[0].id;
-  await m.addLifeLabEntry(expId, { dateKey: '2026-11-23', value: 7.0 });
-  snapM7 = await m.addLifeLabEntry(expId, { dateKey: '2026-11-24', value: 8.0 });
+  await m.addLifeLabEntry(expId, { dateKey: m.addDaysToDateKey(todayKey, -1), value: 7.0 });
+  snapM7 = await m.addLifeLabEntry(expId, { dateKey: todayKey, value: 8.0 });
   if (snapM7.lifeLabExperiments[0].entries.length !== 2) {
     throw new Error('生活实验室多日数据记录失败');
   }
 
-  const weekly = m.computeWeeklyReviewSummary(bundle, snapM7, '2026-11-24');
+  const weekly = m.computeWeeklyReviewSummary(bundle, snapM7, todayKey);
   if (
     weekly.clearedUnitTitles.length < 2 ||
     weekly.completedActions.length < 2 ||
@@ -375,7 +379,7 @@ async function main() {
   }
 
   console.log(
-    `[smoke] 通过：M1–M8 全流程验证通过（抓源引擎=${scraped.engine}，成功=${scraped.fetchedCount}，缺口归档=${gaps.gapCount}）。`
+    `[smoke] 一版总验收通过 (M1–M10)：共 ${allLoadedUnits.length} 节正式单元全部零占位合规，抓源成功=${scraped.fetchedCount}，缺口归档=${gaps.gapCount}。`
   );
 }
 

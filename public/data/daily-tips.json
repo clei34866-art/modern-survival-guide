@@ -26,40 +26,40 @@
       "fetchedAt": "2026-11-24"
     },
     {
-      "id": "tip-b4-eye-20",
+      "id": "tip-b4-sleep-bluelight",
       "branchId": "B4",
-      "title": "盯屏幕改论文眼干发胀：20-20-20 微节律",
-      "tipBody": "每连续看近处屏幕 20 分钟，抬头看 6 米（约 20 英尺）外的窗外远景至少 20 秒，让睫状肌彻底松开一次，比事后狂滴眼药水更管用。",
-      "actionHint": "趁代码编译或跑脚本等待的那 20 秒顺便抬头看窗外。",
+      "title": "实验再忙也守住入睡关：睡前 30 分钟把屏幕挪离枕边",
+      "tipBody": "手机与电脑屏幕的蓝光及高频信息刺激会延后入睡潜伏期；固定起床钟点、睡前把手机放到伸手够不着的书桌充电，是最零成本的精力恢复术。",
+      "actionHint": "今晚设好闹钟后直接把手机反扣在书桌上。",
       "readSeconds": 20,
-      "isPlaceholder": true,
-      "sourceOrg": "权威眼健康公开科普指南（示例占位）",
-      "sourceUrl": "https://www.who.int/zh",
-      "fetchedAt": "2026-11-24"
+      "isPlaceholder": false,
+      "sourceOrg": "NIMH · Caring for Your Mental Health",
+      "sourceUrl": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+      "fetchedAt": "2026-11-25"
     },
     {
       "id": "tip-b2-cooling-off",
       "branchId": "B2",
-      "title": "大促凑单冲动前：放进购物车晾够 48 小时",
-      "tipBody": "凡是非刚需且单价超过日均生活费两倍的物品，先加购不付款；48 小时后如果已经想不起它解决什么具体问题，直接删掉就是净省。",
-      "actionHint": "把「凑满减省了多少」换成问「不买是不是省 100%」。",
+      "title": "签长期保单后发现买错了？别忘 10～15 天犹豫期权利",
+      "tipBody": "长期人身险签收后通常设有 10～15 天合同犹豫期，在此期间发现不符合自身保障需求，可通过保险公司官方渠道申请无条件退保，仅扣工本费无息退还全部保费。",
+      "actionHint": "保单一下来第一件事不是锁进抽屉，而是先翻责任免除和犹豫期天数。",
       "readSeconds": 25,
-      "isPlaceholder": true,
-      "sourceOrg": "国民金融素养投教公开读物（示例占位）",
-      "sourceUrl": "https://www.investor.org.cn/",
-      "fetchedAt": "2026-11-24"
+      "isPlaceholder": false,
+      "sourceOrg": "国家金融监督管理总局 · 金融消保科普口径",
+      "sourceUrl": "https://www.nfra.gov.cn/",
+      "fetchedAt": "2026-11-25"
     },
     {
-      "id": "tip-b7-link-check",
-      "branchId": "B7",
-      "title": "收到「教务/补贴/快递异常」短信链接先看顶级域名",
-      "tipBody": "钓鱼链接常把真机构名放在子域名前缀（如 edu-verify.xxx.top）；从右往左看第一个斜杠前的最后两段主域名，凡陌生后缀一律不点、不输验证码。",
-      "actionHint": "涉及账号和钱的通知，永远自己手动打开官方 App 核实。",
-      "readSeconds": 30,
-      "isPlaceholder": true,
-      "sourceOrg": "公开反诈与数字安全科普（示例占位）",
-      "sourceUrl": "https://www.npc.gov.cn/",
-      "fetchedAt": "2026-11-24"
+      "id": "tip-b3-de-anchor",
+      "branchId": "B3",
+      "title": "被促销「划线原价」心动前：先遮住原价问真实使用频次",
+      "tipBody": "划线高价是商家利用「锚定偏误」给你设的心理参照点。捂住原价只看实付金额，再问自己未来 30 天会用它超过 3 次吗？不会就直接关页面。",
+      "actionHint": "省钱最快的方式不是凑满减，而是脱离对方的价格锚点。",
+      "readSeconds": 25,
+      "isPlaceholder": false,
+      "sourceOrg": "OpenStax Psychology 2e · 7.3 Decision Biases",
+      "sourceUrl": "https://openstax.org/books/psychology-2e/pages/7-3-problem-solving",
+      "fetchedAt": "2026-11-25"
     }
   ]
 }

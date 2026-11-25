@@ -21,12 +21,20 @@ const remoteUrl = execSync('git remote get-url origin', {
   cwd: rootDir,
   encoding: 'utf8',
 }).trim();
+const gitName =
+  execSync('git config user.name', { cwd: rootDir, encoding: 'utf8' }).trim() ||
+  'clei34866-art';
+const gitEmail =
+  execSync('git config user.email', { cwd: rootDir, encoding: 'utf8' }).trim() ||
+  'clei34866-art@users.noreply.github.com';
 
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'msg-pages-'));
 try {
   console.log('[deploy:pages] 2/3 准备 gh-pages 分支提交...');
   fs.cpSync(distDir, tempDir, { recursive: true });
   execSync('git init', { cwd: tempDir, stdio: 'inherit' });
+  execSync(`git config user.name "${gitName}"`, { cwd: tempDir, stdio: 'inherit' });
+  execSync(`git config user.email "${gitEmail}"`, { cwd: tempDir, stdio: 'inherit' });
   execSync('git checkout -b gh-pages', { cwd: tempDir, stdio: 'inherit' });
   execSync('git add -A', { cwd: tempDir, stdio: 'inherit' });
   execSync('git commit -m "chore(pages): deploy modern-survival-guide"', {

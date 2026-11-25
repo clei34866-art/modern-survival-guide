@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'preact/hooks';
+import { IconArrowLeft, IconArrowRight } from '../components/Icons';
 import { SkillTreeSvg } from '../components/SkillTreeSvg';
 import type { PlatformContentBundle } from '../core/contentLoader';
 import { fetchServerSyncSnapshot, getLocalDateKey } from '../core/db';
+import { isUnitCleared } from '../core/gatekeeper';
 import { computeWallViewModel } from '../core/wallAdapter';
 import type { TelemetrySnapshot, WallExternalSyncPayload } from '../types/schema';
 
@@ -35,13 +37,15 @@ export function StatusWallView({
   const [externalSync, setExternalSync] = useState<WallExternalSyncPayload | null>(null);
   const [forcePreviewDemo, setForcePreviewDemo] = useState<boolean>(false);
 
-  // 每秒更新时钟，确保 1080P 常开挂屏鲜活
+  useEffect(() => {
+    setSubView(initialSubView);
+  }, [initialSubView]);
+
   useEffect(() => {
     const clockTimer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(clockTimer);
   }, []);
 
-  // 按配置每 60 秒静默拉取现有服务器 content/sync 数据（未配置则自动跳过回退本地）
   useEffect(() => {
     let active = true;
     const pullExternal = () => {
@@ -73,8 +77,17 @@ export function StatusWallView({
   const aiRatioPercent = Math.round((vm.b1Kanban.aiLineMinutes / totalDualMinutes) * 100);
   const swRatioPercent = 100 - aiRatioPercent;
 
+  // B1 软件技能分包实况，用于填实二级看板下半屏并呈现完整双轨
+  const b1Branch = content.catalog.branches.find((b) => b.id === 'B1');
+  const swPacks = (b1Branch?.tracks ?? []).filter((t) => t.kind === 'software_pack');
+
+  // 环形进度 SVG 参数
+  const ringR = 34;
+  const ringC = 2 * Math.PI * ringR;
+  const ringOffset = ringC * (1 - vm.learning.todayPercent / 100);
+
   // ============================================================================
-  // 二级切换子视图：B1 AI 与软件专项数字看板（按需切入，一键返回六宫格主墙）
+  // 二级切换子视图：B1 AI 与软件专项数字看板（高对比无空腔）
   // ============================================================================
   if (subView === 'b1') {
     return (
@@ -82,156 +95,160 @@ export function StatusWallView({
         <div class="wall-b1-subview">
           <header class="wall-b1-topbar">
             <div class="wall-b1-topbar-group">
-              <button
-                type="button"
-                class="wall-btn"
-                onClick={() => setSubView('main')}
-              >
-                ← 返回六宫格个人状态墙（主视图）
+              <button type="button" class="wall-btn" onClick={() => setSubView('main')}>
+                <IconArrowLeft size={14} />
+                <span>返回六宫格个人状态墙</span>
               </button>
               <h1 class="wall-panel-title">
                 <span class="wall-dot" />
-                B1 · AI 与软件专项数字看板（二级视图）
+                B1 · AI 与软件专项数字看板
               </h1>
             </div>
             <div class="wall-b1-topbar-group">
               <span
-                class={`wall-tag ${
-                  vm.dataMode === 'LIVE' ? 'wall-tag-live' : 'wall-tag-demo'
-                }`}
+                class={`wall-tag ${vm.dataMode === 'LIVE' ? 'wall-tag-live' : 'wall-tag-demo'}`}
               >
-                {vm.dataMode === 'LIVE'
-                  ? '● LIVE · 真实留痕驱动'
-                  : '○ DEMO · 示例数据演示'}
+                {vm.dataMode === 'LIVE' ? '● LIVE 真实留痕' : '○ DEMO 示例演示'}
               </span>
-              <span class="wall-tag">{formatClock(now)}</span>
+              <span class="wall-tag tabular-num">{formatClock(now)}</span>
               <a href="#/" class="wall-btn">
                 返回站内
               </a>
             </div>
           </header>
 
-          {/* 顶栏四联 KPI */}
           <div class="wall-b1-kpis">
-            <div class="wall-panel">
+            <div class="wall-panel wall-kpi-card">
               <div class="wall-kpi-sub">AI 五层路径总进度</div>
-              <div class="wall-clock" style={{ color: 'var(--wall-green)', marginTop: '6px' }}>
+              <div class="wall-kpi-hero" style={{ color: 'var(--wall-green)' }}>
                 {vm.b1Kanban.fiveLayerOverallPercent}%
               </div>
-              <div class="wall-kpi-sub" style={{ marginTop: '6px' }}>
-                逐层过关 + 实战项目验收
-              </div>
+              <div class="wall-kpi-foot">逐层过关 + 实战项目验收</div>
             </div>
 
-            <div class="wall-panel">
-              <div class="wall-kpi-sub">当前推进层级 & 产出完成度</div>
-              <div style={{ fontSize: '16px', fontWeight: 600, margin: '6px 0 4px' }}>
-                {vm.b1Kanban.currentLayerTitle}
-              </div>
-              <div class="wall-big-kpi" style={{ color: 'var(--wall-amber)' }}>
+            <div class="wall-panel wall-kpi-card">
+              <div class="wall-kpi-sub">当前层级与产出完成度</div>
+              <div class="wall-kpi-mid-title">{vm.b1Kanban.currentLayerTitle}</div>
+              <div class="wall-kpi-hero" style={{ color: 'var(--wall-amber)' }}>
                 {vm.b1Kanban.currentDeliverablePercent}%
               </div>
-              <div class="wall-kpi-sub" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                产出：{vm.b1Kanban.currentDeliverableTitle}
-              </div>
+              <div class="wall-kpi-foot">产出：{vm.b1Kanban.currentDeliverableTitle}</div>
             </div>
 
-            <div class="wall-panel">
+            <div class="wall-panel wall-kpi-card">
               <div class="wall-kpi-sub">连续 / 累计点亮天数</div>
-              <div class="wall-clock" style={{ marginTop: '6px' }}>
-                {vm.learning.consecutiveDays}{' '}
-                <span style={{ fontSize: '18px', color: 'var(--wall-text-muted)' }}>
-                  连续 / 共 {vm.learning.activeDaysTotal} 天
-                </span>
+              <div class="wall-kpi-hero">
+                {vm.learning.consecutiveDays}
+                <span class="wall-kpi-unit"> 连续 · 共 {vm.learning.activeDaysTotal} 天</span>
               </div>
-              <div class="wall-kpi-sub" style={{ marginTop: '6px' }}>
-                断更不清零 · 正向累积
-              </div>
+              <div class="wall-kpi-foot">正向累积 · 断更不清零</div>
             </div>
 
-            <div class="wall-panel">
+            <div class="wall-panel wall-kpi-card">
               <div class="wall-kpi-sub">今日流程完成情况</div>
-              <div class="wall-clock" style={{ color: 'var(--wall-green)', marginTop: '6px' }}>
+              <div class="wall-kpi-hero" style={{ color: 'var(--wall-green)' }}>
                 {vm.learning.todayDone}/{vm.learning.todayTotal}
               </div>
-              <div class="wall-kpi-sub" style={{ marginTop: '6px' }}>
+              <div class="wall-kpi-foot">
                 完成率 {vm.learning.todayPercent}%
-                {vm.learning.lowBatteryMode ? '（保底版生效中）' : '（做完即停）'}
+                {vm.learning.lowBatteryMode ? '（保底模式）' : '（做完即停）'}
               </div>
             </div>
           </div>
 
-          {/* 中左：L1–L5 各层掌握度矩阵 */}
+          {/* 中左：L1–L5 各层掌握度矩阵（均匀撑满，零黑洞） */}
           <section class="wall-panel wall-b1-layers">
             <div class="wall-panel-head">
               <h2 class="wall-panel-title">AI 能力线 L1–L5 各层掌握度与产出矩阵</h2>
-              <span class="wall-tag">按答题正确率与单元过关聚合</span>
+              <span class="wall-tag">按答题与单元过关聚合</span>
             </div>
-            <div style={{ overflow: 'hidden' }}>
+            <div class="wall-layers-stack">
               {vm.b1Kanban.layers.map((layer) => (
                 <div class="wall-layer-row" key={layer.trackId}>
-                  <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--wall-green)' }}>
-                    {layer.shortLabel}
-                  </strong>
-                  <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {layer.title.replace(/^AI L\d · /, '')}
+                  <strong class="wall-layer-code">{layer.shortLabel}</strong>
+                  <div class="wall-layer-info">
+                    <div class="wall-layer-name">{layer.title.replace(/^AI L\d · /, '')}</div>
+                    <div class="wall-layer-meta">
+                      掌握度 {layer.masteryPercent}% · 实战产出 {layer.deliverablePercent}%
+                    </div>
                   </div>
-                  <div>
-                    <div class="wall-bar-track">
-                      <div
-                        class="wall-bar-fill"
-                        style={{
-                          width: `${layer.masteryPercent}%`,
-                          backgroundColor: layer.unlocked ? '#3D7A8A' : '#3a424d',
-                        }}
-                      />
-                    </div>
-                    <div class="wall-kpi-sub" style={{ marginTop: '3px' }}>
-                      掌握度 {layer.masteryPercent}% · 产出 {layer.deliverablePercent}%
-                    </div>
+                  <div class="wall-bar-track is-thick">
+                    <div
+                      class="wall-bar-fill"
+                      style={{
+                        width: `${Math.max(4, layer.masteryPercent)}%`,
+                        backgroundColor: layer.unlocked ? '#3D8C9E' : '#3a424d',
+                      }}
+                    />
                   </div>
                   <span class={`wall-tag ${layer.isCleared ? 'wall-tag-live' : ''}`}>
-                    {layer.isCleared ? '✓ 已过关' : layer.unlocked ? '当前可学' : '🔒 待解锁'}
+                    {layer.isCleared ? '✓ 已过关' : layer.unlocked ? '当前可学' : '待解锁'}
                   </span>
                 </div>
               ))}
             </div>
           </section>
 
-          {/* 中右：AI 能力线 vs 软件技能线投入时长对照 */}
+          {/* 中右：双线时长高对比外置标签 + 软件分包状态 + 薄弱 TOP 5 */}
           <section class="wall-panel wall-b1-duration">
             <div class="wall-panel-head">
-              <h2 class="wall-panel-title">双线投入时长对照（AI 线 vs 软件线）</h2>
+              <h2 class="wall-panel-title">双线投入时长与软件技能分包</h2>
               <span class="wall-tag">精确留痕聚合</span>
             </div>
 
-            <svg viewBox="0 0 420 150" style={{ width: '100%', height: 'auto', marginBottom: '12px' }}>
-              <rect x="0" y="14" width="420" height="46" rx="8" fill="#1F252C" />
-              <rect
-                x="0"
-                y="14"
-                width={Math.max(18, Math.round((aiRatioPercent / 100) * 420))}
-                height="46"
-                rx="8"
-                fill="#3D7A8A"
-              />
-              <text x="14" y="42" fill="#F2EFE9" font-size="14" font-weight="600">
-                AI 能力线：{vm.b1Kanban.aiLineMinutes} min（{aiRatioPercent}%）
-              </text>
+            <div class="wall-dual-bars">
+              <div class="wall-dual-item">
+                <div class="wall-dual-label-row">
+                  <span class="wall-dual-name">AI 能力线（L1–L5）</span>
+                  <strong class="wall-dual-val tabular-num">
+                    {vm.b1Kanban.aiLineMinutes} min（{aiRatioPercent}%）
+                  </strong>
+                </div>
+                <div class="wall-bar-track is-xl">
+                  <div
+                    class="wall-bar-fill"
+                    style={{ width: `${Math.max(6, aiRatioPercent)}%`, backgroundColor: '#3D8C9E' }}
+                  />
+                </div>
+              </div>
 
-              <rect x="0" y="82" width="420" height="46" rx="8" fill="#1F252C" />
-              <rect
-                x="0"
-                y="82"
-                width={Math.max(18, Math.round((swRatioPercent / 100) * 420))}
-                height="46"
-                rx="8"
-                fill="#63C787"
-              />
-              <text x="14" y="110" fill="#F2EFE9" font-size="14" font-weight="600">
-                软件技能线（Blender/Git等）：{vm.b1Kanban.softwareLineMinutes} min（{swRatioPercent}%）
-              </text>
-            </svg>
+              <div class="wall-dual-item">
+                <div class="wall-dual-label-row">
+                  <span class="wall-dual-name">软件技能线（Blender / Git 等）</span>
+                  <strong class="wall-dual-val tabular-num">
+                    {vm.b1Kanban.softwareLineMinutes} min（{swRatioPercent}%）
+                  </strong>
+                </div>
+                <div class="wall-bar-track is-xl">
+                  <div
+                    class="wall-bar-fill"
+                    style={{ width: `${Math.max(6, swRatioPercent)}%`, backgroundColor: '#4CC38A' }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="wall-sw-packs-strip">
+              <div class="wall-kpi-sub" style={{ marginBottom: '8px' }}>
+                软件技能分包状态（按需即学即用）
+              </div>
+              <div class="wall-sw-grid">
+                {swPacks.map((pack) => {
+                  const total = pack.unitIds.length;
+                  const cleared = pack.unitIds.filter((uid) => isUnitCleared(uid, telemetry)).length;
+                  return (
+                    <div class="wall-sw-chip" key={pack.id}>
+                      <span class="wall-sw-chip-name">
+                        {pack.title.replace(/^软件包 S\d · /, '')}
+                      </span>
+                      <span class="wall-sw-chip-stat tabular-num">
+                        {total > 0 ? `${cleared}/${total} 节` : '规划中'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
             <div class="wall-weakness-box">
               <div class="wall-kpi-sub">薄弱概念 TOP 5（待 1/3/7 天重测）</div>
@@ -241,7 +258,7 @@ export function StatusWallView({
                 ) : (
                   vm.learning.weaknessTop5.map((w) => (
                     <span class="wall-weak-chip" key={w.label}>
-                      [{w.branchId}] {w.label} · {w.detail}
+                      [{w.branchId}] {w.label}
                     </span>
                   ))
                 )}
@@ -254,49 +271,94 @@ export function StatusWallView({
   }
 
   // ============================================================================
-  // 默认主视图：1080P 全站个人状态墙六宫格（学习仅占其中一块，不喧宾夺主）
+  // 默认主视图：1080P 全站个人状态墙六宫格 + 底部 36px 极简状态条（零黑洞空腔）
   // ============================================================================
   return (
     <div class="wall-viewport" aria-label="1080P 个人状态墙六宫格主视图">
       <div class="wall-bento-grid">
-        {/* [1] 今日块 (4列 × 3行) */}
-        <section class="wall-panel wall-panel-today" aria-label="今日块">
+        {/* [1] 今日总览 (4列 × 3行)：大时钟 + 完成度圆环 + 紧凑待办 */}
+        <section class="wall-panel wall-panel-today" aria-label="今日总览">
           <div class="wall-panel-head">
             <h2 class="wall-panel-title">
               <span class="wall-dot" />
               今日总览
             </h2>
-            <span class="wall-tag">
-              今日流程 {vm.learning.todayDone}/{vm.learning.todayTotal}（{vm.learning.todayPercent}%）
-            </span>
+            <span class="wall-tag">{vm.weather}</span>
           </div>
-          <div class="wall-clock">{formatClock(now)}</div>
-          <div class="wall-date-weather">
-            {formatDateLabel(now)} · {vm.weather}
+
+          <div class="wall-today-hero">
+            <div>
+              <div class="wall-clock">{formatClock(now)}</div>
+              <div class="wall-date-weather">{formatDateLabel(now)}</div>
+            </div>
+            <div class="wall-ring-wrap" title={`今日完成 ${vm.learning.todayPercent}%`}>
+              <svg width="84" height="84" viewBox="0 0 84 84">
+                <circle
+                  cx="42"
+                  cy="42"
+                  r={ringR}
+                  fill="none"
+                  stroke="#232A34"
+                  stroke-width="7"
+                />
+                <circle
+                  cx="42"
+                  cy="42"
+                  r={ringR}
+                  fill="none"
+                  stroke="#4CC38A"
+                  stroke-width="7"
+                  stroke-linecap="round"
+                  stroke-dasharray={ringC}
+                  stroke-dashoffset={ringOffset}
+                  transform="rotate(-90 42 42)"
+                />
+                <text
+                  x="42"
+                  y="40"
+                  text-anchor="middle"
+                  font-size="16"
+                  font-weight="700"
+                  font-family="JetBrains Mono, monospace"
+                  fill="#F3F2EE"
+                >
+                  {vm.learning.todayDone}/{vm.learning.todayTotal}
+                </text>
+                <text
+                  x="42"
+                  y="55"
+                  text-anchor="middle"
+                  font-size="10"
+                  fill="#959EA8"
+                >
+                  今日进度
+                </text>
+              </svg>
+            </div>
           </div>
+
           <ul class="wall-todo-list">
-            {vm.todos.map((item, idx) => (
+            {vm.todos.slice(0, 4).map((item, idx) => (
               <li class="wall-todo-item" key={idx}>
-                • {item}
+                <span class="wall-todo-bullet" />
+                <span class="wall-todo-text">{item}</span>
               </li>
             ))}
           </ul>
         </section>
 
-        {/* [3] 学习块 (5列 × 4行) */}
-        <section class="wall-panel wall-panel-learning" aria-label="学习块">
+        {/* [3] 生存指南学习块 (5列 × 4行)：技能树 + 粗进度条阵列 + 薄弱与一招 */}
+        <section class="wall-panel wall-panel-learning" aria-label="生存指南学习块">
           <div class="wall-panel-head">
             <h2 class="wall-panel-title">
               <span class="wall-dot" />
               生存指南学习块
             </h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div class="wall-head-actions">
               <span
-                class={`wall-tag ${
-                  vm.dataMode === 'LIVE' ? 'wall-tag-live' : 'wall-tag-demo'
-                }`}
+                class={`wall-tag ${vm.dataMode === 'LIVE' ? 'wall-tag-live' : 'wall-tag-demo'}`}
               >
-                {vm.dataMode === 'LIVE' ? '● LIVE 真实留痕' : '○ DEMO 示例演示'}
+                {vm.dataMode === 'LIVE' ? '● LIVE' : '○ DEMO'}
               </span>
               <button
                 type="button"
@@ -304,13 +366,13 @@ export function StatusWallView({
                 onClick={() => setSubView('b1')}
                 title="切换查看 B1 AI 与软件专项数字看板"
               >
-                B1 专项看板 →
+                <span>B1 专项看板</span>
+                <IconArrowRight size={13} />
               </button>
             </div>
           </div>
 
           <div class="wall-learning-body">
-            {/* 左栏：eudaimonia 七分支技能树实况组件与活跃天数 */}
             <div class="wall-tree-summary-col">
               <div class="wall-kpi-sub">eudaimonia 技能树</div>
               <SkillTreeSvg
@@ -319,26 +381,25 @@ export function StatusWallView({
                 variant="wall"
                 demoFallback={vm.dataMode === 'DEMO'}
               />
-              <div>
-                <div class="wall-big-kpi">{vm.learning.activeDaysTotal}</div>
+              <div class="wall-tree-metrics">
+                <div class="wall-big-kpi tabular-num">{vm.learning.activeDaysTotal}</div>
                 <div class="wall-kpi-sub">
-                  累计点亮天（连学 {vm.learning.consecutiveDays} 天）
+                  累计点亮（连学 {vm.learning.consecutiveDays} 天）
                 </div>
-              </div>
-              <div class="wall-kpi-sub">
-                AI {vm.b1Kanban.aiLineMinutes}m / 软件 {vm.b1Kanban.softwareLineMinutes}m
+                <div class="wall-dual-mini tabular-num">
+                  AI {vm.b1Kanban.aiLineMinutes}m · 软件 {vm.b1Kanban.softwareLineMinutes}m
+                </div>
               </div>
             </div>
 
-            {/* 右栏：七分支进度阵列 + 薄弱 TOP5 + 每日一招 */}
             <div class="wall-branches-col">
               <div class="wall-branch-bars">
                 {vm.learning.branchProgress.map((bp) => (
                   <div class="wall-bar-row" key={bp.id}>
-                    <span style={{ color: 'var(--wall-text-muted)' }}>
+                    <span class="wall-bar-name">
                       {bp.id} {bp.name.slice(0, 2)}
                     </span>
-                    <div class="wall-bar-track">
+                    <div class="wall-bar-track is-thick">
                       <div
                         class="wall-bar-fill"
                         style={{
@@ -347,22 +408,15 @@ export function StatusWallView({
                         }}
                       />
                     </div>
-                    <span
-                      style={{
-                        fontFamily: 'var(--font-mono)',
-                        textAlign: 'right',
-                        color: 'var(--wall-text-muted)',
-                      }}
-                    >
-                      {bp.percent}%
-                    </span>
+                    <span class="wall-bar-pct tabular-num">{bp.percent}%</span>
                   </div>
                 ))}
               </div>
 
               <div class="wall-weakness-box">
-                <div class="wall-kpi-sub">
-                  薄弱 TOP5 & 每日一招：{vm.learning.dailyTipTitle}
+                <div class="wall-tip-inline">
+                  <span class="wall-tip-tag">每日一招</span>
+                  <span class="wall-tip-title">{vm.learning.dailyTipTitle}</span>
                 </div>
                 <div class="wall-weakness-items">
                   {vm.learning.weaknessTop5.length === 0 ? (
@@ -370,7 +424,7 @@ export function StatusWallView({
                   ) : (
                     vm.learning.weaknessTop5.slice(0, 3).map((w) => (
                       <span class="wall-weak-chip" key={w.label}>
-                        {w.branchId}:{w.label}
+                        {w.branchId} · {w.label}
                       </span>
                     ))
                   )}
@@ -380,111 +434,132 @@ export function StatusWallView({
           </div>
         </section>
 
-        {/* [2] 倒计时块 (3列 × 3行) */}
-        <section class="wall-panel wall-panel-countdown" aria-label="关键节点倒计时块">
+        {/* [2] 关键节点倒计时块 (3列 × 3行) */}
+        <section class="wall-panel wall-panel-countdown" aria-label="关键节点倒计时">
           <div class="wall-panel-head">
             <h2 class="wall-panel-title">
               <span class="wall-dot" style={{ background: 'var(--wall-amber)' }} />
               关键节点
             </h2>
-            <span class="wall-tag">示例配置</span>
+            <span class="wall-tag">倒计时</span>
           </div>
           <div class="wall-countdown-stack">
-            {vm.countdowns.slice(0, 3).map((cd) => (
-              <div class="wall-cd-card" key={cd.id}>
-                <div>
-                  <div class="wall-cd-label">{cd.label}</div>
-                  <div class="wall-cd-date">{cd.targetDate}</div>
+            {vm.countdowns.slice(0, 3).map((cd) => {
+              const urgencyPct = Math.max(8, Math.min(100, Math.round(100 - Math.min(cd.daysLeft, 365) / 3.65)));
+              return (
+                <div class="wall-cd-card" key={cd.id}>
+                  <div class="wall-cd-top">
+                    <div>
+                      <div class="wall-cd-label">{cd.label}</div>
+                      <div class="wall-cd-date tabular-num">{cd.targetDate}</div>
+                    </div>
+                    <div class={`wall-cd-days tabular-num ${cd.isUrgent ? 'is-urgent' : ''}`}>
+                      {cd.daysLeft}
+                      <span>天</span>
+                    </div>
+                  </div>
+                  <div class="wall-cd-bar">
+                    <div
+                      class="wall-cd-bar-fill"
+                      style={{
+                        width: `${urgencyPct}%`,
+                        backgroundColor: cd.isUrgent ? 'var(--wall-coral)' : 'var(--wall-amber)',
+                      }}
+                    />
+                  </div>
                 </div>
-                <div class={`wall-cd-days ${cd.isUrgent ? 'is-urgent' : ''}`}>
-                  {cd.daysLeft}
-                  <span style={{ fontSize: '13px', marginLeft: '3px', fontWeight: 400 }}>
-                    天
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
-        {/* [4] 生活块 · 留位 (4列 × 3行) */}
-        <section class="wall-panel wall-panel-life" aria-label="生活习惯与实验室块">
+        {/* [4] 生活节律与实验 (4列 × 3行)：2×2 微指标网格消除空洞 */}
+        <section class="wall-panel wall-panel-life" aria-label="生活节律与实验">
           <div class="wall-panel-head">
             <h2 class="wall-panel-title">
               <span class="wall-dot" />
               生活节律与实验
             </h2>
             <span class="wall-tag">
-              {vm.lifeBlock.isExternalSynced ? '同步源' : '留位·示例占位'}
+              {vm.lifeBlock.isExternalSynced ? '同步源' : '示例占位'}
             </span>
           </div>
-          <div class="wall-kv-list">
-            <div class="wall-kv-row">
-              <span class="wall-kpi-sub">跑步习惯</span>
-              <span class="wall-kv-val">{vm.lifeBlock.running}</span>
+          <div class="wall-life-grid-2x2">
+            <div class="wall-micro-tile">
+              <span class="wall-micro-label">跑步习惯</span>
+              <strong class="wall-micro-val">{vm.lifeBlock.running}</strong>
             </div>
-            <div class="wall-kv-row">
-              <span class="wall-kpi-sub">睡眠复盘</span>
-              <span class="wall-kv-val">{vm.lifeBlock.sleep}</span>
+            <div class="wall-micro-tile">
+              <span class="wall-micro-label">睡眠复盘</span>
+              <strong class="wall-micro-val">{vm.lifeBlock.sleep}</strong>
             </div>
-            <div class="wall-kv-row">
-              <span class="wall-kpi-sub">饮水节律</span>
-              <span class="wall-kv-val">{vm.lifeBlock.water}</span>
+            <div class="wall-micro-tile">
+              <span class="wall-micro-label">饮水节律</span>
+              <strong class="wall-micro-val">{vm.lifeBlock.water}</strong>
             </div>
-            <div class="wall-kv-row">
-              <span class="wall-kpi-sub">生活实验室</span>
-              <span class="wall-kv-val">{vm.lifeBlock.experimentLine}</span>
+            <div class="wall-micro-tile is-accent-tile">
+              <span class="wall-micro-label">月度生活实验</span>
+              <strong class="wall-micro-val">{vm.lifeBlock.experimentLine}</strong>
             </div>
           </div>
         </section>
 
-        {/* [5] 内容块 · 留位 (3列 × 2行) */}
-        <section class="wall-panel wall-panel-content" aria-label="每日文学与电影内容块">
+        {/* [6] 服务与数据状态 (5列 × 2行)：双列仪表卡 */}
+        <section class="wall-panel wall-panel-status" aria-label="服务与数据状态">
+          <div class="wall-panel-head">
+            <h2 class="wall-panel-title">服务与数据状态</h2>
+            <span class="wall-tag">每 {content.wallConfig.refreshIntervalSeconds}s 刷新</span>
+          </div>
+          <div class="wall-status-two-col">
+            <div class="wall-micro-tile">
+              <span class="wall-micro-label">服务器运行态</span>
+              <strong class="wall-micro-val">{vm.statusBlock.serverExpiry}</strong>
+            </div>
+            <div class="wall-micro-tile">
+              <span class="wall-micro-label">本地数据通道</span>
+              <strong class="wall-micro-val">{vm.statusBlock.cloudSync}</strong>
+            </div>
+          </div>
+        </section>
+
+        {/* [5] 今日吉光 (3列 × 3行)：编辑部排版金句 + 电影卡 */}
+        <section class="wall-panel wall-panel-content" aria-label="今日吉光">
           <div class="wall-panel-head">
             <h2 class="wall-panel-title">今日吉光</h2>
             <span class="wall-tag">
               {vm.contentBlock.isExternalSynced ? '同步源' : '示例占位'}
             </span>
           </div>
-          <div class="wall-quote-text">“{vm.contentBlock.quote}”</div>
-          <div class="wall-kpi-sub" style={{ marginTop: 'auto' }}>
-            {vm.contentBlock.movie}
+          <div class="wall-quote-body">
+            <span class="wall-quote-mark" aria-hidden="true">“</span>
+            <p class="wall-quote-text">{vm.contentBlock.quote}</p>
           </div>
+          <div class="wall-movie-foot">{vm.contentBlock.movie}</div>
         </section>
+      </div>
 
-        {/* [6] 状态块 · 留位 (5列 × 2行) */}
-        <section class="wall-panel wall-panel-status" aria-label="服务与同步状态块">
-          <div class="wall-panel-head">
-            <h2 class="wall-panel-title">服务与数据状态</h2>
-            <span class="wall-tag">每 {content.wallConfig.refreshIntervalSeconds}s 自动刷新</span>
-          </div>
-          <div class="wall-kv-list">
-            <div class="wall-kv-row">
-              <span class="wall-kpi-sub">服务器状态</span>
-              <span class="wall-kv-val">{vm.statusBlock.serverExpiry}</span>
-            </div>
-            <div class="wall-kv-row">
-              <span class="wall-kpi-sub">数据通道</span>
-              <span class="wall-kv-val">{vm.statusBlock.cloudSync}</span>
-            </div>
-          </div>
-        </section>
-
-        {/* 右下角系统状态与返回条 (3列 × 1行) */}
-        <footer class="wall-panel wall-panel-footerbar" aria-label="状态墙控制栏">
+      {/* 底部极简 36px 细系统状态栏（腾出完整 12×6 网格空间） */}
+      <footer class="wall-slim-footer" aria-label="状态墙控制栏">
+        <div class="wall-slim-footer-left">
+          <span class={`wall-tag ${vm.dataMode === 'LIVE' ? 'wall-tag-live' : 'wall-tag-demo'}`}>
+            {vm.dataMode === 'LIVE' ? '● LIVE 真实留痕驱动' : '○ DEMO 示例数据演示'}
+          </span>
+          <span class="wall-kpi-sub">现代必备生存指南 · 常亮状态墙</span>
+        </div>
+        <div class="wall-slim-footer-right">
           <button
             type="button"
             class="wall-btn"
             onClick={() => setForcePreviewDemo((v) => !v)}
-            title="在真实留痕与示例演示数据之间切换核对"
           >
-            {forcePreviewDemo ? '恢复实况自动判定' : '预览 DEMO 态'}
+            {forcePreviewDemo ? '恢复实况判定' : '预览 DEMO 态'}
           </button>
           <a href="#/" class="wall-btn">
-            ← 返回站内「今天」
+            <IconArrowLeft size={13} />
+            <span>返回站内</span>
           </a>
-        </footer>
-      </div>
+        </div>
+      </footer>
     </div>
   );
 }

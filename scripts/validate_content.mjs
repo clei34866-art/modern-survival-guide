@@ -103,7 +103,8 @@ async function main() {
       assert(unit.prediction?.question && Array.isArray(unit.prediction.options), `${ctx}: 缺少第2步 先预测题`);
       assert(Array.isArray(unit.guide?.blocks) && unit.guide.blocks.length > 0, `${ctx}: 缺少第3步 导学正文`);
 
-      // 红线 1：图文结合硬标准
+      // 红线 1：图文结合硬标准（L1 强化：校验 svgSpec 数据非空且零 placeholder 漏网）
+      assert(unit.isPlaceholder === false, `${ctx}: 正式站点禁止保留 isPlaceholder: true 的占位单元`);
       const visuals = unit.guide?.visuals;
       assert(Array.isArray(visuals) && visuals.length > 0, `${ctx}: 违反图文红线，必须至少包含 1 项 visuals 记录`);
       for (const vis of visuals) {
@@ -111,6 +112,16 @@ async function main() {
           assert(vis.imagePath && vis.imageSourceUrl, `${ctx}: 原图必须提供 imagePath 与 imageSourceUrl`);
         } else if (vis.kind === 'exact_svg') {
           assert(vis.svgSpec && VALID_SVG_TEMPLATES.has(vis.svgSpec.template), `${ctx}: 代码精确图缺少有效 svgSpec.template`);
+          const specData = vis.svgSpec.data || {};
+          if (vis.svgSpec.template === 'flow_pipeline') {
+            assert(Array.isArray(specData.steps) && specData.steps.length >= 2, `${ctx}: flow_pipeline 至少需要 2 个步骤`);
+          } else if (vis.svgSpec.template === 'tree_breakdown') {
+            assert(Array.isArray(specData.buckets) && specData.buckets.length >= 2, `${ctx}: tree_breakdown 至少需要 2 个分桶`);
+          } else if (vis.svgSpec.template === 'curve_compare') {
+            assert(Array.isArray(specData.series) && specData.series.length >= 2, `${ctx}: curve_compare 至少需要 2 条对比曲线`);
+          } else if (vis.svgSpec.template === 'two_axis_matrix') {
+            assert(Array.isArray(specData.quadrants) && specData.quadrants.length === 4, `${ctx}: two_axis_matrix 需要完整的 4 个象限`);
+          }
         } else if (vis.kind === 'no_image_declared') {
           assert(typeof vis.noImageReason === 'string' && vis.noImageReason.trim().length >= 6, `${ctx}: 无图声明必须填写具体原因`);
         } else {

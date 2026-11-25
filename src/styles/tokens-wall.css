@@ -1,49 +1,55 @@
-/* DESIGN.md 第二部分：1080P 个人状态墙（静谧深底 · 常亮总览风 · 严格一屏零滚动） */
-.wall-viewport {
-  --wall-bg: #0f1215;
-  --wall-surface: #171b20;
-  --wall-surface-2: #1f252c;
-  --wall-border: #2a313a;
-  --wall-text-main: #f2efe9;
-  --wall-text-muted: #949ca6;
-  --wall-green: #63c787;
-  --wall-amber: #f0b35a;
-  --wall-coral: #e26d63;
+/* ============================================================================
+ * 现代必备生存指南 · 1080P 个人状态墙样式表 v2.0（深炭高对比 · 零空腔一屏总览）
+ * 铁律：
+ * 1) >960px 严格 100vw × 100vh; overflow: hidden; 零滚动；
+ * 2) 六宫格为主视图，B1 专项看板为二级切换视图；
+ * 3) 底部 36px 细系统状态栏替代 3×1 冗余大控卡，消除一切死黑空腔与低对比标签。
+ * ============================================================================ */
 
+:root {
+  --wall-bg: #0b0e11;
+  --wall-surface: #131820;
+  --wall-surface-2: #1a212c;
+  --wall-border: rgba(243, 242, 238, 0.1);
+  --wall-border-strong: rgba(243, 242, 238, 0.2);
+
+  --wall-text: #f3f2ee;
+  --wall-muted: #9aa4b0;
+  --wall-dim: #6f7a87;
+
+  --wall-green: #4cc38a;
+  --wall-amber: #f0b35a;
+  --wall-coral: #e56b63;
+  --wall-cyan: #52adc0;
+}
+
+.wall-viewport {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background-color: var(--wall-bg);
-  color: var(--wall-text-main);
-  font-family: var(--font-sans);
-  padding: 20px 24px;
+  background: var(--wall-bg);
+  color: var(--wall-text);
+  color-scheme: dark;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  user-select: none;
+  padding: 14px 16px 10px;
+  gap: 10px;
+  font-family: var(--font-sans);
 }
 
-/* 默认主视图：12列 × 6行 六宫格状态墙 */
+/* ============================================================================
+ * 默认主视图：12 列 × 6 行紧凑六宫格 + 底部 36px 极简状态条
+ * ============================================================================ */
 .wall-bento-grid {
   flex: 1;
   min-height: 0;
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   grid-template-rows: repeat(6, minmax(0, 1fr));
-  gap: 14px;
+  gap: 12px;
 }
 
-.wall-panel {
-  background: var(--wall-surface);
-  border: 1px solid var(--wall-border);
-  border-radius: 14px;
-  padding: 16px 18px;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-}
-
+/* 精准 6 块坐标：填满全部 12×6 网格，零浪费零黑洞 */
 .wall-panel-today {
   grid-column: 1 / span 4;
   grid-row: 1 / span 3;
@@ -71,115 +77,375 @@
 
 .wall-panel-content {
   grid-column: 10 / span 3;
-  grid-row: 4 / span 2;
+  grid-row: 4 / span 3;
 }
 
-.wall-panel-footerbar {
-  grid-column: 10 / span 3;
-  grid-row: 6 / span 1;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
+.wall-panel {
+  background: var(--wall-surface);
+  border: 1px solid var(--wall-border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .wall-panel-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 10px;
+  margin-bottom: 12px;
   flex-shrink: 0;
 }
 
 .wall-panel-title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--wall-text);
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  margin: 0;
 }
 
 .wall-dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: 999px;
   background: var(--wall-green);
+  flex-shrink: 0;
+}
+
+.wall-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .wall-tag {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 6px;
   background: var(--wall-surface-2);
-  color: var(--wall-text-muted);
   border: 1px solid var(--wall-border);
+  color: var(--wall-muted);
+  font-size: 12px;
+  font-weight: 600;
   white-space: nowrap;
 }
 
 .wall-tag-live {
+  background: rgba(76, 195, 138, 0.14);
+  border-color: rgba(76, 195, 138, 0.35);
   color: var(--wall-green);
-  border-color: rgba(99, 199, 135, 0.4);
-  background: rgba(99, 199, 135, 0.1);
 }
 
 .wall-tag-demo {
+  background: rgba(240, 179, 90, 0.14);
+  border-color: rgba(240, 179, 90, 0.34);
   color: var(--wall-amber);
-  border-color: rgba(240, 179, 90, 0.45);
-  border-style: dashed;
-  background: rgba(240, 179, 90, 0.1);
+}
+
+.wall-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 12px;
+  min-height: 30px;
+  border-radius: 7px;
+  border: 1px solid var(--wall-border-strong);
+  background: var(--wall-surface-2);
+  color: var(--wall-text);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 140ms var(--ease-out), border-color 140ms var(--ease-out),
+    transform 120ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .wall-btn:hover {
+    background: #242d3b;
+    border-color: rgba(243, 242, 238, 0.34);
+  }
+}
+
+.wall-btn:active {
+  transform: scale(0.97);
+}
+
+/* [1] 今日总览：大时钟 + SVG 完成度环 + 紧凑待办 */
+.wall-today-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 14px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--wall-border);
+  flex-shrink: 0;
 }
 
 .wall-clock {
   font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: clamp(40px, 3.3vw, 56px);
+  font-size: 46px;
   font-weight: 700;
   line-height: 1.05;
-  letter-spacing: 0.02em;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--wall-text);
 }
 
 .wall-date-weather {
-  font-size: 15px;
-  color: var(--wall-text-muted);
-  margin: 6px 0 12px;
+  margin-top: 6px;
+  font-size: 13.5px;
+  color: var(--wall-muted);
+}
+
+.wall-ring-wrap {
+  flex-shrink: 0;
 }
 
 .wall-todo-list {
   list-style: none;
-  padding: 0;
   margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  overflow: hidden;
+  gap: 8px;
+  flex: 1;
+  justify-content: space-evenly;
+  min-height: 0;
 }
 
 .wall-todo-item {
-  font-size: 15px;
-  padding: 6px 10px;
-  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 9px;
   background: var(--wall-surface-2);
+  border: 1px solid var(--wall-border);
+  font-size: 14px;
+  color: var(--wall-text);
+}
+
+.wall-todo-bullet {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--wall-green);
+  flex-shrink: 0;
+}
+
+.wall-todo-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* [2] 生存指南学习块：左树+指标 / 右7条加粗进度条+薄弱一招 */
+.wall-learning-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 235px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.wall-tree-summary-col {
+  background: var(--wall-surface-2);
+  border: 1px solid var(--wall-border);
+  border-radius: 11px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 0;
+}
+
+.skill-tree-wall-box {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.skill-tree-wall-box svg {
+  width: 100%;
+  max-height: 250px;
+  height: auto;
+  display: block;
+}
+
+.wall-tree-metrics {
+  padding-top: 10px;
+  border-top: 1px solid var(--wall-border);
+}
+
+.wall-big-kpi {
+  font-family: var(--font-mono);
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--wall-green);
+}
+
+.wall-kpi-sub {
+  font-size: 12.5px;
+  color: var(--wall-muted);
+}
+
+.wall-dual-mini {
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--wall-cyan);
+}
+
+.wall-branches-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 0;
+}
+
+.wall-branch-bars {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.wall-bar-row {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 10px;
+}
+
+.wall-bar-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--wall-text);
+  white-space: nowrap;
+}
+
+.wall-bar-track {
+  height: 10px;
+  background: #232b36;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.wall-bar-track.is-thick {
+  height: 12px;
+}
+
+.wall-bar-track.is-xl {
+  height: 16px;
+}
+
+.wall-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 280ms var(--ease-out);
+}
+
+.wall-bar-pct {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--wall-text);
+  text-align: right;
+}
+
+.wall-weakness-box {
+  background: var(--wall-surface-2);
+  border: 1px solid var(--wall-border);
+  border-radius: 10px;
+  padding: 11px 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.wall-tip-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.wall-tip-tag {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: rgba(240, 179, 90, 0.16);
+  color: var(--wall-amber);
+  flex-shrink: 0;
+}
+
+.wall-tip-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--wall-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+.wall-weakness-items {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.wall-weak-chip {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(229, 107, 99, 0.14);
+  border: 1px solid rgba(229, 107, 99, 0.3);
+  color: #ffb2ac;
+}
+
+/* [3] 关键节点倒计时：三联卡带紧急度进度条 */
 .wall-countdown-stack {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 9px;
-  flex: 1;
   justify-content: space-between;
+  gap: 10px;
+  min-height: 0;
 }
 
 .wall-cd-card {
+  flex: 1;
   background: var(--wall-surface-2);
+  border: 1px solid var(--wall-border);
   border-radius: 10px;
-  padding: 10px 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.wall-cd-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -187,177 +453,160 @@
 }
 
 .wall-cd-label {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--wall-text);
 }
 
 .wall-cd-date {
   font-family: var(--font-mono);
   font-size: 12px;
-  color: var(--wall-text-muted);
+  color: var(--wall-muted);
+  margin-top: 2px;
 }
 
 .wall-cd-days {
   font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: clamp(26px, 2.2vw, 36px);
+  font-size: 30px;
   font-weight: 700;
+  line-height: 1;
   color: var(--wall-amber);
+  flex-shrink: 0;
 }
 
 .wall-cd-days.is-urgent {
   color: var(--wall-coral);
 }
 
-/* 学习块内部紧凑双栏 */
-.wall-learning-body {
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: 170px minmax(0, 1fr);
-  gap: 14px;
-}
-
-.wall-tree-summary-col {
-  background: var(--wall-surface-2);
-  border-radius: 10px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  text-align: center;
-}
-
-.wall-big-kpi {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 32px;
-  font-weight: 700;
-  color: var(--wall-green);
-  line-height: 1.1;
-}
-
-.wall-kpi-sub {
-  font-size: 12px;
-  color: var(--wall-text-muted);
-}
-
-.wall-branches-col {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  min-height: 0;
-  gap: 8px;
-}
-
-.wall-branch-bars {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.wall-bar-row {
-  display: grid;
-  grid-template-columns: 68px minmax(0, 1fr) 42px;
-  align-items: center;
-  gap: 8px;
+.wall-cd-days span {
   font-size: 13px;
+  font-weight: 600;
+  margin-left: 2px;
+  color: var(--wall-muted);
 }
 
-.wall-bar-track {
-  height: 8px;
+.wall-cd-bar {
+  height: 6px;
   border-radius: 999px;
-  background: var(--wall-surface-2);
+  background: #232b36;
   overflow: hidden;
 }
 
-.wall-bar-fill {
+.wall-cd-bar-fill {
   height: 100%;
   border-radius: 999px;
 }
 
-.wall-weakness-box {
+/* [4] 生活节律与实验：2×2 高可读微指标格（彻底消除空洞） */
+.wall-life-grid-2x2 {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  min-height: 0;
+}
+
+.wall-micro-tile {
   background: var(--wall-surface-2);
+  border: 1px solid var(--wall-border);
   border-radius: 10px;
-  padding: 9px 12px;
-  overflow: hidden;
-}
-
-.wall-weakness-items {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.wall-weak-chip {
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 6px;
-  background: rgba(240, 179, 90, 0.14);
-  color: var(--wall-amber);
-  max-width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.wall-kv-list {
+  padding: 16px 18px;
   display: flex;
   flex-direction: column;
-  justify-content: space-around;
+  justify-content: center;
+  gap: 10px;
+  min-height: 0;
+}
+
+.wall-micro-tile.is-accent-tile {
+  border-color: rgba(76, 195, 138, 0.34);
+  background: rgba(76, 195, 138, 0.08);
+}
+
+.wall-micro-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--wall-muted);
+}
+
+.wall-micro-val {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--wall-text);
+}
+
+/* [6] 服务与数据状态：双列并排仪表卡 */
+.wall-status-two-col {
   flex: 1;
-  gap: 8px;
-}
-
-.wall-kv-row {
-  background: var(--wall-surface-2);
-  border-radius: 9px;
-  padding: 9px 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  font-size: 15px;
+  min-height: 0;
 }
 
-.wall-kv-val {
-  color: var(--wall-text-main);
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* [5] 今日吉光：编辑部大引号衬线金句 + 底部电影卡 */
+.wall-quote-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 6px 4px;
+  min-height: 0;
+}
+
+.wall-quote-mark {
+  font-family: var(--font-display);
+  font-size: 46px;
+  line-height: 0.7;
+  color: var(--wall-amber);
+  opacity: 0.75;
+  margin-bottom: 8px;
 }
 
 .wall-quote-text {
-  font-family: var(--font-serif);
-  font-size: 16px;
-  line-height: 1.5;
-  margin: 4px 0 8px;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.65;
+  color: var(--wall-text);
 }
 
-.wall-btn {
+.wall-movie-foot {
+  margin-top: 12px;
+  padding: 11px 14px;
+  border-radius: 9px;
   background: var(--wall-surface-2);
-  color: var(--wall-text-main);
   border: 1px solid var(--wall-border);
-  border-radius: 8px;
-  padding: 5px 10px;
-  font-size: 12px;
-  cursor: pointer;
-  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--wall-muted);
+  flex-shrink: 0;
 }
 
-.wall-btn:hover {
-  border-color: var(--wall-green);
-  background: #262e37;
+/* 底部 36px 细系统状态栏 */
+.wall-slim-footer {
+  height: 38px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px;
 }
 
-/* 二级切换视图：B1 AI 与软件专项数字看板（同样 1080P 零滚动） */
+.wall-slim-footer-left,
+.wall-slim-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ============================================================================
+ * 二级切换视图：B1 AI 与软件专项数字看板（高对比外置标签 + 零下半屏空洞）
+ * ============================================================================ */
 .wall-b1-subview {
   flex: 1;
   min-height: 0;
@@ -368,161 +617,230 @@
 }
 
 .wall-b1-topbar {
-  grid-column: 1 / span 12;
+  grid-column: 1 / -1;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
-  background: var(--wall-surface);
-  border: 1px solid var(--wall-border);
-  border-radius: 14px;
-  padding: 12px 18px;
+  flex-wrap: wrap;
 }
 
 .wall-b1-topbar-group {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
 }
 
 .wall-b1-kpis {
-  grid-column: 1 / span 12;
+  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
 }
 
+.wall-kpi-card {
+  padding: 18px 20px;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.wall-kpi-hero {
+  font-family: var(--font-mono);
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--wall-text);
+}
+
+.wall-kpi-mid-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--wall-text);
+}
+
+.wall-kpi-unit {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--wall-muted);
+}
+
+.wall-kpi-foot {
+  font-size: 12.5px;
+  color: var(--wall-muted);
+}
+
 .wall-b1-layers {
   grid-column: 1 / span 7;
+  min-height: 0;
+}
+
+.wall-layers-stack {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.wall-layer-row {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1.3fr) minmax(0, 1.2fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: var(--wall-surface-2);
+  border: 1px solid var(--wall-border);
+}
+
+.wall-layer-code {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--wall-cyan);
+}
+
+.wall-layer-info {
+  min-width: 0;
+}
+
+.wall-layer-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--wall-text);
+}
+
+.wall-layer-meta {
+  font-size: 12.5px;
+  color: var(--wall-muted);
+  margin-top: 2px;
 }
 
 .wall-b1-duration {
   grid-column: 8 / span 5;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 20px;
+  min-height: 0;
 }
 
-.wall-layer-row {
-  background: var(--wall-surface-2);
-  border-radius: 10px;
-  padding: 11px 14px;
-  display: grid;
-  grid-template-columns: 48px minmax(0, 1.4fr) minmax(0, 1fr) 110px;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
+.wall-b1-duration .wall-weakness-box {
+  margin-top: auto;
+}
+
+/* 外置高对比标签（浅白字始终落在深炭底上，彻底消灭绿条白字对比度失败） */
+.wall-dual-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.wall-dual-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wall-dual-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.wall-dual-name {
   font-size: 14px;
+  font-weight: 600;
+  color: var(--wall-text);
+}
+
+.wall-dual-val {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--wall-text);
+}
+
+.wall-sw-packs-strip {
+  padding-top: 14px;
+  border-top: 1px solid var(--wall-border);
+}
+
+.wall-sw-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.wall-sw-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: var(--wall-surface-2);
+  border: 1px solid var(--wall-border);
+}
+
+.wall-sw-chip-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--wall-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wall-sw-chip-stat {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--wall-green);
+  flex-shrink: 0;
 }
 
 /* ============================================================================
-   窄屏与手机端兜底适配（>960px 严格保持 1080P 一屏零滚动；≤960px 自动转为纵向可读流，不叠字不裁切）
-   ============================================================================ */
+ * 平板与移动端兜底（≤960px 解除 100vh 锁死，流畅单栏纵向滚动）
+ * ============================================================================ */
 @media (max-width: 960px) {
   .wall-viewport {
-    width: 100%;
-    max-width: 100vw;
     height: auto;
     min-height: 100vh;
-    overflow-x: hidden;
     overflow-y: auto;
-    padding: 16px 14px 36px;
-    user-select: auto;
+    overflow-x: hidden;
+    padding: 14px 14px 28px;
   }
 
   .wall-bento-grid,
   .wall-b1-subview {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    min-height: auto;
-  }
-
-  .wall-panel {
-    overflow: visible;
-    padding: 16px;
-  }
-
-  .wall-panel-head {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .wall-learning-body {
-    grid-template-columns: 1fr;
     gap: 14px;
   }
 
-  .wall-tree-summary-col {
-    padding: 14px;
+  .wall-learning-body,
+  .wall-life-grid-2x2,
+  .wall-status-two-col,
+  .wall-b1-kpis,
+  .wall-sw-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wall-layer-row {
+    grid-template-columns: 40px 1fr;
     gap: 8px;
   }
 
-  .wall-todo-item,
-  .wall-kv-val,
-  .wall-weak-chip {
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
-    overflow-wrap: anywhere;
-  }
-
-  .wall-kv-row {
+  .wall-slim-footer {
+    height: auto;
     flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  .wall-quote-text {
-    -webkit-line-clamp: unset;
-    overflow: visible;
-  }
-
-  .wall-panel-footerbar {
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 12px 14px;
+    padding: 8px 0;
   }
 
   .wall-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     min-height: 44px;
-    min-width: 44px;
     padding: 8px 14px;
-    font-size: 14px;
-  }
-
-  .wall-b1-topbar {
-    flex-direction: column;
-    align-items: stretch;
-    padding: 14px 16px;
-  }
-
-  .wall-b1-kpis {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-  }
-
-  .wall-layer-row {
-    grid-template-columns: 44px minmax(0, 1fr) auto;
-  }
-}
-
-@media (max-width: 480px) {
-  .wall-clock {
-    font-size: 34px;
-  }
-
-  .wall-b1-kpis {
-    grid-template-columns: 1fr;
-  }
-
-  .wall-layer-row {
-    grid-template-columns: 1fr;
-    gap: 6px;
-  }
-
-  .wall-panel-footerbar > .wall-btn,
-  .wall-b1-topbar-group > .wall-btn {
-    flex: 1 1 auto;
   }
 }

@@ -14,6 +14,8 @@
     "build:pages": "npm run check:content && tsc --noEmit && vite build --mode pages",
     "deploy:pages": "node scripts/deploy_pages.mjs",
     "smoke": "node scripts/smoke_test.mjs",
+    "verify:ui": "node scripts/verify_ui.mjs",
+    "check:all": "npm run build && npm run smoke && npm run verify:ui",
     "preview": "vite preview"
   },
   "dependencies": {

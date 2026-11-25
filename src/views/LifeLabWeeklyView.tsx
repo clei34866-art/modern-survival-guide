@@ -63,40 +63,43 @@ export function LifeLabWeeklyView({
   if (mode === 'weekly') {
     const weekly = computeWeeklyReviewSummary(content, telemetry);
     return (
-      <section class="section-card" aria-label="简版每周生活复盘（周报）">
-        <div class="section-heading">
-          <span>简版每周生活复盘（{weekly.windowStart} 至 {weekly.windowEnd}）</span>
-          <span class="badge-pill">学习 + 行动双项自动聚合 · 联动状态墙</span>
+      <section class="surface-card" aria-label="每周生活复盘">
+        <div class="section-head-row" style={{ marginBottom: '16px' }}>
+          <div>
+            <h2 class="section-h2">每周生活与学习复盘</h2>
+            <p class="muted-desc tabular-num">
+              统计周期：{weekly.windowStart} 至 {weekly.windowEnd}
+            </p>
+          </div>
+          <span class="status-chip chip-growth">自动聚合本周真实留痕</span>
         </div>
 
-        <div class="metrics-grid">
-          <div class="metric-box">
-            <div class="metric-label">近 7 日点亮天数</div>
-            <div class="metric-value">{weekly.activeDaysInWeek} 天</div>
+        <div class="kpi-strip-4">
+          <div class="kpi-cell">
+            <span class="kpi-label">近 7 日点亮</span>
+            <strong class="kpi-num tabular-num">{weekly.activeDaysInWeek} 天</strong>
           </div>
-          <div class="metric-box">
-            <div class="metric-label">本周累计专注学习</div>
-            <div class="metric-value">{weekly.studyMinutesInWeek} min</div>
+          <div class="kpi-cell">
+            <span class="kpi-label">专注学习时长</span>
+            <strong class="kpi-num tabular-num">{weekly.studyMinutesInWeek} min</strong>
           </div>
-          <div class="metric-box">
-            <div class="metric-label">新过关单元 / 已温习概念</div>
-            <div class="metric-value">
+          <div class="kpi-cell">
+            <span class="kpi-label">过关单元 / 概念</span>
+            <strong class="kpi-num tabular-num">
               {weekly.clearedUnitTitles.length} 节 / {weekly.practicedConceptCount} 个
-            </div>
+            </strong>
           </div>
-          <div class="metric-box">
-            <div class="metric-label">落地行动任务</div>
-            <div class="metric-value">{weekly.completedActions.length} 项</div>
+          <div class="kpi-cell">
+            <span class="kpi-label">落地真实行动</span>
+            <strong class="kpi-num tabular-num">{weekly.completedActions.length} 项</strong>
           </div>
         </div>
 
-        <div class="branches-grid" style={{ marginBottom: '16px' }}>
-          <div class="branch-card">
-            <h3 class="path-track-title" style={{ fontSize: '16px' }}>
-              本周学到了什么（过关单元）
-            </h3>
+        <div class="weekly-two-col">
+          <div class="weekly-subpanel">
+            <h3 class="rail-section-title">本周掌握与过关单元</h3>
             {weekly.clearedUnitTitles.length === 0 ? (
-              <p class="hero-subtitle" style={{ margin: 0 }}>
+              <p class="muted-desc" style={{ margin: 0 }}>
                 本周尚无新过关单元，哪怕只翻过几张概念卡也是有效推进。
               </p>
             ) : (
@@ -108,12 +111,10 @@ export function LifeLabWeeklyView({
             )}
           </div>
 
-          <div class="branch-card">
-            <h3 class="path-track-title" style={{ fontSize: '16px' }}>
-              本周做成了哪些真实行动
-            </h3>
+          <div class="weekly-subpanel">
+            <h3 class="rail-section-title">本周落地的真实行动</h3>
             {weekly.completedActions.length === 0 ? (
-              <p class="hero-subtitle" style={{ margin: 0 }}>
+              <p class="muted-desc" style={{ margin: 0 }}>
                 暂无已归档行动记录，可从「真实任务池」挑一件小事顺手落地。
               </p>
             ) : (
@@ -127,18 +128,16 @@ export function LifeLabWeeklyView({
         </div>
 
         {weekly.activeExperimentBrief && (
-          <div class="scenario-question-box" style={{ maxWidth: '100%' }}>
-            <strong>本月生活实验室动态：</strong>
-            {weekly.activeExperimentBrief}
+          <div class="scenario-question-panel" style={{ marginTop: '16px' }}>
+            <span class="guiding-label">本月生活实验室动态</span>
+            <p>{weekly.activeExperimentBrief}</p>
           </div>
         )}
 
-        <div class="wrap-up-card">
+        <div class="wrap-up-card" style={{ marginTop: '16px' }}>
           <div>
-            <div class="step-eyebrow" style={{ color: '#2D5942', marginBottom: '4px' }}>
-              下周一条可执行建议
-            </div>
-            <p class="wrap-up-desc" style={{ fontSize: '15px' }}>
+            <span class="status-chip chip-growth">下周可执行建议</span>
+            <p class="wrap-up-desc" style={{ marginTop: '8px', fontSize: '15px' }}>
               {weekly.nextWeekSuggestion}
             </p>
           </div>
@@ -147,7 +146,6 @@ export function LifeLabWeeklyView({
     );
   }
 
-  // 生活实验室视图
   const experiments = telemetry.lifeLabExperiments ?? [];
   const activeExp = experiments[0];
 
@@ -184,7 +182,6 @@ export function LifeLabWeeklyView({
     onTelemetryChange(next);
   };
 
-  // 将实验数值归一化映射到 0..100 供 ExactDiagram curve_compare 精确绘图
   const renderExperimentChart = () => {
     if (!activeExp || activeExp.entries.length === 0) return null;
     const allVals = [activeExp.baselineValue, ...activeExp.entries.map((e) => e.value)];
@@ -192,12 +189,15 @@ export function LifeLabWeeklyView({
     const norm = (v: number) => Math.round((Math.max(0, v) / maxV) * 92);
 
     const observedPts = activeExp.entries.map((e) => norm(e.value));
-    const pointsForLine = observedPts.length === 1 ? [norm(activeExp.baselineValue), observedPts[0]] : observedPts;
+    const pointsForLine =
+      observedPts.length === 1 ? [norm(activeExp.baselineValue), observedPts[0]] : observedPts;
     const baselinePts = pointsForLine.map(() => norm(activeExp.baselineValue));
 
     return (
-      <div style={{ margin: '14px 0' }}>
+      <div style={{ margin: '16px 0' }}>
         <ExactDiagram
+          compact
+          caption="实验期实测指标 vs 实验前基线动态对比"
           spec={{
             template: 'curve_compare',
             data: {
@@ -220,21 +220,21 @@ export function LifeLabWeeklyView({
 
   return (
     <div class="life-lab-wrap">
-      <section class="section-card">
-        <h2 class="section-heading">
-          <span>生活实验室（按科研路子过日子：定变量 · 记数据 · 看前后变化）</span>
-          <span class="badge-pill">数据实时同步至状态墙「生活块」与周报</span>
-        </h2>
+      <section class="surface-card">
+        <div class="section-head-row" style={{ marginBottom: '12px' }}>
+          <div>
+            <h2 class="section-h2">月度生活实验室 · 定变量、记数据、看前后变化</h2>
+            <p class="muted-desc">按科研对照实验的方式验证生活习惯，实测结果自动同步至周报与状态墙。</p>
+          </div>
+        </div>
 
-        <div class="btn-row" style={{ marginBottom: '12px' }}>
-          <span style={{ fontSize: '13px', color: 'var(--ink-secondary)', alignSelf: 'center' }}>
-            一键开启本月实验模板：
-          </span>
+        <div class="quick-templates-row">
+          <span class="muted-inline">预设实验模板：</span>
           {EXPERIMENT_PRESETS.map((p) => (
             <button
               key={p.title}
               type="button"
-              class="btn-sm"
+              class="btn btn-sm"
               onClick={() => handleStartPreset(p)}
             >
               + {p.title}
@@ -264,7 +264,7 @@ export function LifeLabWeeklyView({
           />
           <button
             type="button"
-            class="btn-primary"
+            class="btn btn-primary"
             disabled={!customTitle.trim()}
             onClick={handleCreateCustom}
           >
@@ -274,13 +274,13 @@ export function LifeLabWeeklyView({
       </section>
 
       {activeExp ? (
-        <section class="section-card">
+        <section class="surface-card" style={{ marginTop: '16px' }}>
           <div class="path-track-badges">
-            <span class="badge-pill badge-live">当前主实验 · {activeExp.monthLabel}</span>
-            <span class="badge-pill">
-              基线：{activeExp.baselineValue} {activeExp.metricUnit}
+            <span class="status-chip chip-growth">当前主实验 · {activeExp.monthLabel}</span>
+            <span class="status-chip tabular-num">
+              基线 {activeExp.baselineValue} {activeExp.metricUnit}
             </span>
-            <span class="badge-pill">已记录 {activeExp.entries.length} 天</span>
+            <span class="status-chip tabular-num">已记录 {activeExp.entries.length} 天</span>
           </div>
           <h3 class="path-track-title">{activeExp.title}</h3>
           <p class="path-track-summary">
@@ -307,7 +307,7 @@ export function LifeLabWeeklyView({
               onInput={(e) => setEntryNote((e.target as HTMLInputElement).value)}
               placeholder="10 秒简注（如：昨晚按时关灯，今天下午没犯困）"
             />
-            <button type="button" class="btn-primary" onClick={handleAddEntry}>
+            <button type="button" class="btn btn-primary" onClick={handleAddEntry}>
               记录今日数据
             </button>
           </div>
@@ -317,7 +317,7 @@ export function LifeLabWeeklyView({
           {activeExp.entries.length > 0 && (
             <div class="weakness-top5-list" style={{ marginBottom: '14px' }}>
               {activeExp.entries.map((e) => (
-                <span class="badge-pill" key={e.dateKey}>
+                <span class="status-chip tabular-num" key={e.dateKey}>
                   {e.dateKey}：<strong>{e.value}</strong> {activeExp.metricUnit}
                   {e.note ? `（${e.note}）` : ''}
                 </span>
@@ -326,7 +326,7 @@ export function LifeLabWeeklyView({
           )}
 
           <div class="form-field-block" style={{ marginBottom: 0 }}>
-            <label class="form-label">阶段实验小结（前后对比结论）：</label>
+            <label class="form-label">阶段实验小结（前后对比结论）</label>
             <textarea
               rows={2}
               value={activeExp.conclusion ?? ''}
@@ -342,9 +342,9 @@ export function LifeLabWeeklyView({
           </div>
         </section>
       ) : (
-        <section class="section-card">
+        <section class="surface-card" style={{ marginTop: '16px' }}>
           <div class="empty-track-notice" style={{ marginBottom: 0 }}>
-            当前尚未立项月度实验，点击上方任一预设模板即可开始第一轮生活实验。
+            当前尚未立项月度实验，点击上方任一预设模板即可开启第一轮生活实验。
           </div>
         </section>
       )}

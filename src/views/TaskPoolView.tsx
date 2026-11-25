@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks';
+import { IconArrowRight, IconCheck } from '../components/Icons';
 import type { PlatformContentBundle } from '../core/contentLoader';
 import { addRealLifeTask, removeRealLifeTask, toggleRealLifeTask } from '../core/db';
 import type {
@@ -26,7 +27,7 @@ const CATEGORY_META: Array<{
     value: 'research_data',
     label: '科研 / 大创数据处理',
     defaultBranch: 'B1',
-    samplePlaceholder: '如：清洗本周 XRD 实验 CSV 并核查 AI 总结文献引用',
+    samplePlaceholder: '如：清洗本周实验 CSV 并核查 AI 总结文献引用',
   },
   {
     value: 'tweet_writing',
@@ -89,8 +90,7 @@ const QUICK_TEMPLATES: Array<{
 
 function findMatchingUnits(units: LearningUnit[], task: RealLifeTask): LearningUnit[] {
   return units.filter(
-    (u) =>
-      u.actionTask.matchPoolCategory === task.category || u.branchId === task.branchId
+    (u) => u.actionTask.matchPoolCategory === task.category || u.branchId === task.branchId
   );
 }
 
@@ -117,11 +117,7 @@ export function TaskPoolView({
 
   const handleAdd = async () => {
     if (!title.trim()) return;
-    const next = await addRealLifeTask({
-      title,
-      category,
-      branchId,
-    });
+    const next = await addRealLifeTask({ title, category, branchId });
     setTitle('');
     onTelemetryChange(next);
   };
@@ -133,27 +129,27 @@ export function TaskPoolView({
 
   return (
     <div class="task-pool-wrap">
-      <section class="section-card">
-        <h2 class="section-heading">
-          <span>真实任务池（不练假题：把你的真实待办直接变成学习过关行动）</span>
-          <span class="badge-pill">
+      <section class="surface-card">
+        <div class="section-head-row" style={{ marginBottom: '12px' }}>
+          <div>
+            <h2 class="section-h2">真实任务池 · 把真实待办变成学习过关产出</h2>
+            <p class="muted-desc">
+              录入你手头真正要做的事，进入对应学习单元第 6 步即可一键挂载抵扣。
+            </p>
+          </div>
+          <span class="status-chip tabular-num">
             进行中 {tasks.filter((t) => t.status === 'open').length} · 已交付{' '}
             {tasks.filter((t) => t.status === 'completed').length}
           </span>
-        </h2>
-        <p class="hero-subtitle" style={{ marginTop: 0, marginBottom: '14px' }}>
-          录入真实学习、科研或生活待办后，进入对应学习单元第 6 步「行动任务」可直接一键挂载抵扣——做完真实的事，同步点亮技能树叶片。
-        </p>
+        </div>
 
-        <div class="btn-row" style={{ marginBottom: '14px' }}>
-          <span style={{ fontSize: '13px', color: 'var(--ink-secondary)', alignSelf: 'center' }}>
-            常用真实场景速添：
-          </span>
+        <div class="quick-templates-row">
+          <span class="muted-inline">常用场景速添：</span>
           {QUICK_TEMPLATES.map((tpl) => (
             <button
               key={tpl.title}
               type="button"
-              class="btn-sm"
+              class="btn btn-sm"
               onClick={() => handleQuickAdd(tpl)}
             >
               + {tpl.title.slice(0, 12)}…
@@ -182,19 +178,17 @@ export function TaskPoolView({
           </select>
           <select
             value={branchId}
-            onChange={(e) =>
-              setBranchId((e.target as HTMLSelectElement).value as BranchId)
-            }
+            onChange={(e) => setBranchId((e.target as HTMLSelectElement).value as BranchId)}
           >
             {content.catalog.branches.map((b) => (
               <option value={b.id} key={b.id}>
-                {b.id} · {b.name}
+                {b.id} {b.name}
               </option>
             ))}
           </select>
           <button
             type="button"
-            class="btn-primary"
+            class="btn btn-primary"
             disabled={!title.trim()}
             onClick={handleAdd}
           >
@@ -203,25 +197,24 @@ export function TaskPoolView({
         </div>
       </section>
 
-      <section class="section-card">
-        <h3 class="section-heading">待交付与已归档真实任务</h3>
+      <section class="surface-card" style={{ marginTop: '16px' }}>
+        <h3 class="section-h2" style={{ marginBottom: '12px' }}>
+          待交付与已归档任务
+        </h3>
         {tasks.length === 0 ? (
           <div class="empty-track-notice" style={{ marginBottom: 0 }}>
-            任务池还是空的，点上方「常用真实场景速添」或输入你手头真正要做的一件事试试。
+            任务池还是空的，点上方「常用场景速添」或输入一件近期真实待办开始。
           </div>
         ) : (
-          <div class="slot-tasks-list" style={{ padding: 0 }}>
+          <div class="event-modules-list">
             {tasks.map((task) => {
               const branch = branchMap.get(task.branchId);
               const matchedUnits = findMatchingUnits(content.units, task);
               const isDone = task.status === 'completed';
 
               return (
-                <div
-                  key={task.id}
-                  class={`task-row ${isDone ? 'is-done' : ''}`}
-                >
-                  <label class="task-check-wrap">
+                <div key={task.id} class={`task-row ${isDone ? 'is-done' : ''}`}>
+                  <label class="task-check-wrap" aria-label={`标记完成：${task.title}`}>
                     <input
                       type="checkbox"
                       checked={isDone}
@@ -231,44 +224,41 @@ export function TaskPoolView({
                       }}
                     />
                     <span class="custom-checkbox" aria-hidden="true">
-                      {isDone ? '✓' : ''}
+                      {isDone && <IconCheck size={13} />}
                     </span>
                   </label>
 
                   <div class="task-body">
                     <div class="task-meta-line">
-                      <span
-                        class="branch-tag"
-                        style={{
-                          backgroundColor: branch?.accentToken ?? '#3D7A8A',
-                          marginBottom: 0,
-                        }}
-                      >
-                        {task.branchId} · {branch?.name ?? task.branchId}
+                      <span class="branch-dot-label">
+                        <span
+                          class="branch-dot"
+                          style={{ backgroundColor: branch?.accentToken ?? '#266D7E' }}
+                        />
+                        <span>
+                          {task.branchId} {branch?.name ?? task.branchId}
+                        </span>
                       </span>
-                      <span class="badge-pill">
+                      <span class="status-chip">
                         {CATEGORY_META.find((c) => c.value === task.category)?.label ??
                           task.category}
                       </span>
                       {task.linkedUnitId && (
-                        <span class="badge-pill badge-live">
-                          ✓ 已联动抵扣单元 {task.linkedUnitId}
-                        </span>
+                        <span class="status-chip chip-growth">已联动单元过关</span>
                       )}
                     </div>
                     <div class="task-title">{task.title}</div>
                     {!isDone && matchedUnits.length > 0 && (
-                      <div class="task-hint" style={{ marginTop: '6px' }}>
-                        可联动学习单元：
+                      <div class="btn-row" style={{ marginTop: '8px' }}>
                         {matchedUnits.slice(0, 2).map((u) => (
                           <button
                             key={u.id}
                             type="button"
-                            class="btn-sm"
-                            style={{ marginLeft: '6px' }}
+                            class="btn btn-sm"
                             onClick={() => onOpenUnit(u.id)}
                           >
-                            去「{u.title.replace(/^【示例占位】/, '').slice(0, 14)}…」合并交付 →
+                            <span>合并交付：{u.title.slice(0, 14)}…</span>
+                            <IconArrowRight size={13} />
                           </button>
                         ))}
                       </div>
@@ -277,7 +267,7 @@ export function TaskPoolView({
 
                   <button
                     type="button"
-                    class="btn-sm"
+                    class="btn btn-sm btn-danger-ghost"
                     onClick={async () => {
                       const next = await removeRealLifeTask(task.id);
                       onTelemetryChange(next);

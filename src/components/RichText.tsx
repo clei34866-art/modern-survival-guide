@@ -1,5 +1,6 @@
-import * as Popover from '@radix-ui/react-popover';
 import type { ReactNode } from 'react';
+import { useGlossaryDrawer } from '@/components/GlossaryDrawer';
+import { Tooltip } from '@/components/ui/overlays';
 import type { ConceptNode } from '@/types/schema';
 
 interface RichTextProps {
@@ -12,40 +13,31 @@ interface GlossaryTermProps {
   concept: ConceptNode;
 }
 
+/**
+ * 术语交互严格遵循六分法：
+ * - 悬停：Tooltip 一句话悬停提示（只放一句话，移开即消失，不打断）
+ * - 点击：打开右侧 GlossaryDrawer 术语详解抽屉（原页面留在后面，边看边查）
+ */
 function GlossaryTerm({ term, concept }: GlossaryTermProps) {
+  const glossary = useGlossaryDrawer();
+  const brief =
+    concept.plainDefinition.length > 36
+      ? `${concept.plainDefinition.slice(0, 36)}…（点开右侧详解）`
+      : `${concept.plainDefinition}（点开右侧详解）`;
+
   return (
-    <Popover.Root>
-      <Popover.Trigger asChild>
-        <button
-          type="button"
-          className="glossary-trigger glossary-term-btn"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {term}
-        </button>
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Content
-          side="top"
-          align="center"
-          sideOffset={8}
-          collisionPadding={16}
-          onClick={(e) => e.stopPropagation()}
-          className="glossary-popover z-50 w-[min(300px,86vw)] rounded-[10px] border border-[var(--line-strong)] bg-[var(--surface)] p-3.5 text-left shadow-[var(--shadow-float)] outline-none"
-        >
-          <div className="mb-1 flex items-center justify-between gap-2">
-            <span className="text-[13px] font-semibold text-[var(--ink-1)]">{concept.label}</span>
-            <span className="font-mono-num rounded bg-[var(--surface-raised)] px-1.5 py-0.5 text-[11px] text-[var(--ink-3)]">
-              {concept.branchId}
-            </span>
-          </div>
-          <p className="m-0 text-[13px] leading-[1.6] text-[var(--ink-2)]">
-            {concept.plainDefinition}
-          </p>
-          <Popover.Arrow className="fill-[var(--surface)]" />
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+    <Tooltip content={brief} side="top">
+      <button
+        type="button"
+        className="glossary-trigger glossary-term-btn"
+        onClick={(e) => {
+          e.stopPropagation();
+          glossary?.openConcept(concept);
+        }}
+      >
+        {term}
+      </button>
+    </Tooltip>
   );
 }
 
@@ -67,7 +59,7 @@ function extractMatchKeywords(concept: ConceptNode): string[] {
  * 安全的轻量内联排版解析器：
  * - 将 `...` 解析为等宽代码芯片 <code className="inline-code">
  * - 将 **...** 解析为语义加粗 <strong>
- * - 当传入 concepts 时，为首次出现的关键术语挂载 Radix Popover 术语解释卡片
+ * - 当传入 concepts 时，为首次出现的关键术语挂载 Tooltip 悬停简介 + Drawer 详解抽屉
  */
 export function RichText({ text, concepts }: RichTextProps) {
   const usedConcepts = new Set<string>();

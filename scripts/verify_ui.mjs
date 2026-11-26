@@ -353,6 +353,59 @@ async function main() {
       `⌘K 全局命令面板可打开/检索全量 28 单元+30 概念并按 Esc 关闭 (items=${cmdkOpenAudit.itemCount})`
     );
 
+    // 验证 Wave 双层壁纸加载 + 六分法弹出层（Drawer 速览抽屉、Popconfirm 气泡确认、Modal 强确认）
+    const waveLoaded = await cdp.evalJs(`(() => {
+      const bg = document.querySelector('.wave-bg-img');
+      const fg = document.querySelector('.wave-fg-img');
+      return {
+        bgOk: Boolean(bg && bg.complete && bg.naturalWidth >= 1000),
+        fgOk: Boolean(fg && fg.complete && fg.naturalWidth >= 1000),
+      };
+    })()`);
+    check(waveLoaded.bgOk && waveLoaded.fgOk, 'L4', `Wave 双层星海原画与人物前景层加载完整 (bg=${waveLoaded.bgOk}, fg=${waveLoaded.fgOk})`);
+
+    // 验证首页「抽屉速览」Drawer 正常滑出并支持 Esc 关闭
+    await cdp.evalJs(`document.querySelector('[data-testid="today-unit-preview-btn"]')?.click()`);
+    await new Promise((r) => setTimeout(r, 240));
+    const drawerOpenAudit = await cdp.evalJs(`Boolean(document.querySelector('[data-overlay-type="drawer"]'))`);
+    await cdp.screenshot('01d-home-drawer-1440.png', false);
+    await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await new Promise((r) => setTimeout(r, 200));
+    const drawerClosedAudit = await cdp.evalJs(`!document.querySelector('[data-overlay-type="drawer"]')`);
+    check(drawerOpenAudit && drawerClosedAudit, 'L5', `首页「抽屉速览」右侧 Drawer 滑出与 Esc 关闭正常`);
+
+    // 验证实验室：任务移除走 Popconfirm 气泡确认，重置全部留痕走 Modal 模态确认
+    await cdp.goto(`${baseUrl}/#/lab`);
+    await cdp.evalJs(`(() => {
+      const quickBtn = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('清洗本周'));
+      quickBtn?.click();
+    })()`);
+    await new Promise((r) => setTimeout(r, 220));
+    await cdp.evalJs(`(() => {
+      const rmBtn = [...document.querySelectorAll('button[aria-label^="移除任务"]')][0];
+      rmBtn?.click();
+    })()`);
+    await new Promise((r) => setTimeout(r, 220));
+    const popconfirmOpen = await cdp.evalJs(`Boolean(document.querySelector('[data-overlay-type="popconfirm"]'))`);
+    await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await new Promise((r) => setTimeout(r, 150));
+
+    await cdp.evalJs(`(() => {
+      const backupTab = [...document.querySelectorAll('button[role="tab"]')].find((b) => b.textContent?.includes('备份'));
+      backupTab?.click();
+    })()`);
+    await new Promise((r) => setTimeout(r, 180));
+    await cdp.evalJs(`document.querySelector('[data-testid="reset-telemetry-trigger"]')?.click()`);
+    await new Promise((r) => setTimeout(r, 220));
+    const resetModalOpen = await cdp.evalJs(`Boolean(document.querySelector('[data-overlay-type="modal"]'))`);
+    await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await new Promise((r) => setTimeout(r, 160));
+    check(popconfirmOpen, 'L5', `任务池高频移除操作采用 Popconfirm 气泡轻确认`);
+    check(resetModalOpen, 'L5', `清空全部本地留痕高风险操作采用 Modal 强打断模态弹窗确认`);
+
     // 验证 #/branches：径向星图零文字碰撞 + 全七分支零「规划中」空槽 + B1 软件分包零拉伸
     await cdp.goto(`${baseUrl}/#/branches`);
     const treeCheck = await cdp.evalJs(`(() => {
@@ -579,8 +632,25 @@ async function main() {
 
       await cdp.screenshot(u.shot, false);
 
-      // 在第一单元完成第 4 步 3D 翻卡 + 第 5 步禁用态与自测提交，验证端到端留痕闭环
+      // 在第一单元验证：学习资料 Drawer + 术语 Drawer + 第 4 步 3D 翻卡 + 第 5 步禁用态与自测提交
       if (u.id === 'unit-b1-l1-prompt') {
+        await cdp.evalJs(`document.querySelector('[data-testid="study-drawer-trigger"]')?.click()`);
+        await new Promise((r) => setTimeout(r, 220));
+        const studyDrawerOpen = await cdp.evalJs(`Boolean(document.querySelector('[data-overlay-type="drawer"]'))`);
+        await cdp.screenshot('09b-unit-study-drawer-1440.png', false);
+        await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+        await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+        await new Promise((r) => setTimeout(r, 180));
+        check(studyDrawerOpen, 'L5', `单元学习页「本节资料」右侧 Drawer 正常滑出展示划重点、术语与溯源`);
+
+        await cdp.evalJs(`document.querySelector('.glossary-term-btn')?.click()`);
+        await new Promise((r) => setTimeout(r, 220));
+        const glossaryDrawerOpen = await cdp.evalJs(`Boolean(document.querySelector('[data-overlay-type="drawer"]'))`);
+        await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+        await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+        await new Promise((r) => setTimeout(r, 180));
+        check(glossaryDrawerOpen, 'L5', `正文术语点击后以右侧 Drawer 展开详解（非拥挤气泡/非遮屏弹窗）`);
+
         await cdp.evalJs(`(() => {
           const go4 = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('概念闪卡'));
           go4?.click();

@@ -1,6 +1,7 @@
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { SkillAtlasSvg } from '@/components/SkillTreeSvg';
+import { Tooltip } from '@/components/ui/overlays';
 import type { PlatformContentBundle } from '@/core/contentLoader';
 import { fetchServerSyncSnapshot, getLocalDateKey } from '@/core/db';
 import { isUnitCleared } from '@/core/gatekeeper';
@@ -11,6 +12,8 @@ interface StatusWallViewProps {
   content: PlatformContentBundle;
   telemetry: TelemetrySnapshot;
   initialSubView?: 'main' | 'b1';
+  pureView?: boolean;
+  onTogglePureView?: () => void;
 }
 
 function formatClock(date: Date): string {
@@ -31,6 +34,8 @@ export function StatusWallView({
   content,
   telemetry,
   initialSubView = 'main',
+  pureView = false,
+  onTogglePureView,
 }: StatusWallViewProps) {
   const [subView, setSubView] = useState<'main' | 'b1'>(initialSubView);
   const [now, setNow] = useState<Date>(() => new Date());
@@ -270,7 +275,23 @@ export function StatusWallView({
   // ============================================================================
   return (
     <div className="wall-viewport" aria-label="1080P 个人状态墙六宫格主视图">
-      <div className="wall-bento-grid">
+      {pureView && onTogglePureView && (
+        <div className="fixed top-4 right-4 z-50">
+          <button type="button" className="wall-btn" onClick={onTogglePureView}>
+            <EyeOff size={14} strokeWidth={1.6} />
+            <span>退出纯净观景 (ESC)</span>
+          </button>
+        </div>
+      )}
+
+      <div
+        className="wall-bento-grid"
+        style={{
+          opacity: pureView ? 0 : 1,
+          pointerEvents: pureView ? 'none' : 'auto',
+          transition: 'opacity 280ms ease',
+        }}
+      >
         {/* [1] 今日总览 */}
         <section className="wall-panel wall-panel-today" aria-label="今日总览">
           <div className="wall-panel-head">
@@ -286,37 +307,46 @@ export function StatusWallView({
               <div className="wall-clock">{formatClock(now)}</div>
               <div className="wall-date-weather">{formatDateLabel(now)}</div>
             </div>
-            <div className="wall-ring-wrap" title={`今日完成 ${vm.learning.todayPercent}%`}>
-              <svg width="84" height="84" viewBox="0 0 84 84">
-                <circle cx="42" cy="42" r={ringR} fill="none" stroke="#20283a" strokeWidth="7" />
-                <circle
-                  cx="42"
-                  cy="42"
-                  r={ringR}
-                  fill="none"
-                  stroke="#34d399"
-                  strokeWidth="7"
-                  strokeLinecap="round"
-                  strokeDasharray={ringC}
-                  strokeDashoffset={ringOffset}
-                  transform="rotate(-90 42 42)"
-                />
-                <text
-                  x="42"
-                  y="40"
-                  textAnchor="middle"
-                  fontSize="16"
-                  fontWeight="600"
-                  fontFamily="var(--font-mono)"
-                  fill="#eef0f5"
-                >
-                  {vm.learning.todayDone}/{vm.learning.todayTotal}
-                </text>
-                <text x="42" y="55" textAnchor="middle" fontSize="10" fill="#98a2b3">
-                  今日进度
-                </text>
-              </svg>
-            </div>
+            <Tooltip content={`今日已完成 ${vm.learning.todayPercent}%`} side="top">
+              <div className="wall-ring-wrap">
+                <svg width="84" height="84" viewBox="0 0 84 84">
+                  <circle
+                    cx="42"
+                    cy="42"
+                    r={ringR}
+                    fill="none"
+                    stroke="rgba(190, 222, 255, 0.16)"
+                    strokeWidth="7"
+                  />
+                  <circle
+                    cx="42"
+                    cy="42"
+                    r={ringR}
+                    fill="none"
+                    stroke="#5eead4"
+                    strokeWidth="7"
+                    strokeLinecap="round"
+                    strokeDasharray={ringC}
+                    strokeDashoffset={ringOffset}
+                    transform="rotate(-90 42 42)"
+                  />
+                  <text
+                    x="42"
+                    y="40"
+                    textAnchor="middle"
+                    fontSize="16"
+                    fontWeight="600"
+                    fontFamily="var(--font-mono)"
+                    fill="#f4f8ff"
+                  >
+                    {vm.learning.todayDone}/{vm.learning.todayTotal}
+                  </text>
+                  <text x="42" y="55" textAnchor="middle" fontSize="10" fill="#c6d7f0">
+                    今日进度
+                  </text>
+                </svg>
+              </div>
+            </Tooltip>
           </div>
 
           <ul className="wall-todo-list">
@@ -342,15 +372,16 @@ export function StatusWallView({
               >
                 {vm.dataMode === 'LIVE' ? 'LIVE' : 'DEMO'}
               </span>
-              <button
-                type="button"
-                className="wall-btn"
-                onClick={() => setSubView('b1')}
-                title="切换查看 B1 AI 与软件专项数字看板"
-              >
-                <span>B1 专项看板</span>
-                <ArrowRight size={13} strokeWidth={1.6} />
-              </button>
+              <Tooltip content="切换查看 B1 AI 与软件专项数字看板" side="bottom">
+                <button
+                  type="button"
+                  className="wall-btn"
+                  onClick={() => setSubView('b1')}
+                >
+                  <span>B1 专项看板</span>
+                  <ArrowRight size={13} strokeWidth={1.6} />
+                </button>
+              </Tooltip>
             </div>
           </div>
 
@@ -523,7 +554,15 @@ export function StatusWallView({
       </div>
 
       {/* 底部极简 36px 细系统状态栏 */}
-      <footer className="wall-slim-footer" aria-label="状态墙控制栏">
+      <footer
+        className="wall-slim-footer"
+        aria-label="状态墙控制栏"
+        style={{
+          opacity: pureView ? 0 : 1,
+          pointerEvents: pureView ? 'none' : 'auto',
+          transition: 'opacity 280ms ease',
+        }}
+      >
         <div className="wall-slim-footer-left">
           <span className={`wall-tag ${vm.dataMode === 'LIVE' ? 'wall-tag-live' : 'wall-tag-demo'}`}>
             {vm.dataMode === 'LIVE' ? 'LIVE 真实留痕驱动' : 'DEMO 示例数据演示'}
@@ -531,6 +570,14 @@ export function StatusWallView({
           <span className="wall-kpi-sub">现代必备生存指南 · 常亮状态墙</span>
         </div>
         <div className="wall-slim-footer-right">
+          {onTogglePureView && (
+            <Tooltip content="收起全部面板欣赏 Wave 星空海面" side="top">
+              <button type="button" className="wall-btn" onClick={onTogglePureView}>
+                <Eye size={13} strokeWidth={1.6} />
+                <span>纯净观景</span>
+              </button>
+            </Tooltip>
+          )}
           <button
             type="button"
             className="wall-btn"

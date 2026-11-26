@@ -1,96 +1,143 @@
 @import "tailwindcss";
 
 /* ============================================================================
- * 现代必备生存指南 v3.0 · 设计系统样式基底
- * 技术栈：React 19 + Tailwind CSS v4 + shadcn/ui + Motion + Lucide
- * 美学融合：v3.0 深空炭墨 × 信号钴蓝 × 激光翡翠 + heydamir/unslop 去模板化精工纪律
- * （双主题支持：默认暗夜精密舱 / 一键切换冰蓝宣白亮色版，零发光霓虹、零渐变字、
- *   严格 4px 栅格、8% 静默发丝描边、400–600 克制字重、单曲线动效）
+ * 现代必备生存指南 v4.0 · 潮汐星海清透玻璃拟态系统（Wave Clear Glassmorphism）
+ * 视觉基底：Wallpaper Engine「Wave」暮色星空海面双层原画
+ * 光学规范：融合 pedronauck/skills (glassmorphism) 定向高光环 + .glass-plate 无二次模糊托底
+ *          + deepika-builds/liquid-glass Chromium SVG 悬浮胶囊边缘折射
  * ============================================================================ */
 
 :root,
 [data-theme='dark'] {
   color-scheme: dark;
-  --bg: #0b0d12;
-  --bg-deep: #080a0e;
-  --surface: #121620;
-  --surface-raised: #191f2d;
-  --surface-glass: rgba(11, 13, 18, 0.86);
+  --bg: #071226;
+  --bg-deep: rgba(5, 13, 30, 0.42);
 
-  --line: rgba(238, 240, 245, 0.085);
-  --line-strong: rgba(238, 240, 245, 0.16);
+  /* 清透级玻璃拟态表面（更通透，让 Wave 银河、霞光与海面反光清澈透出） */
+  --surface: rgba(11, 24, 52, 0.28);
+  --surface-study: rgba(9, 20, 44, 0.36);
+  --surface-raised: rgba(7, 17, 38, 0.44);
+  --surface-plate: rgba(6, 15, 34, 0.48);
+  --surface-glass: rgba(12, 26, 56, 0.26);
+  --surface-drawer: rgba(8, 19, 42, 0.68);
+  --surface-popover: rgba(9, 20, 44, 0.86);
+  --surface-solid: #0f2040;
 
-  --ink-1: #eef0f5;
-  --ink-2: #a3a9b8;
-  --ink-3: #7d8597;
+  /* 单光源定向光学参数（贴合 Wave 地平线霞光与星河角） */
+  --glass-light: 144deg;
+  --glass-rim-near: 255 228 210;
+  --glass-rim-far: 148 202 255;
+  --glass-sheen: 0.14;
+  --line: rgba(188, 220, 255, 0.16);
+  --line-strong: rgba(206, 232, 255, 0.28);
+  --glass-specular: inset 0 1px 0 rgba(255, 234, 218, 0.26);
+  --glass-inset-shadow: inset 0 1px 0 rgba(210, 232, 255, 0.08);
 
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
+  /* 星光高对比字体阶梯（配合 .glass-plate 确保正文 > 10:1） */
+  --ink-1: #f4f8ff;
+  --ink-2: #d2e0f5;
+  --ink-3: #9eb6d8;
+
+  /* 源自 Wave 原画的克制语义色 */
+  --accent: #4c9aff;
+  --accent-hover: #3584f5;
   --accent-fg: #ffffff;
-  --accent-soft: rgba(59, 130, 246, 0.13);
-  --accent-border: rgba(59, 130, 246, 0.34);
+  --accent-soft: rgba(76, 154, 255, 0.19);
+  --accent-border: rgba(126, 186, 255, 0.44);
 
-  --growth: #34d399;
-  --growth-soft: rgba(52, 211, 153, 0.12);
-  --growth-border: rgba(52, 211, 153, 0.3);
+  --dawn: #f5b89a;
+  --dawn-soft: rgba(245, 184, 154, 0.17);
+  --dawn-border: rgba(245, 184, 154, 0.44);
 
-  --warning: #f0b35a;
-  --warning-soft: rgba(240, 179, 90, 0.13);
-  --warning-border: rgba(240, 179, 90, 0.3);
+  --growth: #5eead4;
+  --growth-soft: rgba(94, 234, 212, 0.16);
+  --growth-border: rgba(94, 234, 212, 0.38);
 
-  --danger: #f07167;
-  --danger-soft: rgba(240, 113, 103, 0.12);
-  --danger-border: rgba(240, 113, 103, 0.32);
+  --warning: #f6c07c;
+  --warning-soft: rgba(246, 192, 124, 0.18);
+  --warning-border: rgba(246, 192, 124, 0.42);
 
-  --btn-solid-bg: #eef0f5;
-  --btn-solid-fg: #0b0d12;
-  --btn-solid-hover: #ffffff;
+  --danger: #fb8585;
+  --danger-soft: rgba(251, 133, 133, 0.18);
+  --danger-border: rgba(251, 133, 133, 0.42);
 
-  --grid-dot: rgba(148, 163, 184, 0.12);
-  --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.42);
-  --shadow-card: none;
+  --btn-solid-bg: #ffe0ca;
+  --btn-solid-fg: #121c30;
+  --btn-solid-hover: #ffebd9;
+
+  --grid-dot: rgba(158, 200, 255, 0.16);
+  --shadow-float: 0 18px 46px -14px rgba(2, 8, 24, 0.56);
+  --shadow-card: 0 14px 34px -12px rgba(3, 10, 28, 0.38);
+  --sky-text-shadow: 0 1px 12px rgba(4, 12, 30, 0.72);
+
+  /* 更薄的呼吸感大气纱幕 */
+  --veil-home: linear-gradient(180deg, rgba(6, 15, 36, 0.24) 0%, rgba(6, 15, 36, 0.08) 46%, rgba(4, 12, 30, 0.34) 100%);
+  --veil-study: linear-gradient(180deg, rgba(6, 15, 34, 0.36) 0%, rgba(6, 15, 34, 0.24) 50%, rgba(5, 13, 30, 0.42) 100%);
+  --veil-wall: linear-gradient(180deg, rgba(5, 14, 32, 0.18) 0%, rgba(6, 15, 34, 0.08) 52%, rgba(4, 12, 28, 0.24) 100%);
 }
 
 [data-theme='light'] {
   color-scheme: light;
-  --bg: #f5f7fa;
-  --bg-deep: #eceff4;
-  --surface: #ffffff;
-  --surface-raised: #f0f3f8;
-  --surface-glass: rgba(245, 247, 250, 0.88);
+  --bg: #dce8f8;
+  --bg-deep: rgba(235, 244, 255, 0.54);
 
-  --line: rgba(17, 24, 39, 0.085);
-  --line-strong: rgba(17, 24, 39, 0.16);
+  /* 晨曦冰晶清透浅色玻璃 */
+  --surface: rgba(246, 250, 255, 0.50);
+  --surface-study: rgba(248, 252, 255, 0.62);
+  --surface-raised: rgba(255, 255, 255, 0.60);
+  --surface-plate: rgba(255, 255, 255, 0.70);
+  --surface-glass: rgba(248, 252, 255, 0.52);
+  --surface-drawer: rgba(248, 252, 255, 0.84);
+  --surface-popover: rgba(252, 254, 255, 0.94);
+  --surface-solid: #eff5fc;
 
-  --ink-1: #111827;
-  --ink-2: #4b5565;
-  --ink-3: #647084;
+  --glass-light: 144deg;
+  --glass-rim-near: 255 255 255;
+  --glass-rim-far: 48 76 118;
+  --glass-sheen: 0.28;
+  --line: rgba(24, 52, 96, 0.14);
+  --line-strong: rgba(24, 52, 96, 0.24);
+  --glass-specular: inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  --glass-inset-shadow: inset 0 1px 0 rgba(24, 52, 96, 0.06);
+
+  --ink-1: #0c1d3c;
+  --ink-2: #243b60;
+  --ink-3: #466086;
 
   --accent: #2563eb;
   --accent-hover: #1d4ed8;
   --accent-fg: #ffffff;
-  --accent-soft: rgba(37, 99, 235, 0.09);
-  --accent-border: rgba(37, 99, 235, 0.28);
+  --accent-soft: rgba(37, 99, 235, 0.13);
+  --accent-border: rgba(37, 99, 235, 0.34);
 
-  --growth: #15803d;
-  --growth-soft: rgba(21, 128, 61, 0.09);
-  --growth-border: rgba(21, 128, 61, 0.26);
+  --dawn: #b85832;
+  --dawn-soft: rgba(184, 88, 50, 0.12);
+  --dawn-border: rgba(184, 88, 50, 0.30);
+
+  --growth: #0d7468;
+  --growth-soft: rgba(13, 116, 104, 0.12);
+  --growth-border: rgba(13, 116, 104, 0.28);
 
   --warning: #b45309;
-  --warning-soft: rgba(180, 83, 9, 0.1);
-  --warning-border: rgba(180, 83, 9, 0.28);
+  --warning-soft: rgba(180, 83, 9, 0.13);
+  --warning-border: rgba(180, 83, 9, 0.32);
 
   --danger: #dc2626;
-  --danger-soft: rgba(220, 38, 38, 0.09);
-  --danger-border: rgba(220, 38, 38, 0.28);
+  --danger-soft: rgba(220, 38, 38, 0.12);
+  --danger-border: rgba(220, 38, 38, 0.30);
 
-  --btn-solid-bg: #111827;
+  --btn-solid-bg: #132c58;
   --btn-solid-fg: #ffffff;
-  --btn-solid-hover: #1f2937;
+  --btn-solid-hover: #1c3d75;
 
-  --grid-dot: rgba(37, 99, 235, 0.11);
-  --shadow-float: 0 10px 28px rgba(15, 23, 42, 0.1);
-  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --grid-dot: rgba(37, 99, 235, 0.14);
+  --shadow-float: 0 16px 38px -12px rgba(15, 35, 71, 0.18);
+  --shadow-card: 0 10px 26px -10px rgba(15, 35, 71, 0.12);
+  --sky-text-shadow: 0 1px 12px rgba(255, 255, 255, 0.85);
+
+  --veil-home: linear-gradient(180deg, rgba(226, 238, 254, 0.34) 0%, rgba(238, 245, 255, 0.22) 52%, rgba(220, 234, 252, 0.38) 100%);
+  --veil-study: linear-gradient(180deg, rgba(232, 242, 254, 0.44) 0%, rgba(240, 246, 255, 0.36) 55%, rgba(228, 238, 253, 0.48) 100%);
+  --veil-wall: linear-gradient(180deg, rgba(5, 14, 32, 0.18) 0%, rgba(6, 15, 34, 0.08) 52%, rgba(4, 12, 28, 0.24) 100%);
 }
 
 :root {
@@ -150,14 +197,67 @@ input[type='range'] {
   font-variant-numeric: tabular-nums;
 }
 
-/* Skip-to-content 键盘无障碍快捷入口 */
+/* ============================================================================
+ * Wave 双层动态背景与呼吸感大气纱幕
+ * ============================================================================ */
+
+.wave-horizon-breath {
+  background: radial-gradient(
+    ellipse 42% 26% at 57% 61%,
+    rgba(255, 212, 184, 0.20) 0%,
+    rgba(245, 184, 154, 0.06) 44%,
+    transparent 76%
+  );
+  animation: waveHorizonPulse 9s ease-in-out infinite alternate;
+}
+
+.wave-fg-img {
+  animation: waveSilhouetteBreath 12s ease-in-out infinite alternate;
+}
+
+.wave-mode-home .wave-veil {
+  background: var(--veil-home);
+}
+
+.wave-mode-study .wave-veil {
+  background: var(--veil-study);
+}
+
+.wave-mode-wall .wave-veil {
+  background: var(--veil-wall);
+}
+
+.wave-backdrop-root.is-pure-view .wave-veil {
+  opacity: 0;
+}
+
+@keyframes waveHorizonPulse {
+  0% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes waveSilhouetteBreath {
+  0% {
+    filter: drop-shadow(0 0 16px rgba(245, 184, 154, 0.14));
+  }
+  100% {
+    filter: drop-shadow(0 0 26px rgba(255, 218, 192, 0.24));
+  }
+}
+
 .skip-link {
   position: fixed;
   top: -64px;
   left: 16px;
   z-index: 100;
   padding: 8px 14px;
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--accent);
   color: #ffffff;
   font-size: 14px;
@@ -169,32 +269,167 @@ input[type='range'] {
   transform: translateY(76px);
 }
 
-/* 通用表面、发丝边框与点阵实验室背景 */
+/* ============================================================================
+ * pedronauck 光学清透玻璃原语（单光源定向 1px 遮罩高光环 + 光泽 + 无二次模糊托底）
+ * ============================================================================ */
+
 .v3-card {
+  position: relative;
+  isolation: isolate;
   background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  box-shadow: var(--shadow-card);
+  -webkit-backdrop-filter: blur(15px) saturate(1.7) brightness(1.06);
+  backdrop-filter: blur(15px) saturate(1.7) brightness(1.06);
+  border: 1px solid transparent;
+  border-radius: 18px;
+  box-shadow: var(--glass-specular), var(--shadow-card);
 }
 
+.v3-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* 1px 定向高光环（由 --glass-light 统一驱动：暖霞迎光边 + 星海背光边） */
+.v3-card::before,
+.glass-dock::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    var(--glass-light),
+    rgb(var(--glass-rim-near) / 0.52) 0%,
+    rgb(var(--glass-rim-near) / 0.16) 32%,
+    rgb(var(--glass-rim-far) / 0.08) 64%,
+    rgb(var(--glass-rim-far) / 0.34) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+/* 柔和定向迎光光泽 */
+.v3-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    var(--glass-light),
+    rgb(var(--glass-rim-near) / var(--glass-sheen)) 0%,
+    rgb(var(--glass-rim-near) / 0) 48%
+  );
+}
+
+/* 单元专注阅读态略微稳固滤镜但仍保持清透 */
+.study-mode-scope .v3-card {
+  background: var(--surface-study);
+  -webkit-backdrop-filter: blur(18px) saturate(1.65) brightness(1.04);
+  backdrop-filter: blur(18px) saturate(1.65) brightness(1.04);
+}
+
+/* 顶部悬浮清透玻璃胶囊 Dock（Chromium 下叠加 deepika SVG 边缘折射） */
+.glass-dock {
+  position: relative;
+  isolation: isolate;
+  background: var(--surface-glass);
+  -webkit-backdrop-filter: blur(14px) saturate(1.75) brightness(1.07);
+  backdrop-filter: blur(14px) saturate(1.75) brightness(1.07);
+  border: 1px solid transparent;
+  box-shadow: var(--glass-specular), var(--shadow-float);
+}
+
+.glass-dock > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* 稳态内衬板（.glass-plate & .v3-card-raised）：绝不加二次 backdrop-filter，消除灰蒙叠层 */
+.glass-plate,
 .v3-card-raised {
-  background: var(--surface-raised);
+  background: var(--surface-plate);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
+  box-shadow: var(--glass-inset-shadow);
 }
 
+/* ============================================================================
+ * 六分法弹出层玻璃材质（Tooltip / Alert / Drawer / Popconfirm / Modal）
+ * ============================================================================ */
+
+/* 1. Tooltip 悬停提示（高对比单行轻胶囊） */
+.glass-tooltip {
+  background: rgba(8, 18, 40, 0.90);
+  color: #f4f8ff;
+  border: 1px solid rgba(206, 232, 255, 0.24);
+  -webkit-backdrop-filter: blur(12px) saturate(1.5);
+  backdrop-filter: blur(12px) saturate(1.5);
+  box-shadow: 0 8px 22px -6px rgba(2, 8, 24, 0.55);
+}
+
+/* 3. Alert 警告条 */
+.glass-alert {
+  -webkit-backdrop-filter: blur(14px) saturate(1.6);
+  backdrop-filter: blur(14px) saturate(1.6);
+  box-shadow: var(--glass-specular), 0 8px 24px -10px rgba(2, 8, 24, 0.36);
+}
+
+/* 4. Drawer 抽屉（右侧滑出透明磨砂，原页面可见） */
+.glass-drawer {
+  background: var(--surface-drawer);
+  -webkit-backdrop-filter: blur(26px) saturate(1.65);
+  backdrop-filter: blur(26px) saturate(1.65);
+  border-left: 1px solid var(--line-strong);
+  box-shadow:
+    inset 1px 0 0 rgb(var(--glass-rim-near) / 0.34),
+    -20px 0 54px -14px rgba(2, 8, 24, 0.52);
+  animation: drawerSlideIn 220ms var(--ease-ui);
+}
+
+@keyframes drawerSlideIn {
+  from {
+    opacity: 0.5;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 5 & 6. Popconfirm / Modal 高清晰玻璃弹层 */
+.glass-popover {
+  background: var(--surface-popover);
+  -webkit-backdrop-filter: blur(24px) saturate(1.65);
+  backdrop-filter: blur(24px) saturate(1.65);
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--glass-specular), var(--shadow-float);
+}
+
+/* 星图蓝图点阵实验画布 */
 .v3-dot-stage {
   background-color: var(--bg-deep);
   background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
   background-size: 18px 18px;
 }
 
-/* 行内代码芯片 & 标志性虚线下划线术语 */
+/* 直接叠在星空背景上的页头文字轻盈对比保护 */
+.sky-heading {
+  text-shadow: var(--sky-text-shadow);
+}
+
+/* 行内代码芯片 & 术语触发器（悬停 Tooltip + 点击 Drawer） */
 .inline-code {
   font-family: var(--font-mono);
   font-size: 0.87em;
   padding: 1px 6px;
-  border-radius: 5px;
+  border-radius: 6px;
   background: var(--surface-raised);
   border: 1px solid var(--line);
   color: var(--ink-1);
@@ -209,8 +444,13 @@ input[type='range'] {
   font: inherit;
   font-weight: 500;
   color: var(--ink-1);
-  border-bottom: 1.5px dashed var(--accent);
+  border-bottom: 1.5px dashed var(--dawn);
   cursor: pointer;
+  transition: color 140ms var(--ease-ui), border-color 140ms var(--ease-ui);
+}
+
+.glossary-trigger:hover {
+  color: var(--dawn);
 }
 
 /* 真 3D 弹性翻卡舞台 */
@@ -227,7 +467,7 @@ input[type='range'] {
   -webkit-backface-visibility: hidden;
 }
 
-/* 交互滑块（shadcn Slider 风格） */
+/* 玻璃质感交互滑块 */
 .v3-range {
   -webkit-appearance: none;
   appearance: none;
@@ -235,7 +475,7 @@ input[type='range'] {
   height: 6px;
   border-radius: 999px;
   background: var(--surface-raised);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   cursor: pointer;
 }
 
@@ -246,8 +486,8 @@ input[type='range'] {
   height: 18px;
   border-radius: 999px;
   background: var(--accent);
-  border: 2px solid var(--surface);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(4, 12, 32, 0.45);
   cursor: pointer;
 }
 
@@ -256,23 +496,33 @@ input[type='range'] {
   height: 18px;
   border-radius: 999px;
   background: var(--accent);
-  border: 2px solid var(--surface);
+  border: 2px solid #ffffff;
   cursor: pointer;
 }
 
-/* 表单输入框统一风格 */
+/* 玻璃拟态表单控件（落于 .glass-plate / .v3-card 内不再叠二次 blur） */
 .v3-input,
 .v3-textarea,
 .v3-select {
   width: 100%;
-  background: var(--surface);
+  background: var(--surface-plate);
   border: 1px solid var(--line-strong);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 9px 12px;
   font-size: 15px;
   line-height: 1.5;
   color: var(--ink-1);
-  transition: border-color 140ms var(--ease-ui);
+  transition: border-color 140ms var(--ease-ui), background-color 140ms var(--ease-ui);
+}
+
+.v3-select option {
+  background: #0d1c38;
+  color: #f4f8ff;
+}
+
+[data-theme='light'] .v3-select option {
+  background: #ffffff;
+  color: #0c1d3c;
 }
 
 .v3-input::placeholder,
@@ -280,16 +530,18 @@ input[type='range'] {
   color: var(--ink-3);
 }
 
-/* cmdk 命令面板样式（shadcn CommandDialog） */
+/* cmdk 玻璃拟态命令模态面板 */
 [cmdk-root] {
   display: flex;
   flex-direction: column;
   width: 100%;
   overflow: hidden;
-  border-radius: 14px;
-  background: var(--surface);
+  border-radius: 18px;
+  background: var(--surface-popover);
+  -webkit-backdrop-filter: blur(26px) saturate(1.7);
+  backdrop-filter: blur(26px) saturate(1.7);
   border: 1px solid var(--line-strong);
-  box-shadow: var(--shadow-float);
+  box-shadow: var(--glass-specular), var(--shadow-float);
 }
 
 [cmdk-input] {
@@ -322,7 +574,7 @@ input[type='range'] {
   justify-content: space-between;
   gap: 10px;
   padding: 9px 10px;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 14px;
   color: var(--ink-2);
   cursor: pointer;
@@ -331,7 +583,7 @@ input[type='range'] {
 }
 
 [cmdk-item][data-selected='true'] {
-  background: var(--surface-raised);
+  background: var(--accent-soft);
   color: var(--ink-1);
 }
 
@@ -342,7 +594,49 @@ input[type='range'] {
   color: var(--ink-3);
 }
 
-/* 细指针悬停边界与减少动效尊重 */
+/* ============================================================================
+ * 无障碍与降级保障（pedronauck 实色孪生规范）
+ * ============================================================================ */
+
+@media (prefers-reduced-transparency: reduce) {
+  .v3-card,
+  .glass-dock,
+  .glass-drawer,
+  .glass-popover,
+  .glass-alert {
+    background: var(--surface-solid);
+    border-color: var(--line-strong);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .v3-card::before,
+  .v3-card::after,
+  .glass-dock::before {
+    content: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .v3-card,
+  .glass-dock,
+  .glass-drawer,
+  .glass-popover,
+  .glass-plate,
+  .v3-card-raised {
+    background: Canvas;
+    color: CanvasText;
+    border: 1px solid CanvasText;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+  .v3-card::before,
+  .v3-card::after,
+  .glass-dock::before {
+    content: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

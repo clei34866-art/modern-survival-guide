@@ -36,10 +36,11 @@ export function CommandPalette({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/55 backdrop-blur-[2px]" />
+        <Dialog.Overlay className="fixed inset-0 z-[65] bg-[rgba(3,9,22,0.58)] backdrop-blur-[4px]" />
         <Dialog.Content
           aria-label="全局快速跳转"
-          className="fixed left-1/2 top-[14vh] z-50 w-[min(600px,92vw)] -translate-x-1/2 outline-none"
+          data-overlay-type="modal"
+          className="fixed left-1/2 top-[14vh] z-[70] w-[min(600px,92vw)] -translate-x-1/2 outline-none"
         >
           <Dialog.Title className="sr-only">全局快速搜索与跳转</Dialog.Title>
           <Command label="全局快速搜索">

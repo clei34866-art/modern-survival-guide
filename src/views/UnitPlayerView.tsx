@@ -1,6 +1,7 @@
 import {
   ArrowLeft,
   ArrowRight,
+  BookMarked,
   Check,
   CheckCircle2,
   Moon,
@@ -18,7 +19,9 @@ import {
   SourceTimelinessFooter,
   UnitVisualFrame,
 } from '@/components/ComplianceBadges';
+import { useGlossaryDrawer } from '@/components/GlossaryDrawer';
 import { RichText } from '@/components/RichText';
+import { AlertBanner, Drawer, Popconfirm, Tooltip } from '@/components/ui/overlays';
 import { Badge, Button, Card } from '@/components/ui/primitives';
 import type { PlatformContentBundle } from '@/core/contentLoader';
 import {
@@ -71,9 +74,14 @@ export function UnitPlayerView({
   onBackToBranches,
   onOpenUnit,
 }: UnitPlayerViewProps) {
+  const glossary = useGlossaryDrawer();
   const existingSub = telemetry.unitSubmissions[unit.id];
   const [step, setStep] = useState<number>(1);
   const [maxVisitedStep, setMaxVisitedStep] = useState<number>(existingSub?.isCleared ? 7 : 1);
+
+  // 学习辅助抽屉（随手查划重点、术语、实验溯源与权威出处，彻底简化主学习画布）
+  const [studyDrawerOpen, setStudyDrawerOpen] = useState<boolean>(false);
+  const [studyDrawerTab, setStudyDrawerTab] = useState<'notes' | 'sources'>('notes');
 
   const [predChoice, setPredChoice] = useState<number | null>(null);
   const [predSubmitted, setPredSubmitted] = useState<boolean>(false);
@@ -137,6 +145,7 @@ export function UnitPlayerView({
     .map((cid) => content.knowledgeGraph.nodes.find((n) => n.id === cid))
     .filter((n): n is ConceptNode => Boolean(n));
 
+  const takeaways = unit.guide.blocks.filter((b) => Boolean(b.keyTakeaway));
   const currentConcept = concepts[Math.min(cardIdx, Math.max(0, concepts.length - 1))];
 
   const handleRateCard = async (conceptId: string, rating: CardRating) => {
@@ -242,7 +251,7 @@ export function UnitPlayerView({
     toast(
       ratio >= unit.quiz.passRatio
         ? `自测通过（${Math.round(ratio * 100)}%）`
-        : `本次得分 ${Math.round(ratio * 100)}%，可查看解析后重测`
+        : `本次得分 ${Math.round(ratio * 100)}%，查看解析后可重测`
     );
   };
 
@@ -296,53 +305,149 @@ export function UnitPlayerView({
   );
 
   const allQuestionsAnswered = Object.keys(quizAnswers).length >= unit.quiz.questions.length;
-
   const isCurrentFlipped = currentConcept ? Boolean(flippedCards[currentConcept.id]) : false;
 
+  const openStudyDrawer = (tab: 'notes' | 'sources') => {
+    setStudyDrawerTab(tab);
+    setStudyDrawerOpen(true);
+  };
+
   return (
-    <div className="min-h-screen bg-[var(--bg)] pb-14">
-      {/* 56px 吸顶沉浸专注顶栏：返回 + 7步进度轨 + 时长与快捷工具 */}
+    <div className="min-h-screen pb-14">
+      {/* 右侧学习资料与溯源抽屉（边学边查划重点、术语表、实验溯源与权威出处） */}
+      <Drawer
+        open={studyDrawerOpen}
+        onOpenChange={setStudyDrawerOpen}
+        title="本节学习资料与溯源"
+        description={`${unit.branchId} · ${unit.title} — 原学习步保留在左侧，随时对照`}
+        widthClassName="w-[min(500px,94vw)]"
+      >
+        <div className="space-y-4">
+          <div className="glass-plate grid grid-cols-2 gap-1 p-1" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={studyDrawerTab === 'notes'}
+              onClick={() => setStudyDrawerTab('notes')}
+              className={cn(
+                'min-h-[34px] cursor-pointer rounded-[8px] text-[13px] font-medium transition-colors',
+                studyDrawerTab === 'notes'
+                  ? 'bg-[var(--accent)] text-white'
+                  : 'text-[var(--ink-2)] hover:text-[var(--ink-1)]'
+              )}
+            >
+              划重点与术语（{concepts.length}）
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={studyDrawerTab === 'sources'}
+              onClick={() => setStudyDrawerTab('sources')}
+              className={cn(
+                'min-h-[34px] cursor-pointer rounded-[8px] text-[13px] font-medium transition-colors',
+                studyDrawerTab === 'sources'
+                  ? 'bg-[var(--accent)] text-white'
+                  : 'text-[var(--ink-2)] hover:text-[var(--ink-1)]'
+              )}
+            >
+              溯源与出处（{unit.sources.length}）
+            </button>
+          </div>
+
+          {studyDrawerTab === 'notes' ? (
+            <div className="space-y-4">
+              {takeaways.length > 0 && (
+                <section className="glass-plate space-y-2 p-4">
+                  <div className="text-[12.5px] font-semibold text-[var(--dawn)]">本节人话划重点</div>
+                  <ul className="m-0 list-disc space-y-2 pl-5 text-[13.5px] leading-[1.65] text-[var(--ink-1)]">
+                    {takeaways.map((b, i) => (
+                      <li key={i}>
+                        <RichText text={b.keyTakeaway!} />
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {concepts.length > 0 && (
+                <section className="space-y-2">
+                  <div className="text-[12.5px] font-semibold text-[var(--ink-2)]">
+                    核心术语词典（点击展开关联概念）
+                  </div>
+                  <div className="space-y-2">
+                    {concepts.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          setStudyDrawerOpen(false);
+                          glossary?.openConcept(c);
+                        }}
+                        className="glass-plate block w-full cursor-pointer p-3.5 text-left transition-colors hover:border-[var(--accent-border)]"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[14px] font-semibold text-[var(--ink-1)]">
+                            {c.label}
+                          </span>
+                          <span className="font-mono-num text-[11.5px] text-[var(--accent)]">
+                            详解 →
+                          </span>
+                        </div>
+                        <p className="mt-1 mb-0 text-[13px] leading-[1.6] text-[var(--ink-2)]">
+                          {c.plainDefinition}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <PsychBoundaryNotice sources={unit.sources} />
+              <OriginCardsList cards={unit.guide.originCards} />
+              <SourceTimelinessFooter sources={unit.sources} />
+            </div>
+          )}
+        </div>
+      </Drawer>
+
+      {/* 56px 吸顶清透专注顶栏：返回 + 7步进度轨 + 资料抽屉与工具 */}
       <header className="sticky top-0 z-40 h-[56px] border-b border-[var(--line)] bg-[var(--surface-glass)] backdrop-blur-md">
-        <div className="mx-auto flex h-full max-w-[1280px] items-center justify-between gap-3 px-4 sm:px-6">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onBackToBranches(unit.branchId)}
-          >
+        <div className="mx-auto flex h-full max-w-[1240px] items-center justify-between gap-3 px-4 sm:px-6">
+          <Button size="sm" variant="outline" onClick={() => onBackToBranches(unit.branchId)}>
             <ArrowLeft size={14} strokeWidth={1.6} />
             <span>返回 {unit.branchId}</span>
           </Button>
 
-          <nav
-            className="hidden md:flex items-center gap-1"
-            aria-label="7 步学习进度"
-          >
+          <nav className="hidden items-center gap-1 md:flex" aria-label="7 步学习进度">
             {STEP_META.map((item, idx) => {
               const isCurrent = step === item.num;
               const isPassed = item.num < step;
               const canJump = item.num <= maxVisitedStep;
               return (
                 <div className="flex items-center" key={item.num}>
-                  <button
-                    type="button"
-                    disabled={!canJump}
-                    onClick={() => goToStep(item.num)}
-                    title={`第 ${item.num} 步 · ${item.full}`}
-                    className={cn(
-                      'inline-flex items-center gap-1.5 rounded-[7px] px-2.5 py-1 text-[12.5px] font-medium transition-colors',
-                      canJump ? 'cursor-pointer' : 'cursor-not-allowed opacity-45',
-                      isCurrent
-                        ? 'bg-[var(--accent)] text-white'
-                        : isPassed
-                          ? 'bg-[var(--growth-soft)] text-[var(--growth)]'
-                          : 'text-[var(--ink-3)]'
-                    )}
-                  >
-                    <span className="font-mono-num flex h-4 w-4 items-center justify-center rounded-full text-[11px]">
-                      {isPassed ? <Check size={11} strokeWidth={2.4} /> : item.num}
-                    </span>
-                    <span className="hidden xl:inline">{item.short}</span>
-                  </button>
+                  <Tooltip content={`第 ${item.num} 步 · ${item.full}`}>
+                    <button
+                      type="button"
+                      disabled={!canJump}
+                      onClick={() => goToStep(item.num)}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12.5px] font-medium transition-colors',
+                        canJump ? 'cursor-pointer' : 'cursor-not-allowed opacity-45',
+                        isCurrent
+                          ? 'bg-[var(--accent)] text-white'
+                          : isPassed
+                            ? 'bg-[var(--growth-soft)] text-[var(--growth)]'
+                            : 'text-[var(--ink-3)]'
+                      )}
+                    >
+                      <span className="font-mono-num flex h-4 w-4 items-center justify-center rounded-full text-[11px]">
+                        {isPassed ? <Check size={11} strokeWidth={2.4} /> : item.num}
+                      </span>
+                      <span className="hidden xl:inline">{item.short}</span>
+                    </button>
+                  </Tooltip>
                   {idx < STEP_META.length - 1 && (
                     <span
                       className={cn(
@@ -357,32 +462,47 @@ export function UnitPlayerView({
           </nav>
 
           <div className="flex items-center gap-1.5">
+            <Tooltip content="滑出右侧抽屉查看本节划重点、术语与权威出处">
+              <Button
+                size="sm"
+                variant="outline"
+                data-testid="study-drawer-trigger"
+                onClick={() => openStudyDrawer('notes')}
+              >
+                <BookMarked size={14} strokeWidth={1.6} />
+                <span className="hidden sm:inline">本节资料</span>
+              </Button>
+            </Tooltip>
+
             <Badge tone="neutral" className="font-mono-num">
-              {step}/7 · {unit.estimatedMinutes}m
+              {step}/7
             </Badge>
-            {telemetry.unitSubmissions[unit.id]?.isCleared && (
-              <Badge tone="growth">已过关</Badge>
-            )}
-            <Button
-              size="icon"
-              variant="outline"
-              aria-label="全局快速搜索"
-              onClick={onOpenCommandPalette}
-            >
-              <Search size={14} strokeWidth={1.5} />
-            </Button>
-            <Button
-              size="icon"
-              variant="outline"
-              aria-label="切换浅色或深色主题"
-              onClick={onToggleTheme}
-            >
-              {theme === 'dark' ? (
-                <Sun size={14} strokeWidth={1.5} />
-              ) : (
-                <Moon size={14} strokeWidth={1.5} />
-              )}
-            </Button>
+
+            <Tooltip content="全局快速搜索（⌘K）">
+              <Button
+                size="icon"
+                variant="outline"
+                aria-label="全局快速搜索"
+                onClick={onOpenCommandPalette}
+              >
+                <Search size={14} strokeWidth={1.6} />
+              </Button>
+            </Tooltip>
+
+            <Tooltip content={theme === 'dark' ? '切换浅色主题' : '切换暗色主题'}>
+              <Button
+                size="icon"
+                variant="outline"
+                aria-label="切换浅色或深色主题"
+                onClick={onToggleTheme}
+              >
+                {theme === 'dark' ? (
+                  <Sun size={14} strokeWidth={1.6} />
+                ) : (
+                  <Moon size={14} strokeWidth={1.6} />
+                )}
+              </Button>
+            </Tooltip>
           </div>
         </div>
       </header>
@@ -391,12 +511,12 @@ export function UnitPlayerView({
         id="main-content"
         className={cn(
           'mx-auto px-4 py-6 sm:px-6 sm:py-8',
-          step === 3 ? 'max-w-[1280px]' : 'max-w-[820px]'
+          step === 3 ? 'max-w-[1240px]' : 'max-w-[820px]'
         )}
       >
-        {/* 单元大标题头 */}
-        <div className="mb-6 space-y-2">
-          <div className="flex flex-wrap items-center gap-2 text-[13px] text-[var(--ink-2)]">
+        {/* 简洁单元头 */}
+        <div className="mb-5 space-y-1.5">
+          <div className="sky-heading flex flex-wrap items-center gap-2 text-[13px] text-[var(--ink-2)]">
             <span
               className="h-2.5 w-2.5 rounded-full"
               style={{ backgroundColor: parentBranch?.accentToken ?? 'var(--accent)' }}
@@ -404,8 +524,11 @@ export function UnitPlayerView({
             <span className="font-mono-num font-semibold">{unit.branchId}</span>
             <span>·</span>
             <span>{parentTrack?.title ?? unit.trackId}</span>
+            <span>·</span>
+            <span className="font-mono-num">{unit.estimatedMinutes}m</span>
+            {telemetry.unitSubmissions[unit.id]?.isCleared && <Badge tone="growth">已过关</Badge>}
           </div>
-          <h1 className="m-0 text-[24px] sm:text-[30px] font-semibold leading-[1.25] tracking-[-0.02em] text-[var(--ink-1)]">
+          <h1 className="sky-heading m-0 text-[24px] font-semibold leading-[1.25] tracking-[-0.02em] text-[var(--ink-1)] sm:text-[30px]">
             {unit.title}
           </h1>
           <PlaceholderBanner visible={unit.isPlaceholder} />
@@ -415,15 +538,15 @@ export function UnitPlayerView({
         {step === 1 && (
           <Card className="space-y-5">
             <Badge tone="accent">第 1 步 · 场景开场</Badge>
-            <h2 className="m-0 text-[20px] sm:text-[22px] font-semibold text-[var(--ink-1)]">
+            <h2 className="m-0 text-[20px] font-semibold text-[var(--ink-1)] sm:text-[22px]">
               {unit.scenarioHook.sceneTitle}
             </h2>
-            <div className="rounded-[10px] border border-[var(--line)] bg-[var(--surface-raised)] p-5 text-[15.5px] leading-[1.8] text-[var(--ink-1)]">
+            <div className="glass-plate p-5 text-[15.5px] leading-[1.8] text-[var(--ink-1)]">
               <p className="m-0">
-                <RichText text={unit.scenarioHook.story} />
+                <RichText text={unit.scenarioHook.story} concepts={concepts} />
               </p>
             </div>
-            <div className="rounded-[10px] border border-[var(--accent-border)] bg-[var(--accent-soft)] p-4">
+            <div className="rounded-[12px] border border-[var(--accent-border)] bg-[var(--accent-soft)] p-4">
               <div className="mb-1 text-[12px] font-semibold text-[var(--accent)]">
                 带着这个问题继续
               </div>
@@ -447,10 +570,10 @@ export function UnitPlayerView({
             <div className="flex flex-wrap items-center gap-2.5">
               <Badge tone="accent">第 2 步 · 先预测</Badge>
               <span className="text-[13px] text-[var(--ink-3)]">
-                激活已有直觉，猜错反而印象最深
+                激活直觉，猜错反而印象最深
               </span>
             </div>
-            <h2 className="m-0 text-[19px] sm:text-[21px] font-semibold leading-[1.45] text-[var(--ink-1)]">
+            <h2 className="m-0 text-[19px] font-semibold leading-[1.45] text-[var(--ink-1)] sm:text-[21px]">
               <RichText text={unit.prediction.question} />
             </h2>
 
@@ -469,14 +592,14 @@ export function UnitPlayerView({
                     disabled={predSubmitted}
                     onClick={() => setPredChoice(idx)}
                     className={cn(
-                      'quiz-option-btn flex min-h-[48px] w-full cursor-pointer items-start gap-3 rounded-[10px] border p-3.5 text-left text-[15px] leading-[1.55] transition-colors disabled:cursor-default',
+                      'quiz-option-btn flex min-h-[48px] w-full cursor-pointer items-start gap-3 rounded-[12px] border p-3.5 text-left text-[15px] leading-[1.55] transition-colors disabled:cursor-default',
                       isAnswer
                         ? 'border-[var(--growth)] bg-[var(--growth-soft)] text-[var(--ink-1)]'
                         : isWrongPick
                           ? 'border-[var(--danger)] bg-[var(--danger-soft)] text-[var(--ink-1)]'
                           : isSelected
                             ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--ink-1)]'
-                            : 'border-[var(--line-strong)] bg-[var(--surface)] text-[var(--ink-2)] hover:bg-[var(--surface-raised)] hover:text-[var(--ink-1)]'
+                            : 'border-[var(--line-strong)] bg-[var(--surface-plate)] text-[var(--ink-2)] hover:border-[var(--accent-border)] hover:text-[var(--ink-1)]'
                     )}
                   >
                     <span className="font-mono-num mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-[6px] border border-[var(--line-strong)] bg-[var(--surface-raised)] text-[12px] font-semibold text-[var(--ink-1)]">
@@ -504,7 +627,7 @@ export function UnitPlayerView({
             ) : (
               <div className="space-y-4 border-t border-[var(--line)] pt-4">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="rounded-[10px] border border-[var(--warning-border)] bg-[var(--warning-soft)] p-4">
+                  <div className="rounded-[12px] border border-[var(--warning-border)] bg-[var(--warning-soft)] p-4">
                     <div className="mb-1 text-[12px] font-semibold text-[var(--warning)]">
                       多数人的直觉判断
                     </div>
@@ -514,7 +637,7 @@ export function UnitPlayerView({
                         : `常见误区是选项 ${String.fromCharCode(65 + unit.prediction.commonTrapIndex)} —— 踩中陷阱恰恰说明这一节很值`}
                     </p>
                   </div>
-                  <div className="rounded-[10px] border border-[var(--growth-border)] bg-[var(--growth-soft)] p-4">
+                  <div className="rounded-[12px] border border-[var(--growth-border)] bg-[var(--growth-soft)] p-4">
                     <div className="mb-1 text-[12px] font-semibold text-[var(--growth)]">
                       真实底层规律
                     </div>
@@ -534,41 +657,54 @@ export function UnitPlayerView({
           </Card>
         )}
 
-        {/* 第 3 步：左 55% 吸顶互动沙盒实验室 + 右 45% 精排导学栏 */}
+        {/* 第 3 步：简明双栏（左吸顶动图沙盒 + 右精排原理拆解；溯源/出处/划重点优雅收纳进右侧抽屉） */}
         {step === 3 && (
-          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1.22fr)_minmax(0,1fr)]">
-            {/* 左粘性互动实验室栏 */}
+          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1.22fr)_minmax(0,1fr)]">
             <div className="space-y-4 lg:sticky lg:top-[76px]">
               <UnitVisualFrame
                 visuals={unit.guide.visuals}
                 activeStep={diagramStep}
                 onStepChange={setDiagramStep}
               />
-
-              <Card className="p-4">
-                <div className="mb-2.5 text-[13px] font-semibold text-[var(--ink-1)]">
-                  本节人话划重点
-                </div>
-                <ul className="m-0 list-disc space-y-2 pl-5 text-[13.5px] leading-[1.65] text-[var(--ink-2)]">
-                  {unit.guide.blocks
-                    .filter((b) => Boolean(b.keyTakeaway))
-                    .map((b, i) => (
-                      <li key={i}>
-                        <RichText text={b.keyTakeaway!} />
-                      </li>
-                    ))}
-                </ul>
-              </Card>
             </div>
 
-            {/* 右侧滚动原理拆解与溯源合规栏 */}
             <div className="space-y-4">
-              <Card className="space-y-5">
+              <Card className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <Badge tone="accent">第 3 步 · 原理拆解</Badge>
-                  <span className="text-[12.5px] text-[var(--ink-3)]">
-                    点击段落可联动左侧步骤；虚线术语可点开解释
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <Button size="sm" variant="subtle" onClick={() => openStudyDrawer('notes')}>
+                      划重点 ({takeaways.length})
+                    </Button>
+                    <Button size="sm" variant="subtle" onClick={() => openStudyDrawer('sources')}>
+                      溯源与出处 ({unit.sources.length})
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 text-[12.5px] text-[var(--ink-3)]">
+                  <span>点击段落联动左侧动图</span>
+                  {concepts.length > 0 && (
+                    <>
+                      <span>·</span>
+                      <span>本节术语：</span>
+                      {concepts.map((c) => (
+                        <Tooltip
+                          key={c.id}
+                          content={`${c.plainDefinition.slice(0, 36)}…（点击展开详解）`}
+                          side="top"
+                        >
+                          <button
+                            type="button"
+                            className="glossary-trigger glossary-term-btn text-[12.5px]"
+                            onClick={() => glossary?.openConcept(c)}
+                          >
+                            {c.label}
+                          </button>
+                        </Tooltip>
+                      ))}
+                    </>
+                  )}
                 </div>
 
                 <div className="divide-y divide-[var(--line)]">
@@ -577,9 +713,9 @@ export function UnitPlayerView({
                       key={idx}
                       onClick={() => setDiagramStep(idx)}
                       className={cn(
-                        'cursor-pointer py-4 first:pt-1 last:pb-1 transition-colors',
+                        'cursor-pointer py-4 transition-colors first:pt-1 last:pb-1',
                         diagramStep === idx &&
-                          'rounded-[10px] bg-[var(--accent-soft)] px-3 -mx-3'
+                          '-mx-3 rounded-[12px] bg-[var(--accent-soft)] px-3'
                       )}
                     >
                       <h2 className="m-0 mb-2 flex items-baseline gap-2.5 text-[17px] font-semibold leading-[1.4] text-[var(--ink-1)]">
@@ -587,10 +723,10 @@ export function UnitPlayerView({
                           0{idx + 1}
                         </span>
                         <span>
-                          <RichText text={blk.heading} />
+                          <RichText text={blk.heading} concepts={concepts} />
                         </span>
                       </h2>
-                      <p className="m-0 text-[15px] leading-[1.8] text-[var(--ink-2)]">
+                      <p className="glass-plate m-0 p-3.5 text-[15px] leading-[1.8] text-[var(--ink-2)]">
                         <RichText text={blk.markdown} concepts={concepts} />
                       </p>
                     </section>
@@ -613,8 +749,6 @@ export function UnitPlayerView({
               </Card>
 
               <PsychBoundaryNotice sources={unit.sources} />
-              <OriginCardsList cards={unit.guide.originCards} />
-              <SourceTimelinessFooter sources={unit.sources} />
             </div>
           </div>
         )}
@@ -626,11 +760,11 @@ export function UnitPlayerView({
               <div>
                 <Badge tone="accent">第 4 步 · 3D 概念闪卡</Badge>
                 <p className="mt-2 mb-0 text-[13.5px] text-[var(--ink-2)]">
-                  先在脑中复述再点卡片翻面（快捷键：Space 翻面，1/2/3 评分）
+                  先在脑中复述再翻面（快捷键：Space 翻面，1/2/3 评分）
                 </p>
               </div>
               <Badge tone="neutral" className="font-mono-num">
-                第 {cardIdx + 1} / {concepts.length} 张
+                {cardIdx + 1} / {concepts.length}
               </Badge>
             </div>
 
@@ -652,7 +786,7 @@ export function UnitPlayerView({
                 {/* 正面 */}
                 <div
                   className={cn(
-                    'flip-backface-hidden col-start-1 row-start-1 flex min-h-[290px] flex-col justify-between rounded-[14px] border border-[var(--line-strong)] bg-[var(--surface-raised)] p-6',
+                    'flip-backface-hidden glass-plate col-start-1 row-start-1 flex min-h-[280px] flex-col justify-between rounded-[16px] p-6',
                     isCurrentFlipped && 'pointer-events-none'
                   )}
                 >
@@ -663,7 +797,7 @@ export function UnitPlayerView({
                     <span className="font-mono-num">{currentConcept.branchId} · 正面提问</span>
                   </div>
 
-                  <div className="my-6 text-center text-[19px] sm:text-[21px] font-medium leading-[1.55] text-[var(--ink-1)]">
+                  <div className="my-6 text-center text-[19px] font-medium leading-[1.55] text-[var(--ink-1)] sm:text-[21px]">
                     {currentConcept.cardPrompt}
                   </div>
 
@@ -679,7 +813,7 @@ export function UnitPlayerView({
                 <div
                   onClick={(e) => e.stopPropagation()}
                   className={cn(
-                    'flip-backface-hidden col-start-1 row-start-1 flex min-h-[290px] flex-col justify-between gap-4 rounded-[14px] border border-[var(--accent-border)] bg-[var(--surface)] p-6 [transform:rotateY(180deg)]',
+                    'flip-backface-hidden glass-plate col-start-1 row-start-1 flex min-h-[280px] flex-col justify-between gap-4 rounded-[16px] border-[var(--accent-border)] p-6 [transform:rotateY(180deg)]',
                     !isCurrentFlipped && 'pointer-events-none'
                   )}
                 >
@@ -703,7 +837,7 @@ export function UnitPlayerView({
                       <RichText text={currentConcept.cardAnswer} />
                     </div>
 
-                    <div className="v3-card-raised px-3.5 py-2.5 text-[13.5px] leading-[1.6] text-[var(--ink-2)]">
+                    <div className="rounded-[10px] border border-[var(--line)] bg-[var(--surface-raised)] px-3.5 py-2.5 text-[13.5px] leading-[1.6] text-[var(--ink-2)]">
                       <strong className="font-medium text-[var(--ink-1)]">人话定义：</strong>
                       {currentConcept.plainDefinition}
                     </div>
@@ -720,7 +854,7 @@ export function UnitPlayerView({
                           return (
                             <div
                               key={link.targetId}
-                              className="flex flex-wrap items-center justify-between gap-2 rounded-[8px] border border-[var(--line)] bg-[var(--surface-raised)] px-3 py-2 text-[12.5px] text-[var(--ink-2)]"
+                              className="flex flex-wrap items-center justify-between gap-2 rounded-[8px] border border-[var(--line)] px-3 py-2 text-[12.5px] text-[var(--ink-2)]"
                             >
                               <span>
                                 跨分支互链 ·{' '}
@@ -807,11 +941,16 @@ export function UnitPlayerView({
         {/* 第 5 步：自测 */}
         {step === 5 && (
           <Card className="space-y-6">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <Badge tone="accent">第 5 步 · 提取自测</Badge>
-              <span className="text-[13px] text-[var(--ink-3)]">
-                达标线 {Math.round(unit.quiz.passRatio * 100)}%，错题自动排入 1/3/7 天重测
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-2.5">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <Badge tone="accent">第 5 步 · 提取自测</Badge>
+                <span className="text-[13px] text-[var(--ink-3)]">
+                  达标线 {Math.round(unit.quiz.passRatio * 100)}%，错题自动排入 1/3/7 天重测
+                </span>
+              </div>
+              <Button size="sm" variant="subtle" onClick={() => openStudyDrawer('notes')}>
+                边对照划重点
+              </Button>
             </div>
 
             <div className="space-y-6">
@@ -845,14 +984,14 @@ export function UnitPlayerView({
                               setQuizAnswers((prev) => ({ ...prev, [q.id]: oIdx }))
                             }
                             className={cn(
-                              'quiz-option-btn flex min-h-[46px] w-full cursor-pointer items-start gap-3 rounded-[10px] border p-3.5 text-left text-[14.5px] leading-[1.55] transition-colors disabled:cursor-default',
+                              'quiz-option-btn flex min-h-[46px] w-full cursor-pointer items-start gap-3 rounded-[12px] border p-3.5 text-left text-[14.5px] leading-[1.55] transition-colors disabled:cursor-default',
                               isCorrectOpt
                                 ? 'border-[var(--growth)] bg-[var(--growth-soft)] text-[var(--ink-1)]'
                                 : isWrongPick
                                   ? 'border-[var(--danger)] bg-[var(--danger-soft)] text-[var(--ink-1)]'
                                   : isSelected
                                     ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--ink-1)]'
-                                    : 'border-[var(--line-strong)] bg-[var(--surface)] text-[var(--ink-2)] hover:bg-[var(--surface-raised)] hover:text-[var(--ink-1)]'
+                                    : 'border-[var(--line-strong)] bg-[var(--surface-plate)] text-[var(--ink-2)] hover:border-[var(--accent-border)] hover:text-[var(--ink-1)]'
                             )}
                           >
                             <span className="font-mono-num mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-[6px] border border-[var(--line-strong)] bg-[var(--surface-raised)] text-[12px] font-semibold text-[var(--ink-1)]">
@@ -913,16 +1052,18 @@ export function UnitPlayerView({
 
                 <div className="flex items-center gap-2">
                   {quizScoreRatio < unit.quiz.passRatio && (
-                    <Button
-                      variant="outline"
-                      onClick={() => {
+                    <Popconfirm
+                      title="清空本次作答并重测？"
+                      confirmLabel="重新测试"
+                      tone="warning"
+                      onConfirm={() => {
                         setQuizSubmitted(false);
                         setQuizAnswers({});
                         stepEnteredAtRef.current = Date.now();
                       }}
                     >
-                      重测本节题目
-                    </Button>
+                      <Button variant="outline">重测本节题目</Button>
+                    </Popconfirm>
                   )}
                   {quizScoreRatio >= unit.quiz.passRatio && (
                     <Button variant="primary" size="lg" onClick={() => goToStep(6)}>
@@ -939,9 +1080,15 @@ export function UnitPlayerView({
         {/* 第 6 步：实战行动任务 */}
         {step === 6 && (
           <Card className="space-y-5">
-            <Badge tone="accent">第 6 步 · 实战行动任务</Badge>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Badge tone="accent">第 6 步 · 实战行动任务</Badge>
+              <Button size="sm" variant="subtle" onClick={() => openStudyDrawer('notes')}>
+                打开本节要点对照写
+              </Button>
+            </div>
+
             <div className="space-y-1.5">
-              <h2 className="m-0 text-[20px] sm:text-[22px] font-semibold text-[var(--ink-1)]">
+              <h2 className="m-0 text-[20px] font-semibold text-[var(--ink-1)] sm:text-[22px]">
                 <RichText text={unit.actionTask.title} />
               </h2>
               <p className="m-0 text-[14px] text-[var(--ink-2)]">
@@ -949,7 +1096,7 @@ export function UnitPlayerView({
               </p>
             </div>
 
-            <ol className="m-0 list-decimal space-y-2 rounded-[10px] border border-[var(--line)] bg-[var(--surface-raised)] py-4 pr-4 pl-9 text-[14.5px] leading-[1.7] text-[var(--ink-1)]">
+            <ol className="glass-plate m-0 list-decimal space-y-2 py-4 pr-4 pl-9 text-[14.5px] leading-[1.7] text-[var(--ink-1)]">
               {unit.actionTask.steps.map((s) => (
                 <li key={s}>
                   <RichText text={s} />
@@ -966,7 +1113,7 @@ export function UnitPlayerView({
               );
               if (matchingPoolTasks.length === 0) return null;
               return (
-                <div className="v3-card-raised space-y-2.5 p-4">
+                <div className="glass-plate space-y-2.5 p-4">
                   <div className="text-[13px] font-medium text-[var(--ink-1)]">
                     绑定真实任务池待办（提交本节时同步标为已交付）
                   </div>
@@ -1007,7 +1154,10 @@ export function UnitPlayerView({
                 rows={3}
                 className="v3-textarea"
                 value={deliverableText}
-                onChange={(e) => setDeliverableText(e.target.value)}
+                onChange={(e) => {
+                  setDeliverableText(e.target.value);
+                  if (actionError) setActionError('');
+                }}
                 placeholder="写下你的执行结果、模板内容或本地文件路径…"
               />
             </div>
@@ -1021,14 +1171,17 @@ export function UnitPlayerView({
                   type="text"
                   className="v3-input"
                   value={feynmanText}
-                  onChange={(e) => setFeynmanText(e.target.value)}
+                  onChange={(e) => {
+                    setFeynmanText(e.target.value);
+                    if (actionError) setActionError('');
+                  }}
                   placeholder="不拽术语，用一句大白话说清核心原理…"
                 />
               </div>
             )}
 
             {parentTrack?.milestoneDeliverable && (
-              <label className="flex cursor-pointer items-center gap-2.5 rounded-[10px] border border-[var(--line)] bg-[var(--surface-raised)] p-3.5 text-[13.5px] text-[var(--ink-1)]">
+              <label className="glass-plate flex cursor-pointer items-center gap-2.5 p-3.5 text-[13.5px] text-[var(--ink-1)]">
                 <input
                   type="checkbox"
                   checked={signOffMilestone}
@@ -1043,17 +1196,19 @@ export function UnitPlayerView({
             )}
 
             {actionError && (
-              <div
-                className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-[var(--danger-border)] bg-[var(--danger-soft)] p-3.5 text-[13.5px] text-[var(--ink-1)]"
-                role="alert"
-              >
-                <span>过关条件未满足：{actionError}</span>
-                {quizScoreRatio < unit.quiz.passRatio && (
-                  <Button size="sm" variant="outline" onClick={() => goToStep(5)}>
-                    返回第 5 步自测
-                  </Button>
-                )}
-              </div>
+              <AlertBanner
+                tone="danger"
+                title="过关条件未满足"
+                message={actionError}
+                onDismiss={() => setActionError('')}
+                action={
+                  quizScoreRatio < unit.quiz.passRatio ? (
+                    <Button size="sm" variant="outline" onClick={() => goToStep(5)}>
+                      返回第 5 步自测
+                    </Button>
+                  ) : undefined
+                }
+              />
             )}
 
             <div className="flex justify-end border-t border-[var(--line)] pt-4">
@@ -1069,7 +1224,7 @@ export function UnitPlayerView({
         {step === 7 && (
           <Card className="space-y-5 border-[var(--growth-border)]">
             <div className="flex items-start gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-[var(--growth-soft)] text-[var(--growth)]">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-[var(--growth-soft)] text-[var(--growth)]">
                 <CheckCircle2 size={24} strokeWidth={1.7} />
               </div>
               <div className="space-y-1.5">
@@ -1085,7 +1240,7 @@ export function UnitPlayerView({
             </div>
 
             {newlyUnlockedTrack && (
-              <div className="rounded-[10px] border border-[var(--accent-border)] bg-[var(--accent-soft)] px-4 py-3 text-[14px] text-[var(--ink-1)]">
+              <div className="rounded-[12px] border border-[var(--accent-border)] bg-[var(--accent-soft)] px-4 py-3 text-[14px] text-[var(--ink-1)]">
                 新阶段已解锁：<strong>{newlyUnlockedTrack.title}</strong>
               </div>
             )}
@@ -1096,7 +1251,7 @@ export function UnitPlayerView({
               </Button>
               <a
                 href="#/"
-                className="inline-flex min-h-[40px] items-center justify-center rounded-[8px] border border-[var(--line-strong)] bg-[var(--surface)] px-4 text-[14px] font-medium text-[var(--ink-1)] no-underline hover:bg-[var(--surface-raised)]"
+                className="inline-flex min-h-[40px] items-center justify-center rounded-[10px] border border-[var(--line-strong)] bg-[var(--surface-plate)] px-4 text-[14px] font-medium text-[var(--ink-1)] no-underline hover:border-[var(--accent-border)]"
               >
                 回到今日主线
               </a>

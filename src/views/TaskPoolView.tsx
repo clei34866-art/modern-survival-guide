@@ -1,6 +1,7 @@
-import { ArrowRight, Check, Plus, Trash2 } from 'lucide-react';
+import { ArrowRight, BookOpen, Check, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { Popconfirm, Tooltip } from '@/components/ui/overlays';
 import { Badge, Button, Card } from '@/components/ui/primitives';
 import type { PlatformContentBundle } from '@/core/contentLoader';
 import { addRealLifeTask, removeRealLifeTask, toggleRealLifeTask } from '@/core/db';
@@ -18,6 +19,7 @@ interface TaskPoolViewProps {
   telemetry: TelemetrySnapshot;
   onTelemetryChange: (next: TelemetrySnapshot) => void;
   onOpenUnit: (unitId: string) => void;
+  onPreviewUnit: (unitId: string) => void;
 }
 
 const CATEGORY_META: Array<{
@@ -102,6 +104,7 @@ export function TaskPoolView({
   telemetry,
   onTelemetryChange,
   onOpenUnit,
+  onPreviewUnit,
 }: TaskPoolViewProps) {
   const [title, setTitle] = useState<string>('');
   const [category, setCategory] = useState<RealTaskCategory>('research_data');
@@ -199,7 +202,7 @@ export function TaskPoolView({
       <Card className="space-y-3">
         <h3 className="m-0 text-[16px] font-semibold text-[var(--ink-1)]">待交付与已归档任务</h3>
         {tasks.length === 0 ? (
-          <div className="v3-card-raised p-4 text-[14px] text-[var(--ink-2)]">
+          <div className="glass-plate p-4 text-[14px] text-[var(--ink-2)]">
             任务池还是空的，点击上方「常用场景速添」或输入一件近期真实待办开始
           </div>
         ) : (
@@ -225,12 +228,13 @@ export function TaskPoolView({
                     onClick={async () => {
                       const next = await toggleRealLifeTask(task.id);
                       onTelemetryChange(next);
+                      toast(isDone ? '已恢复为进行中' : '已标记为已交付');
                     }}
                     className={cn(
                       'mt-0.5 flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-[5px] border transition-colors',
                       isDone
                         ? 'border-[var(--growth)] bg-[var(--growth)] text-[#081510]'
-                        : 'border-[var(--line-strong)] bg-[var(--surface-raised)]'
+                        : 'border-[var(--line-strong)] bg-[var(--surface-plate)]'
                     )}
                   >
                     {isDone && <Check size={13} strokeWidth={2.4} />}
@@ -264,33 +268,52 @@ export function TaskPoolView({
                     {!isDone && matchedUnits.length > 0 && (
                       <div className="flex flex-wrap gap-2 pt-1">
                         {matchedUnits.slice(0, 2).map((u) => (
-                          <Button
-                            key={u.id}
-                            size="sm"
-                            variant="outline"
-                            onClick={() => onOpenUnit(u.id)}
-                          >
-                            <span>合并交付：{u.title.slice(0, 14)}…</span>
-                            <ArrowRight size={13} strokeWidth={1.5} />
-                          </Button>
+                          <div key={u.id} className="inline-flex items-center gap-1">
+                            <Tooltip content="在右侧抽屉速览该单元">
+                              <Button
+                                size="sm"
+                                variant="subtle"
+                                aria-label={`速览：${u.title}`}
+                                onClick={() => onPreviewUnit(u.id)}
+                              >
+                                <BookOpen size={12} strokeWidth={1.6} />
+                              </Button>
+                            </Tooltip>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => onOpenUnit(u.id)}
+                            >
+                              <span>合并交付：{u.title.slice(0, 14)}…</span>
+                              <ArrowRight size={13} strokeWidth={1.5} />
+                            </Button>
+                          </div>
                         ))}
                       </div>
                     )}
                   </div>
 
-                  <Button
-                    size="sm"
-                    variant="danger"
-                    aria-label={`移除任务：${task.title}`}
-                    onClick={async () => {
+                  {/* 高频轻量删除：采用 Popconfirm 气泡确认，不弹 Modal 强打断 */}
+                  <Popconfirm
+                    title="移除这条待办？"
+                    description="移出后不会影响已过关的学习单元记录。"
+                    confirmLabel="确认移除"
+                    tone="danger"
+                    onConfirm={async () => {
                       const next = await removeRealLifeTask(task.id);
                       onTelemetryChange(next);
                       toast('已移除任务');
                     }}
                   >
-                    <Trash2 size={13} strokeWidth={1.5} />
-                    <span className="hidden sm:inline">移除</span>
-                  </Button>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      aria-label={`移除任务：${task.title}`}
+                    >
+                      <Trash2 size={13} strokeWidth={1.5} />
+                      <span className="hidden sm:inline">移除</span>
+                    </Button>
+                  </Popconfirm>
                 </div>
               );
             })}

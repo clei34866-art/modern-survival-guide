@@ -46,7 +46,6 @@ export function ReviewDeckView({
   const [focusedConceptId, setFocusedConceptId] = useState<string | null>(null);
   const [flippedMap, setFlippedMap] = useState<Record<string, boolean>>({});
   const [selectedChoiceMap, setSelectedChoiceMap] = useState<Record<string, number>>({});
-  const [feedbackMsg, setFeedbackMsg] = useState<string>('');
   const startedAtRef = useRef<number>(Date.now());
 
   useEffect(() => {
@@ -94,7 +93,6 @@ export function ReviewDeckView({
           ? '有点模糊（3天后温习）'
           : '没想起来（明日重测）'
     } · ${formatStageLabel(st?.retestStage ?? 0)}`;
-    setFeedbackMsg(msg);
     toast(msg);
     onTelemetryChange(next);
     if (deckMode === 'focus' && safeFocusIdx < deck.length - 1) {
@@ -148,7 +146,6 @@ export function ReviewDeckView({
     const msg = isCorrect
       ? `「${item.concept.label}」重测答对，推进至 ${formatStageLabel(newStage)}`
       : `「${item.concept.label}」仍需巩固，重置回第 1 阶（1 天后重测）`;
-    setFeedbackMsg(msg);
     toast(msg);
     onTelemetryChange(next);
   };
@@ -168,11 +165,11 @@ export function ReviewDeckView({
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
-        <div className="space-y-1.5">
-          <h1 className="m-0 text-[24px] sm:text-[28px] font-semibold tracking-[-0.02em] text-[var(--ink-1)]">
+        <div className="space-y-1">
+          <h1 className="sky-heading m-0 text-[24px] sm:text-[28px] font-semibold tracking-[-0.02em] text-[var(--ink-1)]">
             重测与 3D 知识闪卡
           </h1>
-          <p className="m-0 text-[14.5px] text-[var(--ink-2)]">
+          <p className="sky-heading m-0 text-[14px] text-[var(--ink-2)]">
             错题与模糊概念按 1 / 3 / 7 天间隔自动回炉提取，跨分支概念支持互链联想
           </p>
         </div>
@@ -254,15 +251,6 @@ export function ReviewDeckView({
           </div>
         )}
       </Card>
-
-      {feedbackMsg && (
-        <div
-          className="rounded-[10px] border border-[var(--growth-border)] bg-[var(--growth-soft)] px-4 py-3 text-[13.5px] text-[var(--ink-1)]"
-          role="status"
-        >
-          {feedbackMsg}
-        </div>
-      )}
 
       {/* 子视图 1：1/3/7 天错题重测队列 */}
       {tab === 'retest' && (

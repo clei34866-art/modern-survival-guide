@@ -80,13 +80,13 @@ export function SkillTreeSvg({
     (m) => m.isApproved
   ).length;
 
-  const lineColor = isWall ? 'rgba(238,240,245,0.12)' : 'var(--line)';
-  const surfaceColor = isWall ? '#171d2b' : 'var(--surface)';
-  const raisedColor = isWall ? '#20283a' : 'var(--surface-raised)';
-  const textPrimary = isWall ? '#eef0f5' : 'var(--ink-1)';
-  const textMuted = isWall ? '#98a2b3' : 'var(--ink-3)';
-  const growthColor = isWall ? '#34d399' : 'var(--growth)';
-  const accentColor = isWall ? '#3b82f6' : 'var(--accent)';
+  const lineColor = isWall ? 'rgba(200,228,255,0.20)' : 'var(--line)';
+  const surfaceColor = isWall ? 'rgba(10, 24, 52, 0.72)' : 'var(--surface-plate)';
+  const raisedColor = isWall ? 'rgba(18, 40, 78, 0.56)' : 'var(--surface-raised)';
+  const textPrimary = isWall ? '#f4f8ff' : 'var(--ink-1)';
+  const textMuted = isWall ? '#b6c8e4' : 'var(--ink-3)';
+  const growthColor = isWall ? '#5eead4' : 'var(--growth)';
+  const accentColor = isWall ? '#5ea8ff' : 'var(--accent)';
 
   return (
     <div className={isWall ? 'skill-tree-wall-box' : 'skill-tree-living-box w-full'}>

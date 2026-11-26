@@ -1,25 +1,21 @@
-import { useEffect, useState } from 'preact/hooks';
-import {
-  IconArrowRight,
-  IconCheck,
-  IconChevron,
-  IconExternal,
-  IconLock,
-} from '../components/Icons';
-import { RichText } from '../components/RichText';
-import { SkillTreeSvg } from '../components/SkillTreeSvg';
-import type { PlatformContentBundle } from '../core/contentLoader';
+import { ArrowRight, Check, ChevronDown, ExternalLink, Lock, ShieldCheck } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { RichText } from '@/components/RichText';
+import { SkillAtlasSvg } from '@/components/SkillTreeSvg';
+import { Badge, Button, Card, ProgressBar } from '@/components/ui/primitives';
+import type { PlatformContentBundle } from '@/core/contentLoader';
 import {
   getTrackClearanceStatus,
   isTrackUnlocked,
   isUnitCleared,
-} from '../core/gatekeeper';
+} from '@/core/gatekeeper';
+import { cn } from '@/lib/utils';
 import type {
   BranchId,
   LearningUnit,
   TelemetrySnapshot,
   TrackGroup,
-} from '../types/schema';
+} from '@/types/schema';
 
 interface BranchesViewProps {
   content: PlatformContentBundle;
@@ -50,14 +46,14 @@ export function BranchesView({
 }: BranchesViewProps) {
   const [selectedBranchId, setSelectedBranchId] = useState<BranchId>(initialBranchId);
   const [b1LineTab, setB1LineTab] = useState<'ai' | 'software'>('ai');
-
-  useEffect(() => {
-    setSelectedBranchId(initialBranchId);
-  }, [initialBranchId]);
   const [showRedlines, setShowRedlines] = useState<boolean>(false);
   const [expandedLockedTracks, setExpandedLockedTracks] = useState<Record<string, boolean>>({});
   const [editingMilestoneTrackId, setEditingMilestoneTrackId] = useState<string | null>(null);
   const [milestoneDraft, setMilestoneDraft] = useState<string>('');
+
+  useEffect(() => {
+    setSelectedBranchId(initialBranchId);
+  }, [initialBranchId]);
 
   const branch =
     content.catalog.branches.find((b) => b.id === selectedBranchId) ??
@@ -81,52 +77,69 @@ export function BranchesView({
       : undefined;
     const msRecord = telemetry.milestoneSubmissions[track.id];
 
-    // 锁定阶段默认折叠为单行紧凑路线图，消除数屏重复灰框
+    // 锁定阶段默认折叠为单行紧凑路线图
     if (!unlocked) {
       const isOpen = Boolean(expandedLockedTracks[track.id]);
       return (
-        <article key={track.id} class="locked-roadmap-item">
+        <article key={track.id} className="v3-card overflow-hidden">
           <button
             type="button"
-            class="locked-roadmap-trigger"
+            className="flex w-full cursor-pointer items-center justify-between gap-3 border-0 bg-transparent px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-raised)]"
             aria-expanded={isOpen}
             onClick={() => toggleLockedTrack(track.id)}
           >
-            <div class="locked-roadmap-left">
-              <span class="locked-icon-pill">
-                <IconLock size={14} />
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] border border-[var(--line)] bg-[var(--surface-raised)] text-[var(--ink-3)]">
+                <Lock size={14} strokeWidth={1.6} />
               </span>
-              <div class="locked-roadmap-copy">
-                <div class="locked-roadmap-title">{track.title}</div>
-                <div class="locked-roadmap-sub">{track.summary}</div>
+              <div className="min-w-0">
+                <div className="truncate text-[14.5px] font-medium text-[var(--ink-1)]">
+                  {track.title}
+                </div>
+                <div className="truncate text-[12.5px] text-[var(--ink-3)]">{track.summary}</div>
               </div>
             </div>
-            <div class="locked-roadmap-right">
-              <span class="status-chip chip-muted">
+            <div className="flex shrink-0 items-center gap-2">
+              <Badge tone="neutral">
                 完成「{prereqTrack?.title.split('·')[0].trim() ?? '前置阶段'}」解锁
-              </span>
-              <IconChevron size={16} class={`chevron-rotate ${isOpen ? 'is-open' : ''}`} />
+              </Badge>
+              <ChevronDown
+                size={16}
+                strokeWidth={1.5}
+                className={cn(
+                  'text-[var(--ink-3)] transition-transform duration-150',
+                  isOpen && 'rotate-180'
+                )}
+              />
             </div>
           </button>
 
           {isOpen && (
-            <div class="locked-roadmap-body">
+            <div className="space-y-3 border-t border-[var(--line)] bg-[var(--surface-raised)] px-4 py-3.5 text-[13.5px]">
               {track.milestoneDeliverable && (
-                <div class="locked-milestone-preview">
-                  <strong>本阶目标产出：</strong>
+                <div className="text-[var(--ink-2)]">
+                  <strong className="font-medium text-[var(--ink-1)]">本阶目标产出：</strong>
                   {track.milestoneDeliverable.title}
                 </div>
               )}
               {track.curatedResources.length > 0 && (
-                <div class="curated-resources-box">
-                  <div class="curated-resources-title">精选公开先导参考</div>
-                  <ul class="curated-resources-list">
+                <div>
+                  <div className="mb-1.5 text-[12px] font-medium text-[var(--ink-3)]">
+                    精选公开先导参考
+                  </div>
+                  <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
                     {track.curatedResources.map((res) => (
-                      <li key={res.url + res.title}>
-                        <a href={res.url} target="_blank" rel="noreferrer" class="inline-ext-link">
-                          {res.title} <IconExternal size={12} />
+                      <li key={res.url + res.title} className="flex flex-wrap items-center gap-1.5">
+                        <a
+                          href={res.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-[var(--accent)] hover:underline"
+                        >
+                          <span>{res.title}</span>
+                          <ExternalLink size={12} strokeWidth={1.5} />
                         </a>
-                        <span class="resource-org">（{res.org}）</span>
+                        <span className="text-[12px] text-[var(--ink-3)]">（{res.org}）</span>
                       </li>
                     ))}
                   </ul>
@@ -149,45 +162,49 @@ export function BranchesView({
         branchId: branch.id,
         completionPercent: 100,
         artifactSummary:
-          milestoneDraft.trim() || `已完成「${track.milestoneDeliverable?.title ?? track.title}」验收`,
+          milestoneDraft.trim() ||
+          `已完成「${track.milestoneDeliverable?.title ?? track.title}」验收`,
         isApproved: true,
       });
       setEditingMilestoneTrackId(null);
     };
 
     return (
-      <article
+      <Card
         key={track.id}
-        class={`path-track-card ${status.isTrackCleared ? 'is-cleared' : ''} ${
-          isFeaturedSoftware ? 'is-featured-pack' : ''
-        }`}
+        className={cn(
+          'space-y-5',
+          status.isTrackCleared && 'border-[var(--growth-border)]',
+          isFeaturedSoftware && 'border-[var(--accent-border)]'
+        )}
       >
-        <div class="path-track-header">
-          <div>
-            <div class="path-track-badges">
-              {status.isTrackCleared ? (
-                <span class="status-chip chip-growth">
-                  <IconCheck size={13} /> 本阶已过关
-                </span>
-              ) : track.unitIds.length > 0 ? (
-                <span class="status-chip chip-accent">当前开放</span>
-              ) : (
-                <span class="status-chip">参考清单</span>
-              )}
-              {track.unitIds.length > 0 && (
-                <span class="status-chip tabular-num">
-                  已完成 {status.clearedUnits} / {status.totalUnits} 节
-                </span>
-              )}
-            </div>
-            <h3 class="path-track-title">{track.title}</h3>
-            <p class="path-track-summary">{track.summary}</p>
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {status.isTrackCleared ? (
+              <Badge tone="growth">
+                <Check size={12} strokeWidth={2} />
+                <span>本阶已过关</span>
+              </Badge>
+            ) : track.unitIds.length > 0 ? (
+              <Badge tone="accent">当前开放</Badge>
+            ) : (
+              <Badge tone="neutral">参考清单</Badge>
+            )}
+            {track.unitIds.length > 0 && (
+              <Badge tone="neutral" className="font-mono-num">
+                已完成 {status.clearedUnits} / {status.totalUnits} 节
+              </Badge>
+            )}
           </div>
+          <h3 className="m-0 text-[18px] font-semibold tracking-[-0.015em] text-[var(--ink-1)]">
+            {track.title}
+          </h3>
+          <p className="m-0 text-[14px] text-[var(--ink-2)]">{track.summary}</p>
         </div>
 
-        {/* 单元清单：以发丝分割线串联，不再使用卡片套卡片 */}
+        {/* 单元清单：以发丝分割线串联 */}
         {track.unitIds.length > 0 ? (
-          <div class="track-units-list">
+          <div className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
             {track.unitIds.map((uid, idx) => {
               const unit = unitMap.get(uid);
               if (!unit) return null;
@@ -195,88 +212,107 @@ export function BranchesView({
               return (
                 <div
                   key={uid}
-                  class={`track-unit-item ${cleared ? 'is-unit-cleared' : ''}`}
+                  className="flex flex-col justify-between gap-3 py-3.5 sm:flex-row sm:items-center"
                 >
-                  <div class="unit-step-badge tabular-num">
-                    {cleared ? <IconCheck size={14} /> : `0${idx + 1}`}
-                  </div>
-                  <div class="track-unit-info">
-                    <div class="track-unit-title">{unit.title}</div>
-                    <div class="track-unit-meta">
-                      <span class="tabular-num">约 {unit.estimatedMinutes} 分钟</span>
-                      <span class="meta-sep">/</span>
-                      <span>{ENERGY_LABELS[unit.recommendedEnergy]}</span>
-                      <span class="meta-sep">/</span>
-                      <span class="track-unit-action-inline">
-                        行动：<RichText text={unit.actionTask.title} />
-                      </span>
+                  <div className="flex min-w-0 items-start gap-3">
+                    <span
+                      className={cn(
+                        'mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px] border font-mono-num text-[12px] font-semibold',
+                        cleared
+                          ? 'border-[var(--growth-border)] bg-[var(--growth-soft)] text-[var(--growth)]'
+                          : 'border-[var(--line-strong)] bg-[var(--surface-raised)] text-[var(--ink-2)]'
+                      )}
+                    >
+                      {cleared ? <Check size={14} strokeWidth={2.2} /> : `0${idx + 1}`}
+                    </span>
+                    <div className="min-w-0 space-y-1">
+                      <div className="text-[15px] font-medium text-[var(--ink-1)]">
+                        {unit.title}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5 text-[12.5px] text-[var(--ink-3)]">
+                        <span className="font-mono-num">约 {unit.estimatedMinutes} 分钟</span>
+                        <span>·</span>
+                        <span>{ENERGY_LABELS[unit.recommendedEnergy]}</span>
+                        <span>·</span>
+                        <span className="text-[var(--ink-2)]">
+                          行动：<RichText text={unit.actionTask.title} />
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    class={`btn ${cleared ? 'btn-subtle' : 'btn-primary'} track-unit-cta`}
+
+                  <Button
+                    variant={cleared ? 'subtle' : 'primary'}
+                    size="sm"
+                    className="shrink-0 self-start sm:self-center"
                     onClick={() => onOpenUnit(unit.id)}
                   >
                     <span>{cleared ? '回看单元' : '开始学习'}</span>
-                    <IconArrowRight size={14} />
-                  </button>
+                    <ArrowRight size={14} strokeWidth={1.6} />
+                  </Button>
                 </div>
               );
             })}
           </div>
         ) : (
-          <div class="empty-track-notice">
-            本专题互动单元正在打磨中，可先通过下方精选公开官方文档提前上手。
+          <div className="v3-card-raised px-3.5 py-3 text-[13.5px] text-[var(--ink-2)]">
+            本专题互动单元正在打磨中，可先通过下方精选公开官方文档提前上手
           </div>
         )}
 
         {/* 本阶实战产出验收区 */}
         {track.milestoneDeliverable && (
-          <div class="milestone-deliverable-box">
-            <div class="milestone-header-row">
+          <div className="v3-card-raised space-y-3 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <div class="milestone-eyebrow">阶段实战产出验收</div>
-                <div class="milestone-title">{track.milestoneDeliverable.title}</div>
+                <div className="text-[11.5px] font-medium text-[var(--ink-3)]">
+                  阶段实战产出验收
+                </div>
+                <div className="mt-0.5 text-[14.5px] font-semibold text-[var(--ink-1)]">
+                  {track.milestoneDeliverable.title}
+                </div>
               </div>
-              <div class="btn-row">
-                <span
-                  class={`status-chip tabular-num ${status.milestoneApproved ? 'chip-growth' : ''}`}
-                >
+              <div className="flex items-center gap-2">
+                <Badge tone={status.milestoneApproved ? 'growth' : 'neutral'} className="font-mono-num">
                   {status.milestoneApproved ? '已验收' : `进度 ${status.milestonePercent}%`}
-                </span>
-                <button type="button" class="btn btn-sm" onClick={openMilestoneDrawer}>
+                </Badge>
+                <Button size="sm" variant="outline" onClick={openMilestoneDrawer}>
                   {status.milestoneApproved ? '更新记录' : '登记产出'}
-                </button>
+                </Button>
               </div>
             </div>
-            <ul class="milestone-criteria-list">
+
+            <ul className="m-0 list-disc space-y-1 pl-5 text-[13px] text-[var(--ink-2)]">
               {track.milestoneDeliverable.criteria.map((c) => (
                 <li key={c}>{c}</li>
               ))}
             </ul>
+
             {msRecord?.artifactSummary && (
-              <div class="milestone-saved-note">已归档记录：{msRecord.artifactSummary}</div>
+              <div className="rounded-[8px] border border-[var(--growth-border)] bg-[var(--growth-soft)] px-3 py-2 text-[13px] text-[var(--ink-1)]">
+                已归档记录：{msRecord.artifactSummary}
+              </div>
             )}
+
             {editingMilestoneTrackId === track.id && (
-              <div class="milestone-editor">
+              <div className="space-y-2.5 border-t border-[var(--line)] pt-3">
                 <textarea
                   rows={2}
+                  className="v3-textarea"
                   placeholder="填写你的实战产出文件路径、仓库链接或交付要点…"
                   value={milestoneDraft}
-                  onInput={(e) => setMilestoneDraft((e.target as HTMLTextAreaElement).value)}
+                  onChange={(e) => setMilestoneDraft(e.target.value)}
                 />
-                <div class="btn-row" style={{ marginTop: '10px' }}>
-                  <button
-                    type="button"
-                    class="btn btn-primary btn-sm"
-                    disabled={track.unitIds.length > 0 && !status.allUnitsCleared}
-                    onClick={handleApproveMilestone}
-                  >
-                    {track.unitIds.length > 0 && !status.allUnitsCleared
-                      ? '请先完成本阶全部单元过关'
-                      : '确认本阶实战产出达标'}
-                  </button>
-                </div>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={track.unitIds.length > 0 && !status.allUnitsCleared}
+                  onClick={handleApproveMilestone}
+                >
+                  {track.unitIds.length > 0 && !status.allUnitsCleared
+                    ? '请先完成本阶全部单元过关'
+                    : '确认本阶实战产出达标'}
+                </Button>
               </div>
             )}
           </div>
@@ -284,55 +320,64 @@ export function BranchesView({
 
         {/* 公开权威参考资源 */}
         {track.curatedResources.length > 0 && (
-          <div class="curated-resources-box">
-            <div class="curated-resources-title">精选公开权威参考</div>
-            <ul class="curated-resources-list">
+          <div className="space-y-2">
+            <div className="text-[12px] font-medium text-[var(--ink-3)]">精选公开权威参考</div>
+            <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-[13.5px]">
               {track.curatedResources.map((res) => (
-                <li key={res.url + res.title}>
-                  <a href={res.url} target="_blank" rel="noreferrer" class="inline-ext-link">
-                    {res.title} <IconExternal size={12} />
+                <li key={res.url + res.title} className="flex flex-wrap items-center gap-1.5">
+                  <a
+                    href={res.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-[var(--accent)] hover:underline"
+                  >
+                    <span>{res.title}</span>
+                    <ExternalLink size={12} strokeWidth={1.5} />
                   </a>
-                  <span class="resource-org">（{res.org}）</span>
+                  <span className="text-[12.5px] text-[var(--ink-3)]">（{res.org}）</span>
                 </li>
               ))}
             </ul>
           </div>
         )}
-      </article>
+      </Card>
     );
   };
 
   const b1AiTracks = branch.tracks.filter((t) => t.kind === 'layered_stage');
   const b1SwTracks = branch.tracks.filter((t) => t.kind === 'software_pack');
-  const swLivePacks = b1SwTracks.filter((t) => t.unitIds.length > 0);
-  const swPlannedPacks = b1SwTracks.filter((t) => t.unitIds.length === 0);
+  const swFeaturedPack = b1SwTracks.slice(0, 1);
+  const swSecondaryPacks = b1SwTracks.slice(1);
 
   return (
-    <div class="branches-view">
-      <header class="page-header-strip">
-        <div>
-          <h1 class="page-h1">七大生存分支与技能树</h1>
-          <p class="page-subtitle">
-            从生活与科研的真实问题出发，点亮对应分支叶片，不要求线性刷完所有学科。
-          </p>
-        </div>
+    <div className="space-y-6">
+      <header className="space-y-1.5">
+        <h1 className="m-0 text-[24px] sm:text-[28px] font-semibold tracking-[-0.02em] text-[var(--ink-1)]">
+          七大生存分支与技能星图
+        </h1>
+        <p className="m-0 text-[14.5px] text-[var(--ink-2)]">
+          从真实问题出发按需点亮对应分支节点，不要求线性刷完所有学科
+        </p>
       </header>
 
-      {/* 顶部双栏总览：55% 精绘矢量技能树 + 45% 七分支垂直列表切换器 */}
-      <section class="branches-overview-split" aria-label="技能树与七分支切换">
-        <div class="surface-card tree-stage-card">
-          <SkillTreeSvg
+      {/* 顶部双栏总览：55% 径向技能星图 + 45% 七分支列表切换器 */}
+      <section
+        className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:items-stretch"
+        aria-label="技能星图与七分支切换"
+      >
+        <Card className="flex flex-col justify-between p-5">
+          <SkillAtlasSvg
             content={content}
             telemetry={telemetry}
             variant="living"
             selectedBranchId={branch.id}
             onSelectBranch={setSelectedBranchId}
           />
-        </div>
+        </Card>
 
-        <div class="surface-card branch-selector-panel" role="tablist" aria-label="七大生存分支列表">
-          <div class="selector-panel-head">选择探索分支</div>
-          <div class="branch-vertical-list">
+        <Card className="flex flex-col justify-between p-5" role="tablist" aria-label="七大生存分支列表">
+          <div className="mb-3 text-[13px] font-medium text-[var(--ink-3)]">选择探索分支</div>
+          <div className="flex flex-1 flex-col justify-between gap-1.5">
             {content.catalog.branches.map((b) => {
               const branchUnits = content.units.filter((u) => u.branchId === b.id);
               const clearedCount = branchUnits.filter((u) => isUnitCleared(u.id, telemetry)).length;
@@ -346,56 +391,67 @@ export function BranchesView({
                   type="button"
                   role="tab"
                   aria-selected={isSelected}
-                  class={`branch-list-item ${isSelected ? 'is-selected' : ''}`}
                   onClick={() => setSelectedBranchId(b.id)}
+                  className={cn(
+                    'grid min-h-[44px] w-full cursor-pointer grid-cols-[auto_32px_minmax(0,1fr)_80px_48px] items-center gap-2.5 rounded-[9px] border px-3 text-left transition-colors',
+                    isSelected
+                      ? 'border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--ink-1)]'
+                      : 'border-transparent bg-transparent text-[var(--ink-2)] hover:bg-[var(--surface-raised)] hover:text-[var(--ink-1)]'
+                  )}
                 >
-                  <span class="branch-dot" style={{ backgroundColor: b.accentToken }} />
-                  <span class="branch-list-id tabular-num">{b.id}</span>
-                  <span class="branch-list-name">{b.name}</span>
-                  <div class="branch-list-meter">
-                    <div class="slim-bar-track">
-                      <div
-                        class="slim-bar-fill"
-                        style={{ width: `${pct}%`, backgroundColor: b.accentToken }}
-                      />
-                    </div>
-                  </div>
-                  <span class="branch-list-stat tabular-num">
+                  <span
+                    className="h-2 w-2 rounded-full"
+                    style={{ backgroundColor: b.accentToken }}
+                  />
+                  <span className="font-mono-num text-[12.5px] font-semibold">{b.id}</span>
+                  <span className="truncate text-[14px] font-medium">{b.name}</span>
+                  <ProgressBar percent={pct} color={b.accentToken} />
+                  <span className="text-right font-mono-num text-[12px] text-[var(--ink-3)]">
                     {branchUnits.length > 0 ? `${clearedCount}/${branchUnits.length}` : '规划中'}
                   </span>
                 </button>
               );
             })}
           </div>
-        </div>
+        </Card>
       </section>
 
       {/* 选中分支页头与折叠式合规准则 */}
-      <section class="branch-active-header">
-        <div class="branch-active-title-row">
-          <div>
-            <div class="branch-dot-label">
-              <span class="branch-dot" style={{ backgroundColor: branch.accentToken }} />
-              <span class="tabular-num">{branch.id}</span>
-              <span>{branch.name}</span>
+      <section className="space-y-3 border-t border-[var(--line)] pt-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-[13px] text-[var(--ink-2)]">
+              <span
+                className="h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: branch.accentToken }}
+              />
+              <span className="font-mono-num font-semibold">{branch.id}</span>
+              <span className="font-medium text-[var(--ink-1)]">{branch.name}</span>
             </div>
-            <h2 class="branch-active-h2">{branch.subtitle}</h2>
+            <h2 className="m-0 text-[20px] font-semibold text-[var(--ink-1)]">
+              {branch.subtitle}
+            </h2>
           </div>
 
-          <button
-            type="button"
-            class="btn btn-sm"
+          <Button
+            size="sm"
+            variant="outline"
             aria-expanded={showRedlines}
             onClick={() => setShowRedlines((v) => !v)}
           >
+            <ShieldCheck size={14} strokeWidth={1.5} />
             <span>选材与合规准则</span>
-            <IconChevron size={14} class={`chevron-rotate ${showRedlines ? 'is-open' : ''}`} />
-          </button>
+            <ChevronDown
+              size={14}
+              strokeWidth={1.5}
+              className={cn('transition-transform duration-150', showRedlines && 'rotate-180')}
+            />
+          </Button>
         </div>
 
         {showRedlines && (
-          <div class="branch-redlines-drawer">
-            <ul>
+          <div className="v3-card-raised p-4 text-[13.5px] text-[var(--ink-2)]">
+            <ul className="m-0 list-disc space-y-1.5 pl-5">
               {branch.redLineRules.map((rule) => (
                 <li key={rule}>{rule}</li>
               ))}
@@ -404,16 +460,25 @@ export function BranchesView({
         )}
       </section>
 
-      {/* B1 双轨分段切换 vs B2–B7 单线路径 */}
+      {/* B1 双轨切换 vs B2–B7 单线路径 */}
       {branch.id === 'B1' ? (
-        <div class="b1-dual-tracks">
-          <div class="segmented-bar" role="tablist" aria-label="B1 主线切换">
+        <div className="space-y-5">
+          <div
+            className="inline-flex flex-wrap gap-1 rounded-[10px] border border-[var(--line)] bg-[var(--surface)] p-1"
+            role="tablist"
+            aria-label="B1 主线切换"
+          >
             <button
               type="button"
               role="tab"
               aria-selected={b1LineTab === 'ai'}
-              class={`segmented-btn ${b1LineTab === 'ai' ? 'is-active' : ''}`}
               onClick={() => setB1LineTab('ai')}
+              className={cn(
+                'min-h-[38px] cursor-pointer rounded-[7px] px-3.5 text-[13.5px] font-medium transition-colors',
+                b1LineTab === 'ai'
+                  ? 'bg-[var(--accent)] text-white'
+                  : 'text-[var(--ink-2)] hover:text-[var(--ink-1)]'
+              )}
             >
               AI 能力线（L1–L5 逐层解锁）
             </button>
@@ -421,27 +486,34 @@ export function BranchesView({
               type="button"
               role="tab"
               aria-selected={b1LineTab === 'software'}
-              class={`segmented-btn ${b1LineTab === 'software' ? 'is-active' : ''}`}
               onClick={() => setB1LineTab('software')}
+              className={cn(
+                'min-h-[38px] cursor-pointer rounded-[7px] px-3.5 text-[13.5px] font-medium transition-colors',
+                b1LineTab === 'software'
+                  ? 'bg-[var(--accent)] text-white'
+                  : 'text-[var(--ink-2)] hover:text-[var(--ink-1)]'
+              )}
             >
               软件技能分包（Blender bpy 即学即用）
             </button>
           </div>
 
           {b1LineTab === 'ai' ? (
-            <section aria-label="AI 能力线五层递进路径" class="tracks-stack">
+            <section aria-label="AI 能力线五层递进路径" className="space-y-4">
               {b1AiTracks.map((t) => renderTrackCard(t, b1AiTracks))}
             </section>
           ) : (
-            <section aria-label="软件技能线按包学习" class="software-layout-stack">
-              <div class="tracks-stack">
-                {swLivePacks.map((t) => renderTrackCard(t, b1SwTracks, true))}
+            <section aria-label="软件技能线按包学习" className="space-y-6">
+              <div className="space-y-4">
+                {swFeaturedPack.map((t) => renderTrackCard(t, b1SwTracks, true))}
               </div>
-              {swPlannedPacks.length > 0 && (
-                <div>
-                  <div class="timeline-section-label">后续规划工具包（已附精选公开文档）</div>
-                  <div class="planned-packs-grid">
-                    {swPlannedPacks.map((t) => renderTrackCard(t, b1SwTracks, false))}
+              {swSecondaryPacks.length > 0 && (
+                <div className="space-y-3">
+                  <div className="text-[13px] font-medium text-[var(--ink-3)]">
+                    高频效率软件技能分包（独立开放 · 即学即用）
+                  </div>
+                  <div className="planned-packs-grid grid grid-cols-1 items-start gap-4 md:grid-cols-2">
+                    {swSecondaryPacks.map((t) => renderTrackCard(t, b1SwTracks, false))}
                   </div>
                 </div>
               )}
@@ -449,7 +521,7 @@ export function BranchesView({
           )}
         </div>
       ) : (
-        <section aria-label={`${branch.name}学习路径图`} class="tracks-stack">
+        <section aria-label={`${branch.name}学习路径图`} className="space-y-4">
           {branch.tracks.map((t) => renderTrackCard(t, branch.tracks))}
         </section>
       )}

@@ -1,17 +1,21 @@
-import { useEffect, useState } from 'preact/hooks';
 import {
-  IconBranches,
-  IconBriefcase,
-  IconCards,
-  IconClose,
-  IconExternal,
-  IconFlask,
-  IconMenu,
-  IconMonitor,
-  IconSprout,
-  IconSun,
-} from './components/Icons';
-import { loadPlatformContent, type PlatformContentBundle } from './core/contentLoader';
+  Briefcase,
+  Compass,
+  FlaskConical,
+  Layers,
+  Monitor,
+  Moon,
+  RefreshCw,
+  Search,
+  Sparkles,
+  Sun,
+} from 'lucide-react';
+import { motion } from 'motion/react';
+import { useEffect, useState } from 'react';
+import { Toaster, toast } from 'sonner';
+import { CommandPalette } from '@/components/CommandPalette';
+import { Badge, Button, Card, Skeleton } from '@/components/ui/primitives';
+import { loadPlatformContent, type PlatformContentBundle } from '@/core/contentLoader';
 import {
   clearTelemetry,
   exportTelemetryJson,
@@ -24,22 +28,19 @@ import {
   setDailyTipAcknowledged,
   subscribeTelemetrySync,
   toggleDailyTaskCompletion,
-} from './core/db';
-import {
-  computeContinuityFootprint,
-  ensureTodayPlanSnapshot,
-  getEffectiveDailyProgress,
-} from './core/scheduler';
-import { getRetestQueue } from './core/srs';
-import type { BranchId, ScheduledTaskItem, TelemetrySnapshot } from './types/schema';
-import { BranchesView } from './views/BranchesView';
-import { EventPacksView } from './views/EventPacksView';
-import { LifeLabWeeklyView } from './views/LifeLabWeeklyView';
-import { ReviewDeckView } from './views/ReviewDeckView';
-import { StatusWallView } from './views/StatusWallView';
-import { TaskPoolView } from './views/TaskPoolView';
-import { TodayView } from './views/TodayView';
-import { UnitPlayerView } from './views/UnitPlayerView';
+} from '@/core/db';
+import { ensureTodayPlanSnapshot } from '@/core/scheduler';
+import { getRetestQueue } from '@/core/srs';
+import { cn } from '@/lib/utils';
+import type { BranchId, ScheduledTaskItem, TelemetrySnapshot } from '@/types/schema';
+import { BranchesView } from '@/views/BranchesView';
+import { EventPacksView } from '@/views/EventPacksView';
+import { LifeLabWeeklyView } from '@/views/LifeLabWeeklyView';
+import { ReviewDeckView } from '@/views/ReviewDeckView';
+import { StatusWallView } from '@/views/StatusWallView';
+import { TaskPoolView } from '@/views/TaskPoolView';
+import { TodayView } from '@/views/TodayView';
+import { UnitPlayerView } from '@/views/UnitPlayerView';
 
 interface ParsedRoute {
   page: 'today' | 'branches' | 'unit' | 'review' | 'events' | 'lab' | 'wall';
@@ -48,6 +49,8 @@ interface ParsedRoute {
   reviewTab?: 'retest' | 'cards';
   wallSub?: 'main' | 'b1';
 }
+
+type ThemeMode = 'dark' | 'light';
 
 function parseHashRoute(hash: string): ParsedRoute {
   const clean = hash.replace(/^#\/?/, '');
@@ -74,37 +77,61 @@ function parseHashRoute(hash: string): ParsedRoute {
   return { page: 'today' };
 }
 
+function getInitialTheme(): ThemeMode {
+  if (typeof window === 'undefined') return 'dark';
+  try {
+    const saved = window.localStorage.getItem('msg-theme-v3');
+    return saved === 'light' ? 'light' : 'dark';
+  } catch {
+    return 'dark';
+  }
+}
+
 function formatMinutes(ms: number): string {
   const mins = ms / 60000;
   return mins < 1 && mins > 0 ? '<1 min' : `${Math.round(mins)} min`;
 }
 
-const PAGE_LABELS: Record<ParsedRoute['page'], string> = {
-  today: '今天',
-  branches: '七分支与技能树',
-  unit: '沉浸学习单元',
-  review: '重测与闪卡',
-  events: '生活事件包',
-  lab: '任务与实验室',
-  wall: '1080P 状态墙',
-};
+const NAV_ITEMS = [
+  { key: 'today', label: '今日主线', short: '今天', href: '#/', icon: Sparkles },
+  { key: 'branches', label: '技能星图', short: '星图', href: '#/branches', icon: Compass },
+  { key: 'review', label: '刷卡重测', short: '重测', href: '#/review?tab=retest', icon: Layers },
+  { key: 'events', label: '事件包', short: '事件', href: '#/events', icon: Briefcase },
+  { key: 'lab', label: '实验室', short: '实验', href: '#/lab', icon: FlaskConical },
+] as const;
 
 export function App() {
   const [route, setRoute] = useState<ParsedRoute>(() =>
     typeof window !== 'undefined' ? parseHashRoute(window.location.hash) : { page: 'today' }
   );
+  const [theme, setTheme] = useState<ThemeMode>(getInitialTheme);
+  const [cmdkOpen, setCmdkOpen] = useState<boolean>(false);
   const [content, setContent] = useState<PlatformContentBundle | null>(null);
   const [telemetry, setTelemetry] = useState<TelemetrySnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reloadTick, setReloadTick] = useState<number>(0);
   const [statusMsg, setStatusMsg] = useState<string>('');
   const [backupPreview, setBackupPreview] = useState<string>('');
   const [labTab, setLabTab] = useState<'pool' | 'experiment' | 'weekly' | 'backup'>('pool');
-  const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.theme = theme;
+    root.classList.toggle('dark', theme === 'dark');
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) {
+      meta.setAttribute('content', theme === 'light' ? '#f5f7fa' : '#0b0d12');
+    }
+    try {
+      window.localStorage.setItem('msg-theme-v3', theme);
+    } catch {
+      // ignore storage errors
+    }
+  }, [theme]);
 
   useEffect(() => {
     const onHashChange = () => {
       setRoute(parseHashRoute(window.location.hash));
-      setDrawerOpen(false);
       window.scrollTo({ top: 0, behavior: 'auto' });
     };
     window.addEventListener('hashchange', onHashChange);
@@ -113,17 +140,20 @@ export function App() {
 
   useEffect(() => {
     let mounted = true;
+    setError(null);
     Promise.all([loadPlatformContent(), loadTelemetry()])
       .then(async ([bundle, snap]) => {
         if (!mounted) return;
         setContent(bundle);
         const { plan, isNewlyGenerated } = ensureTodayPlanSnapshot(bundle, snap);
+        let latest = snap;
         if (isNewlyGenerated) {
-          const saved = await saveDailyPlanSnapshot(plan);
-          if (mounted) setTelemetry(saved);
-        } else {
-          setTelemetry(snap);
+          latest = await saveDailyPlanSnapshot({ ...plan, lowBatteryMode: false });
+        } else if (snap.currentDailyPlan?.lowBatteryMode) {
+          // 清理历史遗留的保底开关态，确保所有当日任务正常展示
+          latest = await setDailyLowBatteryMode(false);
         }
+        if (mounted) setTelemetry(latest);
       })
       .catch((err: unknown) => {
         if (mounted) setError(err instanceof Error ? err.message : String(err));
@@ -139,52 +169,76 @@ export function App() {
       mounted = false;
       unsub();
     };
-  }, []);
+  }, [reloadTick]);
+
+  const toggleTheme = () => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+
+  const navigateHash = (hash: string) => {
+    window.location.hash = hash;
+  };
 
   if (error) {
     return (
-      <main class="focus-shell">
-        <div class="surface-card">加载失败：{error}</div>
+      <main className="mx-auto flex min-h-screen max-w-[540px] items-center justify-center px-5">
+        <Card className="w-full space-y-4">
+          <Badge tone="danger">数据加载异常</Badge>
+          <h1 className="m-0 text-[20px] font-semibold text-[var(--ink-1)]">
+            无法读取学习内容包
+          </h1>
+          <p className="m-0 text-[14px] text-[var(--ink-2)]">{error}</p>
+          <Button variant="primary" onClick={() => setReloadTick((t) => t + 1)}>
+            <RefreshCw size={15} strokeWidth={1.5} />
+            <span>重新加载</span>
+          </Button>
+        </Card>
       </main>
     );
   }
 
   if (!content || !telemetry || !telemetry.currentDailyPlan) {
     return (
-      <main class="focus-shell">
-        <div class="surface-card loading-skeleton">正在准备今天的节奏台…</div>
-      </main>
+      <div className="min-h-screen bg-[var(--bg)]">
+        <div className="h-[56px] border-b border-[var(--line)] bg-[var(--surface-glass)]" />
+        <main className="mx-auto max-w-[1200px] space-y-5 px-4 py-8 sm:px-6">
+          <Skeleton className="h-7 w-48" />
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
+            <Skeleton className="h-[280px] w-full rounded-[14px]" />
+            <Skeleton className="h-[280px] w-full rounded-[14px]" />
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <Skeleton className="h-[150px] w-full rounded-[14px]" />
+            <Skeleton className="h-[150px] w-full rounded-[14px]" />
+            <Skeleton className="h-[150px] w-full rounded-[14px]" />
+          </div>
+        </main>
+      </div>
     );
   }
 
   const plan = telemetry.currentDailyPlan;
   const isLive = hasLiveTelemetry(telemetry);
-  const todayProgress = getEffectiveDailyProgress(plan);
-  const continuity = computeContinuityFootprint(telemetry.activeDates, plan.dateKey);
   const retestQueue = getRetestQueue(content.knowledgeGraph, content.units, telemetry);
   const pendingRetestCount = retestQueue.dueItems.length + retestQueue.upcomingItems.length;
-
-  const handleToggleLowBattery = async (enabled: boolean) => {
-    const next = await setDailyLowBatteryMode(enabled);
-    setTelemetry(next);
-  };
 
   const handleToggleTipAck = async (ack: boolean) => {
     const next = await setDailyTipAcknowledged(ack);
     setTelemetry(next);
+    if (ack) toast.success('已收起今日一招');
   };
 
   const handleToggleTask = async (task: ScheduledTaskItem) => {
+    const wasDone = plan.completedTaskIds.includes(task.id);
     const next = await toggleDailyTaskCompletion(task);
     setTelemetry(next);
+    toast(wasDone ? `已取消完成：${task.title}` : `已完成：${task.title}`);
   };
 
   const handleOpenUnit = (unitId: string) => {
-    window.location.hash = `#/unit/${encodeURIComponent(unitId)}`;
+    navigateHash(`#/unit/${encodeURIComponent(unitId)}`);
   };
 
   const handleBackToBranches = (branchId: BranchId) => {
-    window.location.hash = `#/branches?b=${branchId}`;
+    navigateHash(`#/branches?b=${branchId}`);
   };
 
   const handleSaveMilestone = async (input: {
@@ -196,37 +250,45 @@ export function App() {
   }) => {
     const next = await recordMilestoneSubmission(input);
     setTelemetry(next);
+    toast.success('阶段实战产出已登记归档');
   };
 
   const handleExport = async () => {
     const json = await exportTelemetryJson();
     setBackupPreview(json);
-    setStatusMsg('已生成当前本地学习记录 JSON 快照，可全选复制或另存为文件。');
+    setStatusMsg('已生成当前本地学习记录 JSON 快照，可复制保存');
+    toast.success('已生成本地 JSON 备份');
   };
 
   const handleImport = async () => {
     if (!backupPreview.trim()) {
-      setStatusMsg('请先点击「导出 JSON 备份」或在下方粘贴合法的备份 JSON。');
+      setStatusMsg('请先点击「导出 JSON 备份」或在下方粘贴合法的备份 JSON');
       return;
     }
     try {
       const imported = await importTelemetryJson(backupPreview);
       const { plan: ensured, isNewlyGenerated } = ensureTodayPlanSnapshot(content, imported);
-      const finalSnap = isNewlyGenerated ? await saveDailyPlanSnapshot(ensured) : imported;
+      const finalSnap = isNewlyGenerated
+        ? await saveDailyPlanSnapshot({ ...ensured, lowBatteryMode: false })
+        : imported;
       setTelemetry(finalSnap);
-      setStatusMsg('备份 JSON 导入成功，本地记录与今日进度已同步更新。');
+      setStatusMsg('备份 JSON 导入成功，本地记录与今日进度已同步更新');
+      toast.success('备份导入成功');
     } catch (err) {
-      setStatusMsg(`导入失败：${err instanceof Error ? err.message : String(err)}`);
+      const msg = `导入失败：${err instanceof Error ? err.message : String(err)}`;
+      setStatusMsg(msg);
+      toast.error(msg);
     }
   };
 
   const handleReset = async () => {
     const empty = await clearTelemetry();
     const { plan: freshPlan } = ensureTodayPlanSnapshot(content, empty);
-    const saved = await saveDailyPlanSnapshot(freshPlan);
+    const saved = await saveDailyPlanSnapshot({ ...freshPlan, lowBatteryMode: false });
     setTelemetry(saved);
     setBackupPreview('');
-    setStatusMsg('已重置本地留痕并重新生成干净的今日清单。');
+    setStatusMsg('已重置本地留痕并重新生成干净的今日清单');
+    toast('已重置本地学习记录');
   };
 
   const aiDurationMs = telemetry.sessionDurations
@@ -237,11 +299,9 @@ export function App() {
     .reduce((acc, d) => acc + d.durationMs, 0);
 
   const activeUnit =
-    route.page === 'unit'
-      ? content.units.find((u) => u.id === route.unitId)
-      : undefined;
+    route.page === 'unit' ? content.units.find((u) => u.id === route.unitId) : undefined;
 
-  // 独立全屏 1080P 个人状态墙路由
+  // 1080P 全屏个人状态墙路由
   if (route.page === 'wall') {
     return (
       <StatusWallView
@@ -252,28 +312,44 @@ export function App() {
     );
   }
 
-  // 学习单元专注全屏接管模式（隐藏侧栏与底部 Tab，100% 聚焦动图导学与自测）
+  // 互动学习单元专注分屏模式
   if (route.page === 'unit') {
     return (
-      <div class="focus-mode-root">
+      <div className="min-h-screen bg-[var(--bg)] text-[var(--ink-1)]">
+        <a href="#main-content" className="skip-link">
+          跳至主内容
+        </a>
+        <Toaster theme={theme} position="bottom-right" />
+        <CommandPalette
+          open={cmdkOpen}
+          onOpenChange={setCmdkOpen}
+          content={content}
+          onNavigate={navigateHash}
+        />
         {activeUnit ? (
           <UnitPlayerView
             key={activeUnit.id}
             unit={activeUnit}
             content={content}
             telemetry={telemetry}
+            theme={theme}
+            onToggleTheme={toggleTheme}
+            onOpenCommandPalette={() => setCmdkOpen(true)}
             onTelemetryChange={setTelemetry}
             onBackToBranches={handleBackToBranches}
             onOpenUnit={handleOpenUnit}
           />
         ) : (
-          <main class="focus-shell">
-            <section class="surface-card">
-              <h1 class="page-h1">未找到对应学习单元</h1>
-              <a href="#/branches" class="btn btn-primary">
-                返回七分支路径图
-              </a>
-            </section>
+          <main id="main-content" className="mx-auto max-w-[640px] px-4 py-12">
+            <Card className="space-y-4">
+              <h1 className="m-0 text-[22px] font-semibold">未找到对应学习单元</h1>
+              <p className="m-0 text-[14px] text-[var(--ink-2)]">
+                该单元编号不存在或尚未发布，可返回技能星图查看全部开放单元
+              </p>
+              <Button variant="primary" onClick={() => navigateHash('#/branches')}>
+                返回七分支技能星图
+              </Button>
+            </Card>
           </main>
         )}
       </div>
@@ -281,360 +357,333 @@ export function App() {
   }
 
   return (
-    <div class="workbench-shell">
-      {/* 移动端与平板精简顶栏 */}
-      <header class="mobile-topbar">
-        <div class="mobile-topbar-left">
-          <button
-            type="button"
-            class="icon-only-btn tablet-drawer-btn"
-            aria-label="打开导航抽屉"
-            onClick={() => setDrawerOpen((v) => !v)}
-          >
-            {drawerOpen ? <IconClose size={18} /> : <IconMenu size={18} />}
-          </button>
-          <a href="#/" class="mobile-brand-link">
-            <span class="brand-mark-badge">
-              <IconSprout size={15} />
-            </span>
-            <span class="mobile-brand-name">现代必备生存指南</span>
-          </a>
-          <span class="mobile-route-sep">/</span>
-          <span class="mobile-route-label">{PAGE_LABELS[route.page]}</span>
-        </div>
-        <a href="#/wall" class="mobile-wall-link" aria-label="打开状态墙">
-          <IconMonitor size={15} />
-          <span>状态墙</span>
-        </a>
-      </header>
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--ink-1)] pb-[76px] md:pb-12">
+      <a href="#main-content" className="skip-link">
+        跳至主内容
+      </a>
+      <Toaster theme={theme} position="bottom-right" />
+      <CommandPalette
+        open={cmdkOpen}
+        onOpenChange={setCmdkOpen}
+        content={content}
+        onNavigate={navigateHash}
+      />
 
-      {/* 平板抽屉遮罩 */}
-      {drawerOpen && (
-        <div
-          class="sidebar-scrim"
-          onClick={() => setDrawerOpen(false)}
-          aria-hidden="true"
-        />
-      )}
-
-      {/* 桌面固定左侧工作区侧栏（244px） */}
-      <aside class={`workbench-sidebar ${drawerOpen ? 'is-open' : ''}`} aria-label="主工作区导航">
-        <a href="#/" class="sidebar-brand">
-          <span class="brand-mark-badge">
-            <IconSprout size={17} />
-          </span>
-          <div class="sidebar-brand-copy">
-            <span class="sidebar-brand-title">现代必备生存指南</span>
-            <span class="sidebar-brand-sub">生产力与生活掌控台</span>
-          </div>
-        </a>
-
-        <nav class="sidebar-nav" aria-label="主导航">
-          <div class="sidebar-group-label">日常学习</div>
+      {/* 顶部悬浮精密导航 Dock（56px） */}
+      <header className="sticky top-0 z-40 h-[56px] border-b border-[var(--line)] bg-[var(--surface-glass)] backdrop-blur-md">
+        <div className="mx-auto flex h-full max-w-[1200px] items-center justify-between gap-3 px-4 sm:px-6">
+          {/* 品牌标识（零渐变底块，纯几何刻线标志） */}
           <a
             href="#/"
-            class={`sidebar-link ${route.page === 'today' ? 'is-active' : ''}`}
-            aria-current={route.page === 'today' ? 'page' : undefined}
+            className="flex items-center gap-2.5 text-[var(--ink-1)] no-underline shrink-0"
           >
-            <IconSun size={17} />
-            <span class="sidebar-link-text">今天</span>
-            <span class="sidebar-badge tabular-num">
-              {todayProgress.completedActiveCount}/{todayProgress.totalActiveCount}
+            <span className="flex h-7 w-7 items-center justify-center rounded-[7px] border border-[var(--line-strong)] bg-[var(--surface)]">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4" opacity="0.45" />
+                <path
+                  d="M8 3.2L10.8 8L8 12.8L5.2 8L8 3.2Z"
+                  fill="var(--accent)"
+                />
+              </svg>
+            </span>
+            <span className="text-[14.5px] font-semibold tracking-[-0.01em] whitespace-nowrap">
+              现代必备生存指南
             </span>
           </a>
 
-          <a
-            href="#/branches"
-            class={`sidebar-link ${route.page === 'branches' ? 'is-active' : ''}`}
-            aria-current={route.page === 'branches' ? 'page' : undefined}
+          {/* 桌面主导航（Motion layoutId 平滑滑轨） */}
+          <nav
+            aria-label="主导航"
+            className="hidden md:flex items-center gap-1 rounded-[10px] border border-[var(--line)] bg-[var(--surface)] p-1"
           >
-            <IconBranches size={17} />
-            <span class="sidebar-link-text">七分支路径</span>
-          </a>
-
-          <a
-            href="#/review?tab=retest"
-            class={`sidebar-link ${route.page === 'review' ? 'is-active' : ''}`}
-            aria-current={route.page === 'review' ? 'page' : undefined}
-          >
-            <IconCards size={17} />
-            <span class="sidebar-link-text">重测与闪卡</span>
-            {pendingRetestCount > 0 && (
-              <span class="sidebar-badge is-alert tabular-num">{pendingRetestCount}</span>
-            )}
-          </a>
-
-          <div class="sidebar-group-label">生活实践</div>
-          <a
-            href="#/events"
-            class={`sidebar-link ${route.page === 'events' ? 'is-active' : ''}`}
-            aria-current={route.page === 'events' ? 'page' : undefined}
-          >
-            <IconBriefcase size={17} />
-            <span class="sidebar-link-text">生活事件包</span>
-          </a>
-
-          <a
-            href="#/lab"
-            class={`sidebar-link ${route.page === 'lab' ? 'is-active' : ''}`}
-            aria-current={route.page === 'lab' ? 'page' : undefined}
-          >
-            <IconFlask size={17} />
-            <span class="sidebar-link-text">任务与实验室</span>
-          </a>
-        </nav>
-
-        <div class="sidebar-footer">
-          <div class="sidebar-streak-box" title="累计活跃天数，断更不清零">
-            <div class="sidebar-streak-head">
-              <span class="sidebar-streak-label">累计点亮</span>
-              <strong class="sidebar-streak-val tabular-num">{continuity.totalActiveDays} 天</strong>
-            </div>
-            <div class="mini-dots-row" aria-label="近 7 天点亮足迹">
-              {continuity.recent14Days.slice(-7).map((d) => (
-                <span
-                  key={d.dateKey}
-                  class={`mini-dot ${d.isActive ? 'is-lit' : ''} ${d.isToday ? 'is-today' : ''}`}
-                  title={d.dateKey}
-                />
-              ))}
-            </div>
-          </div>
-
-          <a href="#/wall" class="sidebar-wall-btn">
-            <IconMonitor size={16} />
-            <span>1080P 状态墙</span>
-            <IconExternal size={13} class="wall-ext-icon" />
-          </a>
-        </div>
-      </aside>
-
-      {/* 右侧主学习画布 */}
-      <main class="workbench-main">
-        <div class="workbench-content">
-          {route.page === 'today' && (
-            <TodayView
-              content={content}
-              telemetry={telemetry}
-              plan={plan}
-              onToggleLowBattery={handleToggleLowBattery}
-              onToggleTipAck={handleToggleTipAck}
-              onToggleTask={handleToggleTask}
-            />
-          )}
-
-          {route.page === 'branches' && (
-            <BranchesView
-              content={content}
-              telemetry={telemetry}
-              initialBranchId={route.branchId ?? 'B1'}
-              onOpenUnit={handleOpenUnit}
-              onSaveMilestone={handleSaveMilestone}
-            />
-          )}
-
-          {route.page === 'review' && (
-            <ReviewDeckView
-              content={content}
-              telemetry={telemetry}
-              initialTab={route.reviewTab}
-              onTelemetryChange={setTelemetry}
-              onOpenUnit={handleOpenUnit}
-            />
-          )}
-
-          {route.page === 'events' && (
-            <EventPacksView
-              content={content}
-              telemetry={telemetry}
-              onTelemetryChange={setTelemetry}
-              onOpenUnit={handleOpenUnit}
-            />
-          )}
-
-          {route.page === 'lab' && (
-            <div class="lab-workspace">
-              <header class="page-header-strip">
-                <div>
-                  <h1 class="page-h1">真实任务与生活实验室</h1>
-                  <p class="page-subtitle">
-                    把真实待办接进学习行动步，按月做可控变量生活实验，并随时导出本地 JSON 备份。
-                  </p>
-                </div>
-              </header>
-
-              <div class="underline-tabs" role="tablist" aria-label="实践实验室子视图">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={labTab === 'pool'}
-                  class={`underline-tab ${labTab === 'pool' ? 'is-active' : ''}`}
-                  onClick={() => setLabTab('pool')}
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const isActive = route.page === item.key;
+              return (
+                <a
+                  key={item.key}
+                  href={item.href}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={cn(
+                    'relative inline-flex items-center gap-1.5 rounded-[7px] px-3 py-1.5 text-[13.5px] font-medium no-underline transition-colors',
+                    isActive
+                      ? 'text-[var(--ink-1)]'
+                      : 'text-[var(--ink-2)] hover:text-[var(--ink-1)]'
+                  )}
                 >
-                  真实任务池
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={labTab === 'experiment'}
-                  class={`underline-tab ${labTab === 'experiment' ? 'is-active' : ''}`}
-                  onClick={() => setLabTab('experiment')}
-                >
-                  月度生活实验室
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={labTab === 'weekly'}
-                  class={`underline-tab ${labTab === 'weekly' ? 'is-active' : ''}`}
-                  onClick={() => setLabTab('weekly')}
-                >
-                  每周生活复盘
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={labTab === 'backup'}
-                  class={`underline-tab ${labTab === 'backup' ? 'is-active' : ''}`}
-                  onClick={() => setLabTab('backup')}
-                >
-                  本地留痕与 JSON 备份
-                </button>
-              </div>
-
-              {labTab === 'pool' && (
-                <TaskPoolView
-                  content={content}
-                  telemetry={telemetry}
-                  onTelemetryChange={setTelemetry}
-                  onOpenUnit={handleOpenUnit}
-                />
-              )}
-
-              {labTab === 'experiment' && (
-                <LifeLabWeeklyView
-                  content={content}
-                  telemetry={telemetry}
-                  mode="lab"
-                  onTelemetryChange={setTelemetry}
-                />
-              )}
-
-              {labTab === 'weekly' && (
-                <LifeLabWeeklyView
-                  content={content}
-                  telemetry={telemetry}
-                  mode="weekly"
-                  onTelemetryChange={setTelemetry}
-                />
-              )}
-
-              {labTab === 'backup' && (
-                <section class="surface-card" aria-label="留痕与数据备份面板">
-                  <div class="section-head-row">
-                    <div>
-                      <h2 class="section-h2">本地数据快照与跨设备备份</h2>
-                      <p class="muted-desc">
-                        全部数据保存在当前浏览器 IndexedDB（无云同步），跨设备迁移请导出 JSON 并在新设备导入。
-                      </p>
-                    </div>
-                    <span class={`status-chip ${isLive ? 'chip-growth' : 'chip-warning'}`}>
-                      {isLive ? '已有真实留痕' : '当前为空白态'}
-                    </span>
-                  </div>
-
-                  <div class="kpi-strip-4">
-                    <div class="kpi-cell">
-                      <span class="kpi-label">累计点亮天数</span>
-                      <strong class="kpi-num tabular-num">{telemetry.activeDates.length} 天</strong>
-                    </div>
-                    <div class="kpi-cell">
-                      <span class="kpi-label">AI 能力线投入</span>
-                      <strong class="kpi-num tabular-num">{formatMinutes(aiDurationMs)}</strong>
-                    </div>
-                    <div class="kpi-cell">
-                      <span class="kpi-label">软件技能线投入</span>
-                      <strong class="kpi-num tabular-num">{formatMinutes(swDurationMs)}</strong>
-                    </div>
-                    <div class="kpi-cell">
-                      <span class="kpi-label">已过关单元</span>
-                      <strong class="kpi-num tabular-num">
-                        {Object.values(telemetry.unitSubmissions).filter((u) => u.isCleared).length} 节
-                      </strong>
-                    </div>
-                  </div>
-
-                  <div class="btn-row">
-                    <button type="button" class="btn btn-primary" onClick={handleExport}>
-                      导出 JSON 备份
-                    </button>
-                    <button type="button" class="btn" onClick={handleImport}>
-                      导入校验 JSON
-                    </button>
-                    <button type="button" class="btn btn-danger-ghost" onClick={handleReset}>
-                      重置本地留痕
-                    </button>
-                  </div>
-
-                  {statusMsg && <div class="status-note">{statusMsg}</div>}
-                  {backupPreview && (
-                    <textarea
-                      aria-label="JSON 备份内容"
-                      class="backup-textarea"
-                      value={backupPreview}
-                      onInput={(e) => setBackupPreview((e.target as HTMLTextAreaElement).value)}
-                      rows={6}
+                  {isActive && (
+                    <motion.span
+                      layoutId="dock-active-pill"
+                      transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                      className="absolute inset-0 rounded-[7px] bg-[var(--surface-raised)] border border-[var(--line-strong)]"
                     />
                   )}
-                </section>
+                  <span className="relative z-10 inline-flex items-center gap-1.5">
+                    <Icon size={14} strokeWidth={1.5} />
+                    <span>{item.label}</span>
+                    {item.key === 'review' && pendingRetestCount > 0 && (
+                      <span className="font-mono-num rounded bg-[var(--warning-soft)] px-1.5 py-0.2 text-[11px] text-[var(--warning)]">
+                        {pendingRetestCount}
+                      </span>
+                    )}
+                  </span>
+                </a>
+              );
+            })}
+          </nav>
+
+          {/* 右侧工具组：⌘K 全局检索 + 明暗双主题 + 1080P 状态墙 */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              data-testid="cmdk-trigger"
+              aria-label="全局快速搜索"
+              onClick={() => setCmdkOpen(true)}
+              className="inline-flex h-[36px] max-[480px]:h-[44px] cursor-pointer items-center gap-2 rounded-[8px] border border-[var(--line-strong)] bg-[var(--surface)] px-2.5 text-[13px] text-[var(--ink-2)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--ink-1)]"
+            >
+              <Search size={14} strokeWidth={1.5} />
+              <span className="hidden lg:inline">快速跳转</span>
+              <kbd className="hidden sm:inline font-mono-num rounded border border-[var(--line)] bg-[var(--surface-raised)] px-1.5 py-0.5 text-[11px] text-[var(--ink-3)]">
+                ⌘K
+              </kbd>
+            </button>
+
+            <button
+              type="button"
+              data-testid="theme-toggle"
+              aria-label={theme === 'dark' ? '切换至冰蓝宣白浅色主题' : '切换至深空炭墨暗色主题'}
+              onClick={toggleTheme}
+              className="inline-flex h-[36px] w-[36px] max-[480px]:h-[44px] max-[480px]:w-[44px] cursor-pointer items-center justify-center rounded-[8px] border border-[var(--line-strong)] bg-[var(--surface)] text-[var(--ink-2)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--ink-1)]"
+            >
+              {theme === 'dark' ? (
+                <Sun size={15} strokeWidth={1.5} />
+              ) : (
+                <Moon size={15} strokeWidth={1.5} />
               )}
-            </div>
-          )}
+            </button>
+
+            <a
+              href="#/wall"
+              aria-label="打开 1080P 状态墙"
+              className="inline-flex h-[36px] max-[480px]:h-[44px] items-center gap-1.5 rounded-[8px] border border-[var(--line-strong)] bg-[var(--surface)] px-2.5 text-[13px] font-medium text-[var(--ink-1)] no-underline transition-colors hover:bg-[var(--surface-raised)]"
+            >
+              <Monitor size={14} strokeWidth={1.5} className="text-[var(--accent)]" />
+              <span className="hidden sm:inline">状态墙</span>
+            </a>
+          </div>
         </div>
+      </header>
+
+      {/* 主学习工作画布 */}
+      <main id="main-content" className="mx-auto max-w-[1200px] px-4 py-6 sm:px-6 sm:py-8">
+        {route.page === 'today' && (
+          <TodayView
+            content={content}
+            telemetry={telemetry}
+            plan={plan}
+            onToggleTipAck={handleToggleTipAck}
+            onToggleTask={handleToggleTask}
+          />
+        )}
+
+        {route.page === 'branches' && (
+          <BranchesView
+            content={content}
+            telemetry={telemetry}
+            initialBranchId={route.branchId ?? 'B1'}
+            onOpenUnit={handleOpenUnit}
+            onSaveMilestone={handleSaveMilestone}
+          />
+        )}
+
+        {route.page === 'review' && (
+          <ReviewDeckView
+            content={content}
+            telemetry={telemetry}
+            initialTab={route.reviewTab}
+            onTelemetryChange={setTelemetry}
+            onOpenUnit={handleOpenUnit}
+          />
+        )}
+
+        {route.page === 'events' && (
+          <EventPacksView
+            content={content}
+            telemetry={telemetry}
+            onTelemetryChange={setTelemetry}
+            onOpenUnit={handleOpenUnit}
+          />
+        )}
+
+        {route.page === 'lab' && (
+          <div className="space-y-6">
+            <header className="space-y-1.5">
+              <h1 className="m-0 text-[24px] sm:text-[28px] font-semibold tracking-[-0.02em] text-[var(--ink-1)]">
+                真实任务与生活实验室
+              </h1>
+              <p className="m-0 text-[14.5px] text-[var(--ink-2)]">
+                把真实待办接进学习行动步，按月做可控变量生活实验，并随时导出本地 JSON 备份
+              </p>
+            </header>
+
+            <div
+              className="flex items-center gap-1 overflow-x-auto overflow-y-hidden border-b border-[var(--line)] pb-px"
+              role="tablist"
+              aria-label="实践实验室子视图"
+            >
+              {(
+                [
+                  { id: 'pool', label: '真实任务池' },
+                  { id: 'experiment', label: '月度生活实验室' },
+                  { id: 'weekly', label: '每周生活复盘' },
+                  { id: 'backup', label: '本地留痕与备份' },
+                ] as const
+              ).map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={labTab === t.id}
+                  onClick={() => setLabTab(t.id)}
+                  className={cn(
+                    'cursor-pointer whitespace-nowrap border-b-2 px-3.5 py-2.5 text-[14px] font-medium transition-colors',
+                    labTab === t.id
+                      ? 'border-[var(--accent)] text-[var(--ink-1)]'
+                      : 'border-transparent text-[var(--ink-3)] hover:text-[var(--ink-1)]'
+                  )}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {labTab === 'pool' && (
+              <TaskPoolView
+                content={content}
+                telemetry={telemetry}
+                onTelemetryChange={setTelemetry}
+                onOpenUnit={handleOpenUnit}
+              />
+            )}
+
+            {labTab === 'experiment' && (
+              <LifeLabWeeklyView
+                content={content}
+                telemetry={telemetry}
+                mode="lab"
+                onTelemetryChange={setTelemetry}
+              />
+            )}
+
+            {labTab === 'weekly' && (
+              <LifeLabWeeklyView
+                content={content}
+                telemetry={telemetry}
+                mode="weekly"
+                onTelemetryChange={setTelemetry}
+              />
+            )}
+
+            {labTab === 'backup' && (
+              <Card className="space-y-5" aria-label="留痕与数据备份面板">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h2 className="m-0 text-[18px] font-semibold text-[var(--ink-1)]">
+                      本地数据快照与跨设备备份
+                    </h2>
+                    <p className="mt-1 mb-0 text-[13.5px] text-[var(--ink-2)]">
+                      全部数据保存在当前浏览器 IndexedDB，跨设备迁移请导出 JSON 并在新设备导入
+                    </p>
+                  </div>
+                  <Badge tone={isLive ? 'growth' : 'warning'}>
+                    {isLive ? '已有真实留痕' : '当前为空白态'}
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  <div className="v3-card-raised p-3.5">
+                    <div className="text-[12px] text-[var(--ink-3)]">累计点亮天数</div>
+                    <strong className="mt-1 block font-mono-num text-[22px] font-semibold text-[var(--ink-1)]">
+                      {telemetry.activeDates.length} 天
+                    </strong>
+                  </div>
+                  <div className="v3-card-raised p-3.5">
+                    <div className="text-[12px] text-[var(--ink-3)]">AI 能力线投入</div>
+                    <strong className="mt-1 block font-mono-num text-[22px] font-semibold text-[var(--ink-1)]">
+                      {formatMinutes(aiDurationMs)}
+                    </strong>
+                  </div>
+                  <div className="v3-card-raised p-3.5">
+                    <div className="text-[12px] text-[var(--ink-3)]">软件技能线投入</div>
+                    <strong className="mt-1 block font-mono-num text-[22px] font-semibold text-[var(--ink-1)]">
+                      {formatMinutes(swDurationMs)}
+                    </strong>
+                  </div>
+                  <div className="v3-card-raised p-3.5">
+                    <div className="text-[12px] text-[var(--ink-3)]">已过关单元</div>
+                    <strong className="mt-1 block font-mono-num text-[22px] font-semibold text-[var(--ink-1)]">
+                      {Object.values(telemetry.unitSubmissions).filter((u) => u.isCleared).length}{' '}
+                      节
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <Button variant="primary" onClick={handleExport}>
+                    导出 JSON 备份
+                  </Button>
+                  <Button variant="outline" onClick={handleImport}>
+                    导入校验 JSON
+                  </Button>
+                  <Button variant="danger" onClick={handleReset}>
+                    重置本地留痕
+                  </Button>
+                </div>
+
+                {statusMsg && (
+                  <div className="rounded-[8px] border border-[var(--line)] bg-[var(--surface-raised)] px-3.5 py-2.5 text-[13.5px] text-[var(--ink-2)]">
+                    {statusMsg}
+                  </div>
+                )}
+
+                {backupPreview && (
+                  <textarea
+                    aria-label="JSON 备份内容"
+                    className="v3-textarea font-mono-num text-[12.5px]"
+                    value={backupPreview}
+                    onChange={(e) => setBackupPreview(e.target.value)}
+                    rows={6}
+                  />
+                )}
+              </Card>
+            )}
+          </div>
+        )}
       </main>
 
-      {/* 手机端固定底部 5 项 Tab 栏 */}
-      <nav class="mobile-bottom-tabs" aria-label="手机主导航">
-        <a
-          href="#/"
-          class={`mobile-tab-item ${route.page === 'today' ? 'is-active' : ''}`}
-          aria-current={route.page === 'today' ? 'page' : undefined}
-        >
-          <IconSun size={19} />
-          <span>今天</span>
-        </a>
-        <a
-          href="#/branches"
-          class={`mobile-tab-item ${route.page === 'branches' ? 'is-active' : ''}`}
-          aria-current={route.page === 'branches' ? 'page' : undefined}
-        >
-          <IconBranches size={19} />
-          <span>分支</span>
-        </a>
-        <a
-          href="#/review?tab=retest"
-          class={`mobile-tab-item ${route.page === 'review' ? 'is-active' : ''}`}
-          aria-current={route.page === 'review' ? 'page' : undefined}
-        >
-          <IconCards size={19} />
-          <span>重测</span>
-        </a>
-        <a
-          href="#/events"
-          class={`mobile-tab-item ${route.page === 'events' ? 'is-active' : ''}`}
-          aria-current={route.page === 'events' ? 'page' : undefined}
-        >
-          <IconBriefcase size={19} />
-          <span>事件</span>
-        </a>
-        <a
-          href="#/lab"
-          class={`mobile-tab-item ${route.page === 'lab' ? 'is-active' : ''}`}
-          aria-current={route.page === 'lab' ? 'page' : undefined}
-        >
-          <IconFlask size={19} />
-          <span>实验</span>
-        </a>
+      {/* 手机端固定底部 5 项 Dock（≥44px 触控热区） */}
+      <nav
+        aria-label="手机主导航"
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[var(--line)] bg-[var(--surface-glass)] backdrop-blur-md md:hidden"
+      >
+        {NAV_ITEMS.map((item) => {
+          const Icon = item.icon;
+          const isActive = route.page === item.key;
+          return (
+            <a
+              key={item.key}
+              href={item.href}
+              aria-current={isActive ? 'page' : undefined}
+              className={cn(
+                'flex min-h-[56px] flex-col items-center justify-center gap-1 text-[11px] font-medium no-underline transition-colors',
+                isActive ? 'text-[var(--accent)]' : 'text-[var(--ink-3)]'
+              )}
+            >
+              <Icon size={18} strokeWidth={1.6} />
+              <span>{item.short}</span>
+            </a>
+          );
+        })}
       </nav>
     </div>
   );

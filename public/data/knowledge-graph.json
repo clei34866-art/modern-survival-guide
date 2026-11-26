@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "3.0.0",
   "nodes": [
     {
       "id": "b1.prompt_context_boundary",
@@ -47,6 +47,56 @@
       "crossLinks": []
     },
     {
+      "id": "b1.numpy_vectorization",
+      "branchId": "B1",
+      "label": "NumPy 向量化与只读原始数据管道",
+      "plainDefinition": "把实验 CSV 保持只读底稿，用 NumPy 向量化与 Pandas 脚本完成清洗和绘图，兼顾高速运算与 100% 科研可复现。",
+      "cardPrompt": "为什么科研数据清洗绝不能直接在原始 CSV 上手工修改，且整列运算优先用 NumPy 向量化？",
+      "cardAnswer": "只读保留底稿配合脚本可追溯每步变换；NumPy 向量化在连续内存的 C/SIMD 层整块执行，比纯 Python 循环快数十倍且公式清晰。",
+      "prerequisites": [],
+      "crossLinks": [
+        {
+          "targetId": "b1.git_branch_reflog",
+          "bridgeNote": "把清洗脚本纳入 Git 版本管理，每次参数调整都留有可回退历史。"
+        }
+      ]
+    },
+    {
+      "id": "b1.ml_leakage_overfit",
+      "branchId": "B1",
+      "label": "防数据泄漏 Pipeline 与过拟合诊断",
+      "plainDefinition": "预处理必须先划分训练/测试集再仅在训练集上拟合；紧盯训练与验证曲线分叉防死背噪音，类别不平衡时看 Recall/F1 而非单一准确率。",
+      "cardPrompt": "为什么必须把 `StandardScaler` 放进 Scikit-learn `Pipeline` 而不能先对全量数据集做缩放再切测试集？",
+      "cardAnswer": "全量先缩放会把测试集均值方差泄漏进训练过程，虚高离线验证分数导致真实泛化崩盘；Pipeline 保证每折只在训练集内拟合。",
+      "prerequisites": ["b1.numpy_vectorization"],
+      "crossLinks": []
+    },
+    {
+      "id": "b1.transformer_rag_loop",
+      "branchId": "B1",
+      "label": "自注意力机制与混合检索 RAG",
+      "plainDefinition": "Transformer 用 Query/Key/Value 动态加权读取上下文；RAG 把动态文献库与语言推理分离，用「语义切块 + 关键词/向量混合检索」实现可溯源问答。",
+      "cardPrompt": "搭建需要随时增删论文且逐句标出处的个人知识库，为什么优先用 RAG 而非直接微调模型权重？",
+      "cardAnswer": "微调适合改写风格与格式但不适合存动态精确事实；RAG 检索最新原文片段塞入上下文，更新零成本且能配合 Quote-First 逐句核源。",
+      "prerequisites": ["b1.quote_first_verification"],
+      "crossLinks": [
+        {
+          "targetId": "b1.markdown_atomic_notes",
+          "bridgeNote": "清晰的原子化 Markdown 笔记天然就是高质量 RAG 知识库切块。"
+        }
+      ]
+    },
+    {
+      "id": "b1.paper_three_pass_eval",
+      "branchId": "B1",
+      "label": "论文三遍精读与消融实验审视",
+      "plainDefinition": "第一遍 10 分钟扫标题摘要主图局限做筛滤，第二遍紧盯消融实验和基线公平性，仅对最核心 10% 论文投入第三遍代码复现。",
+      "cardPrompt": "判断一篇前沿 AI 论文提出的新模块是否真有实质提升，最该核查论文的哪一部分？",
+      "cardAnswer": "重点看消融实验（Ablation Study）和 Limitations：观察移除该模块后指标是否显著回落，以及数据量级与基线调优是否公平。",
+      "prerequisites": ["b1.transformer_rag_loop"],
+      "crossLinks": []
+    },
+    {
       "id": "math.matrix_transform",
       "branchId": "B1",
       "label": "三维齐次变换矩阵（共用数学节点）",
@@ -90,6 +140,56 @@
       "cardAnswer": "obj 会直接被移动两倍距离，因为 loc 持有内部数据引用；若只需读取计算，应写 loc = obj.location.copy()。",
       "prerequisites": ["math.matrix_transform", "b1.bpy_scene_data"],
       "crossLinks": []
+    },
+    {
+      "id": "b1.office_style_pivot",
+      "branchId": "B1",
+      "label": "长文档样式自动化与数据透视表",
+      "plainDefinition": "用内置标题样式、分页/分节符与图表交叉引用管理长报告，一维规范流水表配合数据透视表 30 秒完成多维统计。",
+      "cardPrompt": "为什么长论文改图或换页时严禁用连续敲回车和手写「图 2-3」编号？",
+      "cardAnswer": "前文增删会导致回车错位和全篇编号连锁崩盘；用分页符、自动题注与交叉引用域后，全选按 F9 一键无错同步。",
+      "prerequisites": [],
+      "crossLinks": []
+    },
+    {
+      "id": "b1.git_branch_reflog",
+      "branchId": "B1",
+      "label": "Git 独立分支隔离与 reflog/revert 后悔药",
+      "plainDefinition": "主干永远保底可运行，新改动切分支小步 commit；本地误删用 `git reflog` 找回，已推公共分支用 `git revert` 安全反向抵消。",
+      "cardPrompt": "什么时候用 `git revert`，什么时候才用 `git reflog`？",
+      "cardAnswer": "已推送至共享远程分支的错误用 `git revert` 新增抵消提交不改公共历史；本地手滑 `reset --hard` 丢提交时用 `git reflog` 查旧哈希恢复。",
+      "prerequisites": [],
+      "crossLinks": []
+    },
+    {
+      "id": "b1.markdown_atomic_notes",
+      "branchId": "B1",
+      "label": "本地 Markdown 原子卡片与防囤积双链",
+      "plainDefinition": "拒绝全文剪藏吃灰：用开放本地 `.md` 存 200 字内个人转述 + 原始出处 + 双向链接，把 50% 精力投在加工与复用而非折腾插件。",
+      "cardPrompt": "怎样避免笔记软件变成塞满上千篇未读剪藏的「数字垃圾场」？",
+      "cardAnswer": "坚持不原文照搬，每篇只写 4 行个人转述原子卡（核心结论/原出处/局限/双链关联），让卡片随时可拼装进报告和文章。",
+      "prerequisites": [],
+      "crossLinks": [
+        {
+          "targetId": "b6.feynman_energy_match",
+          "bridgeNote": "用自己的大白话写原子卡片，本身就是最高效的费曼输出检验。"
+        }
+      ]
+    },
+    {
+      "id": "b1.video_aroll_pipeline",
+      "branchId": "B1",
+      "label": "A-roll 先行粗剪与人声音画规范",
+      "plainDefinition": "做短片先去口误停顿定清人声骨架（A-roll），再铺演示画面（B-roll），背景音乐压低 18～24 dB 不盖人声，最后统一 1080p MP4 交付。",
+      "cardPrompt": "为什么新手剪视频切忌从第 0 秒开始精调片头花字和酷炫转场？",
+      "cardAnswer": "内容骨架与节奏未定型前调的包装大概率返工浪费；先定紧凑人声 A-roll 骨架，再补画面与轻衬底音轨，效率与观感双赢。",
+      "prerequisites": [],
+      "crossLinks": [
+        {
+          "targetId": "b5.bluf_structured_expression",
+          "bridgeNote": "视频开场前 10 秒同样遵循结论先行原则，直接点出观众为什么要看。"
+        }
+      ]
     },
     {
       "id": "b2.budget_three_buckets",
@@ -186,12 +286,107 @@
       ]
     },
     {
+      "id": "b4.sleep_two_process",
+      "branchId": "B4",
+      "label": "睡眠压力（腺苷）与昼夜节律双引擎",
+      "plainDefinition": "入睡由清醒累积的腺苷压力和晨光校准的生物钟共同控制；守住固定起床点、14:00 后断咖啡因、睡前手机离床是最零成本的深睡方案。",
+      "cardPrompt": "为什么周末一口气补觉睡到中午十二点，反而容易导致周日晚失眠和周一更疲惫？",
+      "cardAnswer": "午间才起床会提前泄掉当晚所需的腺苷睡眠压力并把生物钟往后推迟 2～3 小时，制造严重的「社会性时差」。",
+      "prerequisites": [],
+      "crossLinks": [
+        {
+          "targetId": "b6.feynman_energy_match",
+          "bridgeNote": "深睡是巩固白天主动提取记忆和保证次日高能窗口的生理底座。"
+        }
+      ]
+    },
+    {
+      "id": "b4.who_aerobic_80_20",
+      "branchId": "B4",
+      "label": "WHO 150 分钟有氧底线与 80/20 防伤跑",
+      "plainDefinition": "成年人每周应完成 150～300 分钟中等强度有氧 + 2 天主要肌群力量并打断连续久坐；日常跑步约 80% 保持可完整说短句的轻松对话配速。",
+      "cardPrompt": "新手慢跑为什么推荐 80% 的跑量保持在「能说完整短句的轻松配速」，而不是每次都冲刺跑爆？",
+      "cardAnswer": "轻松有氧能高效增强心肺毛细血管与线粒体密度，同时给关节肌腱留出修复窗口，大幅降低膝踝过劳伤与放弃率。",
+      "prerequisites": [],
+      "crossLinks": [
+        {
+          "targetId": "b3.emotion_cognitive_reappraisal",
+          "bridgeNote": "规律有氧运动能直接降低慢性压力唤醒底噪，是成本最低的情绪稳压器。"
+        }
+      ]
+    },
+    {
+      "id": "b5.bluf_structured_expression",
+      "branchId": "B5",
+      "label": "结论先行（BLUF）与判断句标题",
+      "plainDefinition": "汇报、邮件与科普写作先在开场 30 秒抛出核心判断，再用 2～3 组并列数据依据支撑，每页标题写判断句而非空洞名词标签。",
+      "cardPrompt": "把 PPT 页眉从「实验结果」改成「退火后抗拉强度提升 18%」有什么立竿见影的好处？",
+      "cardAnswer": "判断句标题直接替听众完成信息提炼，降低理解摩擦，即使中途短暂走神也能一眼跟紧主线逻辑。",
+      "prerequisites": [],
+      "crossLinks": [
+        {
+          "targetId": "b5.star_evidence_resume",
+          "bridgeNote": "简历同样是极致的结论先行：每条项目先说解决的硬痛点与量化成果。"
+        }
+      ]
+    },
+    {
+      "id": "b5.star_evidence_resume",
+      "branchId": "B5",
+      "label": "STAR 量化证据法与公开作品集",
+      "plainDefinition": "禁用「积极参与」「熟练使用」等空泛形容词，用「痛点背景 + 个人强动词动作 + 量化前后对比 + 可点开作品链接」证明真实交付力。",
+      "cardPrompt": "为什么简历上放「Python 85%」的技能自评进度条反而是减分项？该怎么替代？",
+      "cardAnswer": "自评百分比毫无客观标尺；应直接写出你用 Python 解决的具体项目痛点、提速/降错量化数字，并附上可查看的代码或报告链接。",
+      "prerequisites": ["b5.bluf_structured_expression"],
+      "crossLinks": []
+    },
+    {
       "id": "b6.spaced_retrieval",
       "branchId": "B6",
       "label": "主动提取与 1/3/7 间隔重测",
       "plainDefinition": "合上书费劲回想一次（哪怕想错了再看解析），记忆留存率远高于把划线重点反复顺读五遍。",
       "cardPrompt": "为什么顺读讲义觉得自己「全懂了」，一到实操或上考场就大脑空白？",
       "cardAnswer": "顺读产生的是「识别流畅性错觉」而非提取通路强度；只有闭卷自测与间隔重测才能真正加固提取路径。",
+      "prerequisites": [],
+      "crossLinks": []
+    },
+    {
+      "id": "b6.feynman_energy_match",
+      "branchId": "B6",
+      "label": "费曼零术语输出与三时段精力匹配",
+      "plainDefinition": "逼自己不用专业黑话用一句大白话讲清原理，卡壳处就是真实盲区；把重攻坚排进高能整块时间，残血低能时段只做轻复盘并做完即停。",
+      "cardPrompt": "实验后精力见底时，为什么硬啃新公式反而效率更低？应该怎样匹配任务？",
+      "cardAnswer": "工作记忆耗竭时强攻新难点既记不住又挫伤信心；应把高认知任务放进高能时段，低能时段只刷 3～5 分钟熟卡或错题后直接休息。",
+      "prerequisites": ["b6.spaced_retrieval"],
+      "crossLinks": [
+        {
+          "targetId": "b4.sleep_two_process",
+          "bridgeNote": "晚上按时收工睡觉，正是为了换回明天清醒高效的高能学习窗口。"
+        }
+      ]
+    },
+    {
+      "id": "b7.contract_four_checks",
+      "branchId": "B7",
+      "label": "民法典租房签约四步核验与留痕",
+      "plainDefinition": "签约必过四关：核验产权证与转租授权、水电单价与维修责任入约、入住拍表底与设施视频留痕、备注转账留存合同原件。",
+      "cardPrompt": "面对二房东转租房源，依据《民法典》签字前必须查验哪份核心文件？",
+      "cardAnswer": "必须查验原房东书面同意转租的授权证明及剩余租期；未经出租人同意擅自转租的，原房东有权依法解除合同。",
+      "prerequisites": [],
+      "crossLinks": [
+        {
+          "targetId": "b2.budget_three_buckets",
+          "bridgeNote": "首次租房押一付三现金流压力大，需提前纳入个人应急缓冲金测算。"
+        }
+      ]
+    },
+    {
+      "id": "b7.digital_safety_cpr",
+      "branchId": "B7",
+      "label": "账号 2FA 防诈隔离与黄金 4 分钟 CPR/AED",
+      "plainDefinition": "核心账号独立强密码 + 2FA，遇屏幕共享与安全账户一律挂断；目击无意识无正常呼吸立刻呼救 120、取 AED 并持续 100～120 次/分胸外按压。",
+      "cardPrompt": "为什么目击心搏骤停时绝对不能先「掐人中、喂温水」，而必须立刻呼叫 120 + 取 AED + 胸外按压？",
+      "cardAnswer": "心搏骤停黄金抢救窗仅约 4 分钟，掐人中毫无医学依据且喂水易致窒息；持续胸外按压与尽早 AED 除颤才是维持脑供血的唯一有效路径。",
       "prerequisites": [],
       "crossLinks": []
     }

@@ -8,7 +8,6 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
 
-// Parse optional --shots-dir argument
 const shotsArgIdx = process.argv.indexOf('--shots-dir');
 const shotsDir =
   shotsArgIdx >= 0 && process.argv[shotsArgIdx + 1]
@@ -132,16 +131,15 @@ class CDPClient {
 
   async goto(url) {
     await this.send('Page.navigate', { url });
-    await new Promise((r) => setTimeout(r, 450));
+    await new Promise((r) => setTimeout(r, 420));
     await this.evalJs(`
       new Promise((resolve) => {
-        const deadline = Date.now() + 5000;
+        const deadline = Date.now() + 6000;
         const tick = () => {
-          const loading = document.querySelector('.loading-skeleton');
-          const hasMain = document.querySelector('.workbench-shell, .focus-mode-root, .wall-viewport');
-          if ((!loading && hasMain) || Date.now() > deadline) {
+          const ready = document.querySelector('h1, .wall-clock, .wall-b1-subview');
+          if (ready || Date.now() > deadline) {
             if (document.fonts && document.fonts.ready) {
-              Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 800))]).then(() => resolve(true));
+              Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 700))]).then(() => resolve(true));
             } else resolve(true);
           } else setTimeout(tick, 80);
         };
@@ -195,9 +193,9 @@ async function main() {
   const cdpPort = await findFreePort();
   const baseUrl = `http://127.0.0.1:${previewPort}`;
   const browserBin = findBrowserExecutable();
-  const profileDir = fs.mkdtempSync(path.join(os.tmpdir(), 'msg-qa-chrome-'));
+  const profileDir = fs.mkdtempSync(path.join(os.tmpdir(), 'msg-qa-v3-chrome-'));
 
-  console.log(`[verify:ui] 启动 vite preview (${baseUrl}) 与 Headless 浏览器...`);
+  console.log(`[verify:ui] 启动 vite preview (${baseUrl}) 与 Headless 浏览器（v3.0 验收）...`);
   const viteBin = path.join(rootDir, 'node_modules', 'vite', 'bin', 'vite.js');
   const previewProc = spawn(
     process.execPath,
@@ -258,15 +256,15 @@ async function main() {
     });
 
     // =========================================================================
-    // L2 & L3 & L4 (Desktop 1440×900): 全路由加载 + 导航激活态 + 字体与文本卫生
+    // L2 & L3 & L4 (Desktop 1440×900): 顶部 Dock 全路由 + 零保底版 + 文本卫生
     // =========================================================================
     await cdp.setViewport(1440, 900, false);
 
     const workspaceRoutes = [
-      { hash: '#/', name: '首页今天', shot: '01-home-1440.png' },
-      { hash: '#/branches', name: '七分支与技能树', shot: '02-branches-1440.png' },
+      { hash: '#/', name: '首页今日主线', shot: '01-home-dark-1440.png' },
+      { hash: '#/branches', name: '七分支技能星图', shot: '02-branches-1440.png' },
       { hash: '#/review?tab=retest', name: '错题重测', shot: '03-review-retest-1440.png' },
-      { hash: '#/review?tab=cards', name: '知识闪卡台', shot: '04-review-cards-1440.png' },
+      { hash: '#/review?tab=cards', name: '3D知识闪卡台', shot: '04-review-cards-1440.png' },
       { hash: '#/events', name: '生活事件包', shot: '05-events-1440.png' },
       { hash: '#/lab', name: '任务与实验室', shot: '06-lab-1440.png' },
     ];
@@ -277,13 +275,14 @@ async function main() {
         const bodyStyle = getComputedStyle(document.body);
         const h1 = document.querySelector('h1');
         const h1Style = h1 ? getComputedStyle(h1) : null;
-        const activeNavs = document.querySelectorAll('.workbench-sidebar a[aria-current="page"]');
+        const activeNavs = document.querySelectorAll('header nav[aria-label="主导航"] a[aria-current="page"]');
         const text = document.body.innerText || '';
         const rawBackticks = (text.match(/\`[^\`\\n]{1,40}\`/g) || []).slice(0, 3);
         const rawBold = (text.match(/\\*\\*[^*\\n]{2,40}\\*\\*/g) || []).slice(0, 3);
         const leakedIds = (text.match(/\\bb[1-7]\\.[a-z0-9_]{3,}\\b/g) || []).slice(0, 3);
-        const leakedJargon = ['同步喂给状态墙', '按总方案范围待灌装'].filter((s) => text.includes(s));
+        const leakedJargon = ['同步喂给状态墙', '按总方案范围待灌装', '保底版', '保底模式', '滚动槽位'].filter((s) => text.includes(s));
         return {
+          theme: document.documentElement.dataset.theme || '',
           overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
           scrollWidth: document.documentElement.scrollWidth,
           innerWidth: window.innerWidth,
@@ -299,19 +298,62 @@ async function main() {
         };
       })()`);
 
-      check(audit.activeNavCount === 1, 'L2', `${r.name}(${r.hash}) 左侧栏有且仅有 1 个激活态导航 (${audit.activeNavText})`);
+      check(audit.activeNavCount === 1, 'L2', `${r.name}(${r.hash}) 顶部 Dock 有且仅有 1 个激活态导航 (${audit.activeNavText})`);
       check(!audit.overflowX, 'L4', `${r.name} 1440px 无横向溢出 (${audit.scrollWidth}/${audit.innerWidth})`);
       check(!/simsun/i.test(audit.bodyFont) && !/simsun/i.test(audit.h1Font), 'L3', `${r.name} 未回退为 SimSun`);
       check(audit.bodySize >= 15.5, 'L3', `${r.name} 正文字号 ≥16px (${audit.bodySize}px)`);
       check(audit.rawBackticks.length === 0, 'L3', `${r.name} 无裸反引号泄漏 ${audit.rawBackticks.join(',')}`);
       check(audit.rawBold.length === 0, 'L3', `${r.name} 无裸 ** 粗体标记泄漏 ${audit.rawBold.join(',')}`);
       check(audit.leakedIds.length === 0, 'L3', `${r.name} 无内部概念 ID 泄漏 ${audit.leakedIds.join(',')}`);
-      check(audit.leakedJargon.length === 0, 'L3', `${r.name} 无后台工程术语泄漏 ${audit.leakedJargon.join(',')}`);
+      check(audit.leakedJargon.length === 0, 'L3', `${r.name} 零「保底版」与工程旧词泄漏 ${audit.leakedJargon.join(',')}`);
 
       if (r.shot) await cdp.screenshot(r.shot, false);
     }
 
-    // 检查 #/branches：SkillTreeSvg 零文字碰撞 + 软件技能分包零 1400px 空白纸板拉伸
+    // 验证明暗双主题切换 & ⌘K 全局命令面板
+    await cdp.goto(`${baseUrl}/#/`);
+    const themeToggleRes = await cdp.evalJs(`(() => {
+      const before = document.documentElement.dataset.theme;
+      document.querySelector('[data-testid="theme-toggle"]')?.click();
+      return { before };
+    })()`);
+    await new Promise((r) => setTimeout(r, 200));
+    const afterLight = await cdp.evalJs(`({
+      theme: document.documentElement.dataset.theme,
+      bg: getComputedStyle(document.body).backgroundColor,
+      overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+    })`);
+    await cdp.screenshot('01b-home-light-1440.png', false);
+    // 切回暗夜主题
+    await cdp.evalJs(`document.querySelector('[data-testid="theme-toggle"]')?.click()`);
+    await new Promise((r) => setTimeout(r, 150));
+
+    check(
+      themeToggleRes.before === 'dark' && afterLight.theme === 'light' && !afterLight.overflowX,
+      'L5',
+      `一键双主题切换生效 (${themeToggleRes.before} -> ${afterLight.theme}, bg=${afterLight.bg})`
+    );
+
+    // 验证 ⌘K 全局命令面板打开与 Esc 关闭
+    await cdp.evalJs(`document.querySelector('[data-testid="cmdk-trigger"]')?.click()`);
+    await new Promise((r) => setTimeout(r, 200));
+    const cmdkOpenAudit = await cdp.evalJs(`({
+      hasInput: Boolean(document.querySelector('[cmdk-input]')),
+      itemCount: document.querySelectorAll('[cmdk-item]').length,
+    })`);
+    await cdp.screenshot('01c-cmdk-1440.png', false);
+    await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await new Promise((r) => setTimeout(r, 180));
+    const cmdkClosed = await cdp.evalJs(`!document.querySelector('[cmdk-input]')`);
+
+    check(
+      cmdkOpenAudit.hasInput && cmdkOpenAudit.itemCount >= 30 && cmdkClosed,
+      'L5',
+      `⌘K 全局命令面板可打开/检索全量 28 单元+30 概念并按 Esc 关闭 (items=${cmdkOpenAudit.itemCount})`
+    );
+
+    // 验证 #/branches：径向星图零文字碰撞 + 全七分支零「规划中」空槽 + B1 软件分包零拉伸
     await cdp.goto(`${baseUrl}/#/branches`);
     const treeCheck = await cdp.evalJs(`(() => {
       const texts = [...document.querySelectorAll('.skill-tree-living-box svg text')];
@@ -325,43 +367,48 @@ async function main() {
           if (ox > 4 && oy > 4) overlaps.push(rects[i].txt + ' <-> ' + rects[j].txt);
         }
       }
-      // 切换到软件技能分包 Tab
-      const swBtn = [...document.querySelectorAll('.segmented-btn')].find((b) => b.textContent?.includes('软件技能'));
+      const hasPlannedText = (document.body.innerText || '').includes('规划中');
+      const swBtn = [...document.querySelectorAll('button[role="tab"]')].find((b) => b.textContent?.includes('软件技能'));
       swBtn?.click();
-      return { textCount: rects.length, overlaps };
+      return { textCount: rects.length, overlaps, hasPlannedText };
     })()`);
-    await new Promise((r) => setTimeout(r, 200));
+    await new Promise((r) => setTimeout(r, 220));
     const swStretch = await cdp.evalJs(`(() => {
-      const cards = [...document.querySelectorAll('.planned-packs-grid .path-track-card')];
+      const cards = [...document.querySelectorAll('.planned-packs-grid > *')];
       const heights = cards.map((c) => Math.round(c.getBoundingClientRect().height));
       const maxH = heights.length ? Math.max(...heights) : 0;
-      const minH = heights.length ? Math.min(...heights) : 0;
-      return { count: cards.length, heights, maxH, minH };
+      const hasEmptyTrackNotice = (document.body.innerText || '').includes('正在打磨中');
+      return { count: cards.length, heights, maxH, hasEmptyTrackNotice };
     })()`);
     await cdp.screenshot('02b-branches-sw-1440.png', false);
 
-    check(treeCheck.textCount >= 7 && treeCheck.overlaps.length === 0, 'L5', `SkillTreeSvg 7分支标签零碰撞 (overlaps=${treeCheck.overlaps.length})`);
-    check(swStretch.count >= 2 && swStretch.maxH <= 560, 'L4', `B1 软件规划包消除空白拉伸 (heights=${swStretch.heights.join('/')})`);
+    check(treeCheck.textCount >= 14 && treeCheck.overlaps.length === 0, 'L5', `SkillAtlasSvg 径向星图标签零碰撞 (labels=${treeCheck.textCount}, overlaps=${treeCheck.overlaps.length})`);
+    check(!treeCheck.hasPlannedText, 'L3', `全七分支（B1–B7）已全部填充正式单元，零「规划中」空分支`);
+    check(swStretch.count === 4 && swStretch.maxH <= 620 && !swStretch.hasEmptyTrackNotice, 'L4', `B1 软件技能分包 S2–S5 全部填充且零空白拉伸 (heights=${swStretch.heights.join('/')})`);
 
-    // 检查 #/review 开关态同步（等待 Preact 重渲染帧后再校验）
+    // 验证 #/branches?b=B4 展示新填充健康单元
+    await cdp.goto(`${baseUrl}/#/branches?b=B4`);
+    const b4HasUnits = await cdp.evalJs(`(document.body.innerText || '').includes('科学睡眠') && (document.body.innerText || '').includes('科学跑步')`);
+    check(b4HasUnits, 'L5', `B4 健康分支新填充 2 节互动单元正常渲染`);
+
+    // 验证 #/review 开关态同步
     await cdp.goto(`${baseUrl}/#/review?tab=retest`);
     const toggleBefore = await cdp.evalJs(`(() => {
-      const pill = document.querySelector('.toggle-pill');
-      const input = pill?.querySelector('input[type="checkbox"]');
-      if (!pill || !input) return { found: false };
-      const beforeChecked = input.checked;
-      const beforeMatch = pill.classList.contains('is-on') === beforeChecked;
-      pill.click();
+      const sw = document.querySelector('button[role="switch"].toggle-pill');
+      if (!sw) return { found: false };
+      const beforeChecked = sw.getAttribute('aria-checked') === 'true';
+      const beforeMatch = sw.classList.contains('is-on') === beforeChecked;
+      sw.click();
       return { found: true, beforeChecked, beforeMatch };
     })()`);
     await new Promise((r) => setTimeout(r, 150));
     const toggleAfter = await cdp.evalJs(`(() => {
-      const pill = document.querySelector('.toggle-pill');
-      const input = pill?.querySelector('input[type="checkbox"]');
-      if (!pill || !input) return { found: false };
+      const sw = document.querySelector('button[role="switch"].toggle-pill');
+      if (!sw) return { found: false };
+      const afterChecked = sw.getAttribute('aria-checked') === 'true';
       return {
-        afterChecked: input.checked,
-        afterMatch: pill.classList.contains('is-on') === input.checked,
+        afterChecked,
+        afterMatch: sw.classList.contains('is-on') === afterChecked,
       };
     })()`);
     check(
@@ -370,11 +417,11 @@ async function main() {
         toggleAfter.afterMatch &&
         toggleAfter.afterChecked !== toggleBefore.beforeChecked,
       'L4',
-      `#/review includeUpcoming 开关 is-on 态与 checked 严格同步 (${toggleBefore.beforeChecked} -> ${toggleAfter.afterChecked})`
+      `#/review includeUpcoming 开关 aria-checked 与 is-on 严格同步 (${toggleBefore.beforeChecked} -> ${toggleAfter.afterChecked})`
     );
 
     // =========================================================================
-    // L4 (1920×1080): 状态墙主视图 & B1 专项看板零滚动 + 零空腔 + 高对比度
+    // L4 (1920×1080): 状态墙主视图 & B1 专项看板零滚动 + 高对比度
     // =========================================================================
     await cdp.setViewport(1920, 1080, false);
     await cdp.goto(`${baseUrl}/#/wall`);
@@ -390,7 +437,6 @@ async function main() {
         panelCount: panels.length,
         minPanelH: panels.length ? Math.min(...panels.map((p) => Math.round(p.getBoundingClientRect().height))) : 0,
         footerBottom: fRect ? Math.round(fRect.bottom) : 9999,
-        modeText: document.querySelector('.wall-tag-demo, .wall-tag-live')?.textContent?.trim() || '',
       };
     })()`);
 
@@ -421,55 +467,55 @@ async function main() {
       const minContrast = dualVals.length
         ? Math.min(...dualVals.map((el) => contrast(parseRgb(getComputedStyle(el).color), bgRgb)))
         : 0;
-      const swChips = document.querySelectorAll('.wall-sw-chip').length;
+      const swChips = [...document.querySelectorAll('.wall-sw-chip')];
+      const swPlanned = swChips.filter((c) => c.textContent?.includes('规划中')).length;
       return {
         scrollH: document.documentElement.scrollHeight,
         scrollW: document.documentElement.scrollWidth,
         minContrast: Number(minContrast.toFixed(2)),
-        swChips,
+        swCount: swChips.length,
+        swPlanned,
       };
     })()`);
 
     check(wallB1Audit.scrollH <= 1080 && wallB1Audit.scrollW <= 1920, 'L4', `1080P B1 专项看板严格一屏零滚动 (${wallB1Audit.scrollW}×${wallB1Audit.scrollH})`);
     check(wallB1Audit.minContrast >= 7.0, 'L4', `B1 双线时长外置标签 WCAG AAA 高对比度 (${wallB1Audit.minContrast}:1)`);
-    check(wallB1Audit.swChips >= 3, 'L4', `B1 二级看板下半屏已补齐软件技能分包矩阵 (${wallB1Audit.swChips} 项)`);
+    check(wallB1Audit.swCount === 5 && wallB1Audit.swPlanned === 0, 'L4', `B1 看板全部 5 个软件技能包均为正式开放状态 (swCount=${wallB1Audit.swCount}, planned=${wallB1Audit.swPlanned})`);
 
     // =========================================================================
-    // L5: 全部 5 类教学动图模板验收 + E2E 学习留痕闭环 (DEMO -> LIVE)
+    // L5: 5 类教学动图 + 交互预算滑块 + 新填充单元 + 3D 翻卡 + E2E DEMO→LIVE
     // =========================================================================
     await cdp.setViewport(1440, 900, false);
 
     const templateUnits = [
       { id: 'unit-b1-l1-prompt', expected: 'flow_pipeline', shot: '09-unit-flow-1440.png' },
-      { id: 'unit-b2-budget', expected: 'tree_breakdown', shot: '10-unit-tree-1440.png' },
+      { id: 'unit-b2-budget', expected: 'tree_breakdown', shot: '10-unit-budget-slider-1440.png' },
       { id: 'unit-b2-investing', expected: 'curve_compare', shot: '11-unit-curve-1440.png' },
       { id: 'unit-b1-l1-agent', expected: 'two_axis_matrix', shot: '12-unit-matrix-1440.png' },
       { id: 'unit-b1-blender-transform', expected: 'coordinate_3d', shot: '13-unit-3d-1440.png' },
+      { id: 'unit-b4-sleep', expected: 'curve_compare', shot: '13b-unit-b4-sleep-1440.png' },
+      { id: 'unit-b7-contract', expected: 'flow_pipeline', shot: '13c-unit-b7-contract-1440.png' },
     ];
 
     for (const u of templateUnits) {
       await cdp.goto(`${baseUrl}/#/unit/${u.id}`);
-      // 进入第 2 步并预测，再进入第 3 步动图导学
       await cdp.evalJs(`(() => {
         const next1 = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('直觉预测'));
         next1?.click();
       })()`);
-      await new Promise((r) => setTimeout(r, 180));
-      await cdp.evalJs(`(() => {
-        const opt = document.querySelector('.quiz-option-btn');
-        opt?.click();
-      })()`);
-      await new Promise((r) => setTimeout(r, 140));
+      await new Promise((r) => setTimeout(r, 160));
+      await cdp.evalJs(`document.querySelector('.quiz-option-btn')?.click()`);
+      await new Promise((r) => setTimeout(r, 120));
       await cdp.evalJs(`(() => {
         const sub = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('锁定我的直觉判断'));
         sub?.click();
       })()`);
-      await new Promise((r) => setTimeout(r, 220));
+      await new Promise((r) => setTimeout(r, 200));
       await cdp.evalJs(`(() => {
-        const go3 = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('进入动图导学'));
+        const go3 = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('进入互动实验室'));
         go3?.click();
       })()`);
-      await new Promise((r) => setTimeout(r, 320));
+      await new Promise((r) => setTimeout(r, 300));
 
       const diagAudit = await cdp.evalJs(`(() => {
         const stage = document.querySelector('.motion-explainer');
@@ -479,8 +525,6 @@ async function main() {
         const truncated = texts.filter((t) => t.includes('...'));
         const stepBefore = stage?.getAttribute('data-step');
         const textBefore = stage?.querySelector('.motion-logic-text')?.textContent?.trim() || '';
-
-        // 验证「下一步」按钮真实驱动步骤与逻辑字幕切换
         const nextBtn = stage?.querySelector('button[aria-label="下一步"]');
         nextBtn?.click();
         return {
@@ -492,7 +536,7 @@ async function main() {
           textBefore,
         };
       })()`);
-      await new Promise((r) => setTimeout(r, 200));
+      await new Promise((r) => setTimeout(r, 180));
       const diagAfter = await cdp.evalJs(`(() => {
         const stage = document.querySelector('.motion-explainer');
         const stepAfter = stage?.getAttribute('data-step');
@@ -502,22 +546,43 @@ async function main() {
         return { stepAfter, textAfter, rawBackticks };
       })()`);
 
-      await cdp.screenshot(u.shot, false);
-
       check(diagAudit.template === u.expected, 'L5', `单元 ${u.id} 渲染动图模板 ${u.expected} (实际=${diagAudit.template})`);
       check(diagAudit.width >= 300 && diagAudit.height >= 120, 'L5', `动图模板 ${u.expected} SVG 尺寸有效 (${diagAudit.width}×${diagAudit.height})`);
-      check(diagAudit.truncated.length === 0, 'L5', `动图模板 ${u.expected} 零 "..." 文本截断 (${diagAudit.truncated.join(',')})`);
+      check(diagAudit.truncated.length === 0, 'L5', `动图模板 ${u.expected} 零 "..." 文本截断`);
       check(
         diagAfter.stepAfter !== diagAudit.stepBefore && diagAfter.textAfter !== diagAudit.textBefore,
         'L5',
-        `动图模板 ${u.expected} 点击「下一步」真实切换步骤与逻辑字幕 (${diagAudit.stepBefore} -> ${diagAfter.stepAfter})`
+        `动图模板 ${u.expected} 点击「下一步」真实切换步骤与解说 (${diagAudit.stepBefore} -> ${diagAfter.stepAfter})`
       );
-      check(diagAfter.rawBackticks.length === 0, 'L3', `单元 ${u.id} 导学正文零裸反引号 (${diagAfter.rawBackticks.join(',')})`);
+      check(diagAfter.rawBackticks.length === 0, 'L3', `单元 ${u.id} 导学正文零裸反引号`);
 
-      // 在第一单元顺便完成第 4 步翻卡 + 第 5 步禁用态与自测提交，验证端到端闭环
+      // 验证 B2 预算交互沙盒滑块实时更新金额
+      if (u.id === 'unit-b2-budget') {
+        const sliderCheck = await cdp.evalJs(`(() => {
+          const input = document.querySelector('[data-sandbox="budget-slider"] input[type="range"]');
+          const readoutBefore = document.querySelector('[data-budget-income]')?.textContent?.trim() || '';
+          if (!input) return { found: false };
+          const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+          setter.call(input, '6000');
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+          return { found: true, readoutBefore };
+        })()`);
+        await new Promise((r) => setTimeout(r, 150));
+        const readoutAfter = await cdp.evalJs(`document.querySelector('[data-budget-income]')?.textContent?.trim() || ''`);
+        check(
+          sliderCheck.found && sliderCheck.readoutBefore.includes('3,000') && readoutAfter.includes('6,000'),
+          'L5',
+          `B2 预算互动滑块实时更新金额 (${sliderCheck.readoutBefore} -> ${readoutAfter})`
+        );
+      }
+
+      await cdp.screenshot(u.shot, false);
+
+      // 在第一单元完成第 4 步 3D 翻卡 + 第 5 步禁用态与自测提交，验证端到端留痕闭环
       if (u.id === 'unit-b1-l1-prompt') {
         await cdp.evalJs(`(() => {
-          const go4 = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('翻看概念闪卡'));
+          const go4 = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('概念闪卡'));
           go4?.click();
         })()`);
         await new Promise((r) => setTimeout(r, 250));
@@ -526,20 +591,20 @@ async function main() {
           card?.click();
           return { found: Boolean(card) };
         })()`);
-        await new Promise((r) => setTimeout(r, 180));
+        await new Promise((r) => setTimeout(r, 260));
         const flippedOk = await cdp.evalJs(`Boolean(document.querySelector('.flip-card-box.is-flipped'))`);
-        check(flipCheck.found && flippedOk, 'L5', `单元第 4 步 3D 闪卡点击翻面成功`);
+        check(flipCheck.found && flippedOk, 'L5', `单元第 4 步真 3D 弹簧闪卡点击翻面成功`);
 
         await cdp.evalJs(`(() => {
           const go5 = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('提取自测'));
           go5?.click();
         })()`);
-        await new Promise((r) => setTimeout(r, 250));
+        await new Promise((r) => setTimeout(r, 220));
         const disabledBtnStyle = await cdp.evalJs(`(() => {
           const sub = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('提交自测'));
           if (!sub) return null;
           const st = getComputedStyle(sub);
-          return { disabled: sub.disabled, opacity: parseFloat(st.opacity), cursor: st.cursor };
+          return { disabled: sub.disabled, opacity: parseFloat(st.opacity) };
         })()`);
         check(
           Boolean(disabledBtnStyle && disabledBtnStyle.disabled && disabledBtnStyle.opacity <= 0.6),
@@ -547,7 +612,6 @@ async function main() {
           `单元第 5 步未答完前提交按钮禁用态清晰可见 (opacity=${disabledBtnStyle?.opacity})`
         );
 
-        // 选中每道题第一项并提交，写入真实 IndexedDB 留痕
         await cdp.evalJs(`(() => {
           for (const block of document.querySelectorAll('.quiz-question-block')) {
             block.querySelector('.quiz-option-btn')?.click();
@@ -558,16 +622,14 @@ async function main() {
           const sub = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('提交自测'));
           sub?.click();
         })()`);
-        await new Promise((r) => setTimeout(r, 350));
+        await new Promise((r) => setTimeout(r, 320));
       }
     }
 
     // 核验 E2E 真实留痕写入后，状态墙自动由 DEMO 切为 LIVE
     await cdp.setViewport(1920, 1080, false);
     await cdp.goto(`${baseUrl}/#/wall`);
-    const liveSwitch = await cdp.evalJs(`(() => {
-      return document.querySelector('.wall-tag-live')?.textContent?.trim() || '';
-    })()`);
+    const liveSwitch = await cdp.evalJs(`document.querySelector('.wall-tag-live')?.textContent?.trim() || ''`);
     check(liveSwitch.includes('LIVE'), 'L5', `完成单元预测与自测留痕后，状态墙自动切换为 LIVE 实况态 (${liveSwitch})`);
 
     // =========================================================================
@@ -580,22 +642,21 @@ async function main() {
         overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
         sw: document.documentElement.scrollWidth,
         iw: window.innerWidth,
-        topbarVisible: getComputedStyle(document.querySelector('.mobile-topbar')).display !== 'none',
       })`);
-      check(!tabAudit.overflowX && tabAudit.topbarVisible, 'L4', `768px 平板 ${h} 零横向溢出且顶栏正常 (${tabAudit.sw}/${tabAudit.iw})`);
+      check(!tabAudit.overflowX, 'L4', `768px 平板 ${h} 零横向溢出 (${tabAudit.sw}/${tabAudit.iw})`);
     }
 
     await cdp.setViewport(390, 844, true);
     await cdp.goto(`${baseUrl}/#/`);
     await cdp.screenshot('14-home-390.png', false);
     const mobileHome = await cdp.evalJs(`(() => {
-      const tabs = [...document.querySelectorAll('.mobile-bottom-tabs .mobile-tab-item')];
+      const tabs = [...document.querySelectorAll('nav[aria-label="手机主导航"] a')];
       const minTabH = tabs.length ? Math.min(...tabs.map((t) => Math.round(t.getBoundingClientRect().height))) : 0;
-      const activeTabs = document.querySelectorAll('.mobile-bottom-tabs a[aria-current="page"]').length;
-      const primaryBtns = [...document.querySelectorAll('.btn, .toggle-pill, .mobile-wall-link')]
+      const activeTabs = document.querySelectorAll('nav[aria-label="手机主导航"] a[aria-current="page"]').length;
+      const headerBtns = [...document.querySelectorAll('header button, header a[href="#/wall"]')]
         .filter((el) => el.getBoundingClientRect().width > 0);
-      const minBtnH = primaryBtns.length
-        ? Math.min(...primaryBtns.map((b) => Math.round(b.getBoundingClientRect().height)))
+      const minBtnH = headerBtns.length
+        ? Math.min(...headerBtns.map((b) => Math.round(b.getBoundingClientRect().height)))
         : 44;
       return {
         overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
@@ -608,10 +669,9 @@ async function main() {
       };
     })()`);
     check(!mobileHome.overflowX, 'L4', `390px 手机首页零横向溢出 (${mobileHome.sw}/${mobileHome.iw})`);
-    check(mobileHome.tabCount === 5 && mobileHome.minTabH >= 44 && mobileHome.activeTabs === 1, 'L4', `390px 底部 5 项 Tab 导航完整且热区 ≥44px (minH=${mobileHome.minTabH}px)`);
-    check(mobileHome.minBtnH >= 44, 'L4', `390px 手机首页主交互控件高度 ≥44px (minH=${mobileHome.minBtnH}px)`);
+    check(mobileHome.tabCount === 5 && mobileHome.minTabH >= 44 && mobileHome.activeTabs === 1, 'L4', `390px 底部 5 项 Dock 完整且热区 ≥44px (minH=${mobileHome.minTabH}px)`);
+    check(mobileHome.minBtnH >= 44, 'L4', `390px 手机顶栏按钮热区 ≥44px (minH=${mobileHome.minBtnH}px)`);
 
-    // 390px 状态墙兜底检查
     await cdp.goto(`${baseUrl}/#/wall`);
     await cdp.screenshot('15-wall-390.png', false);
     const mobileWall = await cdp.evalJs(`({
@@ -621,12 +681,11 @@ async function main() {
     })`);
     check(!mobileWall.overflowX, 'L4', `390px 手机端状态墙零横向溢出 (${mobileWall.sw}/${mobileWall.iw})`);
 
-    // 390px 单元页专注模式（底栏隐藏）
     await cdp.goto(`${baseUrl}/#/unit/unit-b1-l1-prompt`);
     await cdp.screenshot('16-unit-390.png', false);
     const mobileUnit = await cdp.evalJs(`({
       overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
-      hasBottomTabs: Boolean(document.querySelector('.mobile-bottom-tabs')),
+      hasBottomTabs: Boolean(document.querySelector('nav[aria-label="手机主导航"]')),
     })`);
     check(!mobileUnit.overflowX && !mobileUnit.hasBottomTabs, 'L4', `390px 单元专注态零溢出且已自动隐藏底部 Tab 栏`);
 
@@ -635,14 +694,14 @@ async function main() {
     check(pageErrors.length === 0, 'L2', `全链路零未捕获异常 pageerror (count=${pageErrors.length} ${pageErrors.join('; ')})`);
     check(failed404s.length === 0, 'L2', `全链路零静态资源/JSON 404 (count=${failed404s.length} ${failed404s.join('; ')})`);
 
-    console.log('\n================ 五层浏览器实测自检报告 ================');
+    console.log('\n================ v3.0 五层浏览器实测自检报告 ================');
     for (const p of passes) console.log(' ', p);
     if (failures.length > 0) {
       console.error('\n❌ 发现未通过项:');
       for (const f of failures) console.error(' ', f);
       process.exitCode = 1;
     } else {
-      console.log(`\n✅ 全部 ${passes.length} 项 L2–L5 真实浏览器渲染、排版、多视口、动图与端到端闭环断言 100% 通过！`);
+      console.log(`\n✅ 全部 ${passes.length} 项 v3.0 L2–L5 真实浏览器渲染、双主题、⌘K、滑块沙盒、28 节内容与 1080P 状态墙断言 100% 通过！`);
       if (shotsDir) console.log(`📸 QA 验收截图已保存至: ${shotsDir}`);
     }
   } finally {

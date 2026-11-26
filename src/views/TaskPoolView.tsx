@@ -1,14 +1,17 @@
-import { useState } from 'preact/hooks';
-import { IconArrowRight, IconCheck } from '../components/Icons';
-import type { PlatformContentBundle } from '../core/contentLoader';
-import { addRealLifeTask, removeRealLifeTask, toggleRealLifeTask } from '../core/db';
+import { ArrowRight, Check, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { Badge, Button, Card } from '@/components/ui/primitives';
+import type { PlatformContentBundle } from '@/core/contentLoader';
+import { addRealLifeTask, removeRealLifeTask, toggleRealLifeTask } from '@/core/db';
+import { cn } from '@/lib/utils';
 import type {
   BranchId,
   LearningUnit,
   RealLifeTask,
   RealTaskCategory,
   TelemetrySnapshot,
-} from '../types/schema';
+} from '@/types/schema';
 
 interface TaskPoolViewProps {
   content: PlatformContentBundle;
@@ -120,55 +123,55 @@ export function TaskPoolView({
     const next = await addRealLifeTask({ title, category, branchId });
     setTitle('');
     onTelemetryChange(next);
+    toast.success('已加入真实任务池');
   };
 
   const handleQuickAdd = async (tpl: (typeof QUICK_TEMPLATES)[number]) => {
     const next = await addRealLifeTask(tpl);
     onTelemetryChange(next);
+    toast.success(`已添加：${tpl.title}`);
   };
 
   return (
-    <div class="task-pool-wrap">
-      <section class="surface-card">
-        <div class="section-head-row" style={{ marginBottom: '12px' }}>
+    <div className="space-y-4">
+      <Card className="space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 class="section-h2">真实任务池 · 把真实待办变成学习过关产出</h2>
-            <p class="muted-desc">
-              录入你手头真正要做的事，进入对应学习单元第 6 步即可一键挂载抵扣。
+            <h2 className="m-0 text-[18px] font-semibold text-[var(--ink-1)]">
+              真实任务池 · 把真实待办变成学习过关产出
+            </h2>
+            <p className="mt-1 mb-0 text-[13.5px] text-[var(--ink-2)]">
+              录入你手头真正要做的事，进入对应学习单元第 6 步即可一键挂载抵扣
             </p>
           </div>
-          <span class="status-chip tabular-num">
+          <Badge tone="neutral" className="font-mono-num">
             进行中 {tasks.filter((t) => t.status === 'open').length} · 已交付{' '}
             {tasks.filter((t) => t.status === 'completed').length}
-          </span>
+          </Badge>
         </div>
 
-        <div class="quick-templates-row">
-          <span class="muted-inline">常用场景速添：</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[12.5px] text-[var(--ink-3)]">常用场景速添：</span>
           {QUICK_TEMPLATES.map((tpl) => (
-            <button
-              key={tpl.title}
-              type="button"
-              class="btn btn-sm"
-              onClick={() => handleQuickAdd(tpl)}
-            >
-              + {tpl.title.slice(0, 12)}…
-            </button>
+            <Button key={tpl.title} size="sm" variant="subtle" onClick={() => handleQuickAdd(tpl)}>
+              <Plus size={13} strokeWidth={1.6} />
+              <span>{tpl.title.slice(0, 12)}…</span>
+            </Button>
           ))}
         </div>
 
-        <div class="task-pool-form">
+        <div className="grid grid-cols-1 gap-2.5 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,0.8fr)_auto]">
           <input
             type="text"
+            className="v3-input"
             value={title}
-            onInput={(e) => setTitle((e.target as HTMLInputElement).value)}
+            onChange={(e) => setTitle(e.target.value)}
             placeholder={currentCatMeta.samplePlaceholder}
           />
           <select
+            className="v3-select"
             value={category}
-            onChange={(e) =>
-              handleCategoryChange((e.target as HTMLSelectElement).value as RealTaskCategory)
-            }
+            onChange={(e) => handleCategoryChange(e.target.value as RealTaskCategory)}
           >
             {CATEGORY_META.map((c) => (
               <option value={c.value} key={c.value}>
@@ -177,8 +180,9 @@ export function TaskPoolView({
             ))}
           </select>
           <select
+            className="v3-select"
             value={branchId}
-            onChange={(e) => setBranchId((e.target as HTMLSelectElement).value as BranchId)}
+            onChange={(e) => setBranchId(e.target.value as BranchId)}
           >
             {content.catalog.branches.map((b) => (
               <option value={b.id} key={b.id}>
@@ -186,101 +190,113 @@ export function TaskPoolView({
               </option>
             ))}
           </select>
-          <button
-            type="button"
-            class="btn btn-primary"
-            disabled={!title.trim()}
-            onClick={handleAdd}
-          >
+          <Button variant="primary" disabled={!title.trim()} onClick={handleAdd}>
             加入任务池
-          </button>
+          </Button>
         </div>
-      </section>
+      </Card>
 
-      <section class="surface-card" style={{ marginTop: '16px' }}>
-        <h3 class="section-h2" style={{ marginBottom: '12px' }}>
-          待交付与已归档任务
-        </h3>
+      <Card className="space-y-3">
+        <h3 className="m-0 text-[16px] font-semibold text-[var(--ink-1)]">待交付与已归档任务</h3>
         {tasks.length === 0 ? (
-          <div class="empty-track-notice" style={{ marginBottom: 0 }}>
-            任务池还是空的，点上方「常用场景速添」或输入一件近期真实待办开始。
+          <div className="v3-card-raised p-4 text-[14px] text-[var(--ink-2)]">
+            任务池还是空的，点击上方「常用场景速添」或输入一件近期真实待办开始
           </div>
         ) : (
-          <div class="event-modules-list">
+          <div className="divide-y divide-[var(--line)]">
             {tasks.map((task) => {
               const branch = branchMap.get(task.branchId);
               const matchedUnits = findMatchingUnits(content.units, task);
               const isDone = task.status === 'completed';
 
               return (
-                <div key={task.id} class={`task-row ${isDone ? 'is-done' : ''}`}>
-                  <label class="task-check-wrap" aria-label={`标记完成：${task.title}`}>
-                    <input
-                      type="checkbox"
-                      checked={isDone}
-                      onChange={async () => {
-                        const next = await toggleRealLifeTask(task.id);
-                        onTelemetryChange(next);
-                      }}
-                    />
-                    <span class="custom-checkbox" aria-hidden="true">
-                      {isDone && <IconCheck size={13} />}
-                    </span>
-                  </label>
+                <div
+                  key={task.id}
+                  className={cn(
+                    'flex items-start gap-3 py-3.5 first:pt-2 last:pb-1',
+                    isDone && 'opacity-65'
+                  )}
+                >
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={isDone}
+                    aria-label={`标记完成：${task.title}`}
+                    onClick={async () => {
+                      const next = await toggleRealLifeTask(task.id);
+                      onTelemetryChange(next);
+                    }}
+                    className={cn(
+                      'mt-0.5 flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-[5px] border transition-colors',
+                      isDone
+                        ? 'border-[var(--growth)] bg-[var(--growth)] text-[#081510]'
+                        : 'border-[var(--line-strong)] bg-[var(--surface-raised)]'
+                    )}
+                  >
+                    {isDone && <Check size={13} strokeWidth={2.4} />}
+                  </button>
 
-                  <div class="task-body">
-                    <div class="task-meta-line">
-                      <span class="branch-dot-label">
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-2 text-[12px]">
+                      <span className="inline-flex items-center gap-1.5 text-[var(--ink-3)]">
                         <span
-                          class="branch-dot"
-                          style={{ backgroundColor: branch?.accentToken ?? '#266D7E' }}
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: branch?.accentToken ?? 'var(--accent)' }}
                         />
                         <span>
                           {task.branchId} {branch?.name ?? task.branchId}
                         </span>
                       </span>
-                      <span class="status-chip">
+                      <Badge tone="neutral">
                         {CATEGORY_META.find((c) => c.value === task.category)?.label ??
                           task.category}
-                      </span>
-                      {task.linkedUnitId && (
-                        <span class="status-chip chip-growth">已联动单元过关</span>
-                      )}
+                      </Badge>
+                      {task.linkedUnitId && <Badge tone="growth">已联动单元过关</Badge>}
                     </div>
-                    <div class="task-title">{task.title}</div>
+                    <div
+                      className={cn(
+                        'text-[14.5px] font-medium text-[var(--ink-1)]',
+                        isDone && 'line-through'
+                      )}
+                    >
+                      {task.title}
+                    </div>
                     {!isDone && matchedUnits.length > 0 && (
-                      <div class="btn-row" style={{ marginTop: '8px' }}>
+                      <div className="flex flex-wrap gap-2 pt-1">
                         {matchedUnits.slice(0, 2).map((u) => (
-                          <button
+                          <Button
                             key={u.id}
-                            type="button"
-                            class="btn btn-sm"
+                            size="sm"
+                            variant="outline"
                             onClick={() => onOpenUnit(u.id)}
                           >
                             <span>合并交付：{u.title.slice(0, 14)}…</span>
-                            <IconArrowRight size={13} />
-                          </button>
+                            <ArrowRight size={13} strokeWidth={1.5} />
+                          </Button>
                         ))}
                       </div>
                     )}
                   </div>
 
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-danger-ghost"
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    aria-label={`移除任务：${task.title}`}
                     onClick={async () => {
                       const next = await removeRealLifeTask(task.id);
                       onTelemetryChange(next);
+                      toast('已移除任务');
                     }}
                   >
-                    移除
-                  </button>
+                    <Trash2 size={13} strokeWidth={1.5} />
+                    <span className="hidden sm:inline">移除</span>
+                  </Button>
                 </div>
               );
             })}
           </div>
         )}
-      </section>
+      </Card>
     </div>
   );
 }

@@ -1,6 +1,6 @@
-import type { PlatformContentBundle } from '../core/contentLoader';
-import { isUnitCleared } from '../core/gatekeeper';
-import type { BranchId, TelemetrySnapshot } from '../types/schema';
+import type { PlatformContentBundle } from '@/core/contentLoader';
+import { isUnitCleared } from '@/core/gatekeeper';
+import type { BranchId, TelemetrySnapshot } from '@/types/schema';
 
 interface SkillTreeSvgProps {
   content: PlatformContentBundle;
@@ -11,85 +11,57 @@ interface SkillTreeSvgProps {
   onSelectBranch?: (branchId: BranchId) => void;
 }
 
-interface BoughGeometry {
+const BRANCH_ORDER: BranchId[] = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7'];
+
+interface OrbitNode {
   branchId: BranchId;
-  pathD: string;
-  tipX: number;
-  tipY: number;
+  x: number;
+  y: number;
   labelX: number;
   labelY: number;
-  labelAnchor: 'start' | 'middle' | 'end';
+  anchor: 'start' | 'middle' | 'end';
 }
 
-/** 精心排布坐标，保证七分支枝端叶片簇与文字签之间保留 ≥24px 安全间距，零碰撞 */
-const BOUGH_LAYOUT: BoughGeometry[] = [
-  {
-    branchId: 'B1',
-    pathD: 'M 320 264 C 320 198, 318 134, 320 78',
-    tipX: 320,
-    tipY: 74,
-    labelX: 320,
-    labelY: 26,
-    labelAnchor: 'middle',
-  },
-  {
-    branchId: 'B2',
-    pathD: 'M 318 192 C 266 172, 220 140, 178 106',
-    tipX: 174,
-    tipY: 103,
-    labelX: 132,
-    labelY: 82,
-    labelAnchor: 'end',
-  },
-  {
-    branchId: 'B3',
-    pathD: 'M 322 186 C 374 166, 420 136, 464 104',
-    tipX: 468,
-    tipY: 101,
-    labelX: 510,
-    labelY: 82,
-    labelAnchor: 'start',
-  },
-  {
-    branchId: 'B4',
-    pathD: 'M 317 218 C 258 210, 200 194, 148 174',
-    tipX: 144,
-    tipY: 172,
-    labelX: 102,
-    labelY: 178,
-    labelAnchor: 'end',
-  },
-  {
-    branchId: 'B5',
-    pathD: 'M 323 214 C 382 206, 440 190, 492 170',
-    tipX: 496,
-    tipY: 168,
-    labelX: 538,
-    labelY: 174,
-    labelAnchor: 'start',
-  },
-  {
-    branchId: 'B7',
-    pathD: 'M 322 242 C 378 242, 430 236, 476 226',
-    tipX: 480,
-    tipY: 225,
-    labelX: 524,
-    labelY: 234,
-    labelAnchor: 'start',
-  },
-  {
-    branchId: 'B6',
-    pathD: 'M 320 268 C 282 284, 240 290, 198 286',
-    tipX: 194,
-    tipY: 285,
-    labelX: 150,
-    labelY: 292,
-    labelAnchor: 'end',
-  },
-];
+const CX = 320;
+const CY = 198;
+const ORBIT_R = 114;
+
+/** 7 节点均匀径向星图排布（B1 居正北 12 点钟方向，外置标签零碰撞零贴边） */
+const ORBIT_NODES: OrbitNode[] = BRANCH_ORDER.map((branchId, idx) => {
+  const angle = -Math.PI / 2 + (idx * 2 * Math.PI) / BRANCH_ORDER.length;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const x = CX + cos * ORBIT_R;
+  const y = CY + sin * ORBIT_R;
+
+  let labelX = CX + cos * (ORBIT_R + 36);
+  let labelY = CY + sin * (ORBIT_R + 34);
+  let anchor: 'start' | 'middle' | 'end' = 'middle';
+
+  if (idx === 0) {
+    labelX = CX;
+    labelY = y - 48;
+    anchor = 'middle';
+  } else if (cos > 0.25) {
+    labelX = x + 34;
+    labelY = y + 2;
+    anchor = 'start';
+  } else if (cos < -0.25) {
+    labelX = x - 34;
+    labelY = y + 2;
+    anchor = 'end';
+  } else {
+    labelY = y + (sin > 0 ? 40 : -40);
+    anchor = 'middle';
+  }
+
+  return { branchId, x, y, labelX, labelY, anchor };
+});
 
 /**
- * eudaimonia 七分支生存技能树 v2.0（水滴叶片路径 + 零文字碰撞 + 温和正向点亮）
+ * 径向星图技能图谱 v3.0（Radial Constellation Skill Atlas）
+ * - 零霓虹光晕、静默轨道发丝线、高辨识径向进度环
+ * - 兼容站内双主题（variant="living"）与 1080P 状态墙深空模式（variant="wall"）
  */
 export function SkillTreeSvg({
   content,
@@ -102,150 +74,224 @@ export function SkillTreeSvg({
   const isWall = variant === 'wall';
   const branchMap = new Map(content.catalog.branches.map((b) => [b.id, b]));
 
-  const trunkColor = isWall ? '#6E6154' : '#574C42';
-  const soilFill = isWall ? '#1B222A' : '#EFEFEA';
-  const soilStroke = isWall ? '#2C3642' : 'rgba(24,24,22,0.08)';
-  const unlitFill = isWall ? '#212832' : '#F7F7F5';
-  const unlitStroke = isWall ? '#424E5E' : '#C8C6BC';
-  const litFill = isWall ? '#4CC38A' : '#1F7A5A';
-  const fruitFill = isWall ? '#F0B35A' : '#D94F30';
-  const labelColor = isWall ? '#D5DCE4' : '#2D2D2A';
-
   const totalUnits = content.units.length;
   const clearedCount = content.units.filter((u) => isUnitCleared(u.id, telemetry)).length;
   const approvedMilestones = Object.values(telemetry.milestoneSubmissions).filter(
     (m) => m.isApproved
   ).length;
 
+  const lineColor = isWall ? 'rgba(238,240,245,0.12)' : 'var(--line)';
+  const surfaceColor = isWall ? '#171d2b' : 'var(--surface)';
+  const raisedColor = isWall ? '#20283a' : 'var(--surface-raised)';
+  const textPrimary = isWall ? '#eef0f5' : 'var(--ink-1)';
+  const textMuted = isWall ? '#98a2b3' : 'var(--ink-3)';
+  const growthColor = isWall ? '#34d399' : 'var(--growth)';
+  const accentColor = isWall ? '#3b82f6' : 'var(--accent)';
+
   return (
-    <div class={isWall ? 'skill-tree-wall-box' : 'skill-tree-living-box'}>
+    <div className={isWall ? 'skill-tree-wall-box' : 'skill-tree-living-box w-full'}>
       <svg
-        viewBox={isWall ? '92 38 456 266' : '0 0 640 318'}
-        style={{ width: '100%', height: 'auto', display: 'block' }}
+        viewBox={isWall ? '164 54 312 288' : '0 0 640 378'}
+        className="block h-auto w-full"
         role="img"
-        aria-label="eudaimonia 七分支生存技能树"
+        aria-label="七大生存分支径向星图"
       >
-        {/* 柔和树冠背景光晕 */}
+        {/* 同心参考轨道线 */}
         <circle
-          cx="320"
-          cy="148"
-          r="118"
-          fill={isWall ? 'rgba(76, 195, 138, 0.04)' : 'rgba(31, 122, 90, 0.04)'}
+          cx={CX}
+          cy={CY}
+          r={ORBIT_R}
+          fill="none"
+          stroke={lineColor}
+          strokeWidth="1"
+          strokeDasharray="4 5"
         />
-        {/* 土壤基座 */}
-        <ellipse cx="320" cy="272" rx="188" ry="20" fill={soilFill} stroke={soilStroke} stroke-width="1" />
+        <circle cx={CX} cy={CY} r={66} fill="none" stroke={lineColor} strokeWidth="1" />
 
-        {/* 有机树干 */}
-        <path
-          d="M 311 272 C 315 232, 316 196, 317 166 L 323 166 C 324 196, 325 232, 329 272 Z"
-          fill={trunkColor}
-        />
-
-        {BOUGH_LAYOUT.map((geo, bIdx) => {
-          const branch = branchMap.get(geo.branchId);
+        {/* 7 条径向连线与轨道节点 */}
+        {ORBIT_NODES.map((node, idx) => {
+          const branch = branchMap.get(node.branchId);
           if (!branch) return null;
 
-          const bUnits = content.units.filter((u) => u.branchId === geo.branchId);
+          const bUnits = content.units.filter((u) => u.branchId === node.branchId);
           const clearedInBranch = bUnits.filter((u) => isUnitCleared(u.id, telemetry)).length;
-          const hasMilestoneFruit = branch.tracks.some(
-            (t) => telemetry.milestoneSubmissions[t.id]?.isApproved
-          );
-          const isSelected = selectedBranchId === geo.branchId;
+          const displayCleared = demoFallback
+            ? Math.min(bUnits.length, idx === 0 ? 2 : idx % 2 === 0 ? 1 : 0)
+            : clearedInBranch;
+          const ratio = bUnits.length > 0 ? displayCleared / bUnits.length : 0;
 
-          const slotCount = Math.max(2, Math.min(5, bUnits.length || 2));
-          const leaves = Array.from({ length: slotCount }, (_, i) => {
-            const spread = ((i - (slotCount - 1) / 2) * 0.68) - Math.PI / 2;
-            const radius = isWall ? 18 : 21;
-            const lx = geo.tipX + Math.cos(spread) * radius;
-            const ly = geo.tipY + Math.sin(spread) * radius;
-            const angleDeg = (spread * 180) / Math.PI + 90;
-            const lit = demoFallback
-              ? i === 0 || (bIdx === 0 && i === 1)
-              : i < clearedInBranch;
-            const unitTitle = bUnits[i]?.title ?? `${branch.name}后续规划节点`;
-            return { lx, ly, angleDeg, lit, unitTitle };
-          });
+          const hasMilestoneFruit =
+            branch.tracks.some((t) => telemetry.milestoneSubmissions[t.id]?.isApproved) ||
+            (demoFallback && node.branchId === 'B1');
+
+          const isSelected = selectedBranchId === node.branchId;
+          const nodeR = isWall ? 20 : 22;
+          const ringC = 2 * Math.PI * (nodeR + 3);
+          const ringOffset = ringC * (1 - ratio);
 
           return (
             <g
-              key={geo.branchId}
-              class="skill-bough-group"
+              key={node.branchId}
               style={{ cursor: onSelectBranch ? 'pointer' : 'default' }}
-              onClick={() => onSelectBranch?.(geo.branchId)}
+              onClick={() => onSelectBranch?.(node.branchId)}
             >
-              {/* 枝干路径 */}
-              <path
-                d={geo.pathD}
-                fill="none"
-                stroke={isSelected ? branch.accentToken : trunkColor}
-                stroke-width={geo.branchId === 'B1' ? 4.4 : isSelected ? 3.6 : 2.6}
-                stroke-linecap="round"
-                opacity={selectedBranchId && !isSelected && !isWall ? 0.55 : 1}
+              {/* 中心到节点的连线 */}
+              <line
+                x1={CX}
+                y1={CY}
+                x2={node.x}
+                y2={node.y}
+                stroke={
+                  isSelected
+                    ? accentColor
+                    : ratio > 0
+                      ? growthColor
+                      : lineColor
+                }
+                strokeWidth={isSelected ? 2 : 1.25}
+                opacity={selectedBranchId && !isSelected && !isWall ? 0.45 : 1}
               />
 
-              {/* 精致水滴叶片簇 */}
-              {leaves.map((lf, idx) => (
-                <g
-                  key={idx}
-                  transform={`translate(${lf.lx.toFixed(1)}, ${lf.ly.toFixed(1)}) rotate(${lf.angleDeg.toFixed(1)})`}
-                >
-                  <path
-                    d="M 0 -9 C 6 -4, 6 4, 0 8 C -6 4, -6 -4, 0 -9 Z"
-                    fill={lf.lit ? litFill : unlitFill}
-                    stroke={lf.lit ? branch.accentToken : isSelected ? branch.accentToken : unlitStroke}
-                    stroke-width="1.4"
-                  >
-                    <title>
-                      {branch.id} {branch.name} · {lf.unitTitle}（{lf.lit ? '已点亮' : '待点亮'}）
-                    </title>
-                  </path>
-                  {lf.lit && (
-                    <line x1="0" y1="-5" x2="0" y2="5" stroke="rgba(255,255,255,0.45)" stroke-width="1" />
-                  )}
-                </g>
-              ))}
-
-              {/* 阶段实战果实 */}
-              {(hasMilestoneFruit || (demoFallback && geo.branchId === 'B1')) && (
+              {/* 外圈完成度环 */}
+              <circle
+                cx={node.x}
+                cy={node.y}
+                r={nodeR + 3}
+                fill="none"
+                stroke={raisedColor}
+                strokeWidth="2.5"
+              />
+              {ratio > 0 && (
                 <circle
-                  cx={geo.tipX + 13}
-                  cy={geo.tipY + 12}
-                  r="5"
-                  fill={fruitFill}
-                  stroke={isWall ? '#0B0E11' : '#FFFFFF'}
-                  stroke-width="1.5"
+                  cx={node.x}
+                  cy={node.y}
+                  r={nodeR + 3}
+                  fill="none"
+                  stroke={isSelected ? accentColor : growthColor}
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeDasharray={ringC}
+                  strokeDashoffset={ringOffset}
+                  transform={`rotate(-90 ${node.x} ${node.y})`}
+                />
+              )}
+
+              {/* 节点主体圆 */}
+              <circle
+                cx={node.x}
+                cy={node.y}
+                r={nodeR}
+                fill={isSelected ? accentColor : surfaceColor}
+                stroke={isSelected ? accentColor : ratio > 0 ? growthColor : lineColor}
+                strokeWidth={isSelected ? 2 : 1.3}
+              >
+                <title>
+                  {branch.id} {branch.name}（{displayCleared}/{bUnits.length} 节已过关）
+                </title>
+              </circle>
+
+              {/* 节点编号 */}
+              <text
+                x={node.x}
+                y={node.y + 4.5}
+                textAnchor="middle"
+                fontSize={isWall ? '11.5' : '12'}
+                fontFamily="var(--font-mono)"
+                fontWeight="600"
+                fill={isSelected ? '#ffffff' : textPrimary}
+              >
+                {branch.id}
+              </text>
+
+              {/* 实战验收果实小标 */}
+              {hasMilestoneFruit && (
+                <circle
+                  cx={node.x + nodeR - 2}
+                  cy={node.y - nodeR + 4}
+                  r="4.5"
+                  fill="#f0b35a"
+                  stroke={surfaceColor}
+                  strokeWidth="1.5"
                 >
-                  <title>{branch.name} · 已结出实战产出果实</title>
+                  <title>{branch.name} · 已验收阶段实战产出</title>
                 </circle>
               )}
 
-              {/* 站内模式清晰外置分支文字签（与叶片簇严格隔离零重叠） */}
+              {/* 站内模式外置名称与进度标签 */}
               {!isWall && (
-                <text
-                  x={geo.labelX}
-                  y={geo.labelY}
-                  text-anchor={geo.labelAnchor}
-                  font-size="13"
-                  font-weight={isSelected ? '700' : '600'}
-                  fill={isSelected ? branch.accentToken : labelColor}
-                >
-                  {branch.id} {branch.name}
-                </text>
+                <g>
+                  <text
+                    x={node.labelX}
+                    y={node.labelY}
+                    textAnchor={node.anchor}
+                    fontSize="12.5"
+                    fontWeight={isSelected ? '600' : '500'}
+                    fill={isSelected ? accentColor : textPrimary}
+                  >
+                    {branch.name}
+                  </text>
+                  <text
+                    x={node.labelX}
+                    y={node.labelY + 15}
+                    textAnchor={node.anchor}
+                    fontSize="11"
+                    fontFamily="var(--font-mono)"
+                    fill={textMuted}
+                  >
+                    {bUnits.length > 0 ? `${displayCleared}/${bUnits.length} 节` : '规划中'}
+                  </text>
+                </g>
               )}
             </g>
           );
         })}
+
+        {/* 中心总枢 */}
+        <circle
+          cx={CX}
+          cy={CY}
+          r={isWall ? 34 : 38}
+          fill={surfaceColor}
+          stroke={accentColor}
+          strokeWidth="1.5"
+        />
+        <text
+          x={CX}
+          y={CY - 1}
+          textAnchor="middle"
+          fontSize={isWall ? '15' : '16'}
+          fontFamily="var(--font-mono)"
+          fontWeight="600"
+          fill={textPrimary}
+        >
+          {demoFallback ? Math.max(clearedCount, 4) : clearedCount}/{totalUnits}
+        </text>
+        <text
+          x={CX}
+          y={CY + 16}
+          textAnchor="middle"
+          fontSize="10.5"
+          fill={textMuted}
+        >
+          已点亮单元
+        </text>
       </svg>
 
       {!isWall && (
-        <div class="skill-tree-caption-bar">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--line)] pt-3 text-[12.5px] text-[var(--ink-2)]">
           <span>
-            已点亮叶片 <strong class="tabular-num">{clearedCount} / {totalUnits}</strong> · 实战果实{' '}
-            <strong class="tabular-num">{approvedMilestones}</strong> 枚
+            已过关单元{' '}
+            <strong className="font-mono-num text-[var(--ink-1)]">
+              {clearedCount} / {totalUnits}
+            </strong>{' '}
+            · 阶段实战产出{' '}
+            <strong className="font-mono-num text-[var(--ink-1)]">{approvedMilestones}</strong> 项
           </span>
-          <span class="skill-tree-rule-hint">正向生长，断更不枯萎；点击树枝或右侧列表切换</span>
+          <span className="text-[var(--ink-3)]">正向点亮，断更不衰减；点击节点切换分支</span>
         </div>
       )}
     </div>
   );
 }
+
+export const SkillAtlasSvg = SkillTreeSvg;

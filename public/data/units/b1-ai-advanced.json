@@ -1,0 +1,408 @@
+{
+  "version": "1.0.0",
+  "units": [
+    {
+      "id": "unit-b1-l2-numpy",
+      "branchId": "B1",
+      "trackId": "b1-ai-l2",
+      "title": "NumPy 向量化与 Pandas 清洗：把重复实验表格变成一键复现脚本",
+      "estimatedMinutes": 22,
+      "recommendedEnergy": "peak",
+      "isPlaceholder": false,
+      "scenarioHook": {
+        "sceneTitle": "测了 40 组样品每次都打开 Excel 手动拖公式、改坐标轴字体，改一个参数重做两小时",
+        "story": "手工在表格里点来点去不仅费时，更致命的是「不可复现」——一个月后导师问你这张曲线图当时怎么剔除异常值的，你对着发黑的单元格完全想不起来。",
+        "guidingQuestion": "用 Python 处理科研和生活数据，为什么 NumPy 向量化 + Pandas 清洗能同时做到快百倍且 100% 可复现？"
+      },
+      "prediction": {
+        "question": "要把一张含 10 万行实验温度读数的数组统一从摄氏度换算成开尔文（加 273.15），Python 中最规范高效的写法是？",
+        "options": [
+          "写一层 for 循环逐个元素加 273.15 再 append 进新列表",
+          "直接利用 NumPy 向量化广播运算 `temp_k = temp_c + 273.15`，由底层 C 循环整块高速执行",
+          "导入 Excel 手动往下拉 10 万行再导出",
+          "把每个数转成字符串拼接后再转回浮点数"
+        ],
+        "commonTrapIndex": 0,
+        "answerIndex": 1,
+        "whyCounterIntuitive": "NumPy 数组在内存中连续存储同构数值，向量化表达式把循环下沉到编译好的 C/SIMD 指令层，代码更短、速度常比纯 Python for 循环快几十到上百倍。"
+      },
+      "guide": {
+        "blocks": [
+          {
+            "heading": "NumPy 核心心法：形状 `shape`、广播机制与拒绝手写低效循环",
+            "markdown": "参考 NumPy 官方入门指南，排查一切数值 Bug 的第一步永远是先打印 `arr.shape` 和 `arr.dtype`（看清数组维度与数据类型）。借助**向量化（Vectorization）**与**广播（Broadcasting）**，你可以直接对整列或整张二维矩阵做归一化、求均值 `arr.mean(axis=0)` 与布尔掩码过滤 `arr[arr > 0]`，既消灭下标越界风险，又让数学公式和代码几乎逐字对应。",
+            "keyTakeaway": "先看 `shape` 再运算；凡是对整列数据做同一种数学变换，优先写向量化表达式而非 Python for 循环。"
+          },
+          {
+            "heading": "Pandas 可复现清洗四步流水线（绝不直接覆盖原始数据）",
+            "markdown": "遵循 Pandas 官方导览与科研数据卫生原则：① **原始 CSV 设为只读底稿**，所有清洗写在 `.py` 脚本中；② 读入后立刻用 `df.info()` 与 `df.isna().sum()` 摸清缺失值和错位字符串列；③ 显式声明异常值过滤条件与分组聚合 `df.groupby(...).agg(...)`；④ 将清洗结果与规范图表自动输出到独立的 `outputs/` 目录，改数据后一条命令 3 秒全盘重跑。",
+            "keyTakeaway": "代码即实验记录本：永远不要手工改动原始测量 CSV 文件。"
+          }
+        ],
+        "visuals": [
+          {
+            "kind": "exact_svg",
+            "caption": "科研与生活数据 Python 可复现处理四步流水线",
+            "svgSpec": {
+              "template": "flow_pipeline",
+              "data": {
+                "steps": [
+                  "只读加载原始 CSV",
+                  "Pandas 核查缺失与类型",
+                  "NumPy 向量化计算变换",
+                  "自动导出图表与结果"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "conceptNodeIds": ["b1.numpy_vectorization"],
+      "quiz": {
+        "mode": "standard_mcq",
+        "passRatio": 0.8,
+        "questions": [
+          {
+            "id": "q-b1-l2-1",
+            "stem": "用 Pandas 清洗一份实验原始数据表时，以下哪种习惯最能保障科研结果可追溯、可复现？",
+            "options": [
+              "直接在原始 CSV 里手工删掉几行看着不顺眼的数据然后点保存",
+              "保留原始数据只读不动，把缺失值处理、单位换算和过滤规则全部写成可重复运行的 Python 脚本并输出到新文件",
+              "每次全凭记忆在交互终端里临时敲命令且不保存脚本",
+              "把所有列全部转成纯文本防止报错"
+            ],
+            "correctIndex": 1,
+            "explanation": "只读保留原始文件 + 脚本化清洗管道，确保任何人或一个月后的自己都能精确复现每一步变换。",
+            "relatedConceptId": "b1.numpy_vectorization"
+          }
+        ]
+      },
+      "actionTask": {
+        "id": "act-b1-l2-numpy",
+        "title": "写一段 20 行 Python 脚本清洗并汇总你手头的一份 CSV 表格",
+        "lifeContext": "可用本周实验数据、跑步记录或记账导出 CSV，体验一次脚本一键出统计值",
+        "steps": [
+          "用 `pandas.read_csv()` 读入一份真实表格并打印 `df.shape` 与 `df.isna().sum()`",
+          "用一条 NumPy/Pandas 向量化语句完成单位换算或衍生列计算",
+          "把清洗后的均值、标准差结果保存为新的汇总文件而不修改原 CSV"
+        ],
+        "deliverablePrompt": "粘贴你跑通的核心 3～5 行清洗/向量化代码及输出结果摘要",
+        "feynmanCheckPrompt": "用一句话解释为什么 NumPy 向量化运算比纯 Python for 循环快得多？",
+        "matchPoolCategory": "research_data"
+      },
+      "sources": [
+        {
+          "sourceOrg": "NumPy Official Docs · Absolute Basics for Beginners",
+          "sourceUrl": "https://numpy.org/doc/stable/user/absolute_beginners.html",
+          "fetchedAt": "2026-11-25"
+        },
+        {
+          "sourceOrg": "Pandas Official Docs · 10 Minutes to pandas",
+          "sourceUrl": "https://pandas.pydata.org/docs/user_guide/10min.html",
+          "fetchedAt": "2026-11-25"
+        }
+      ]
+    },
+    {
+      "id": "unit-b1-l3-overfit",
+      "branchId": "B1",
+      "trackId": "b1-ai-l3",
+      "title": "训练集/验证集隔离与过拟合诊断：绝不让数据泄漏骗了自己",
+      "estimatedMinutes": 22,
+      "recommendedEnergy": "peak",
+      "isPlaceholder": false,
+      "scenarioHook": {
+        "sceneTitle": "模型在训练集准确率飙到 99.6%，拿去预测新样品却错得离谱",
+        "story": "很多初学者第一次跑 Scikit-learn 模型，在全部数据上先做标准化再划分测试集，看到超高分数欣喜若狂；等真正换一批未见过的真实数据时，效果瞬间腰斩。",
+        "guidingQuestion": "怎样一眼诊断模型是「真学会了规律」还是「死记硬背了噪音（过拟合）」？数据泄漏最常藏在哪一行代码里？"
+      },
+      "prediction": {
+        "question": "对一份数据集做归一化（StandardScaler）并划分训练集/测试集，以下哪个顺序才是唯一无数据泄漏的正确写法？",
+        "options": [
+          "先对全量数据做 `fit_transform`，再切分训练集和测试集",
+          "先切分训练集与测试集，只在训练集上调用 `scaler.fit_transform(X_train)`，再用同一个 scaler 对测试集仅调用 `scaler.transform(X_test)`",
+          "分别在训练集和测试集上各自重新 `fit_transform`",
+          "随便什么顺序，反正只是均值方差缩放"
+        ],
+        "commonTrapIndex": 0,
+        "answerIndex": 1,
+        "whyCounterIntuitive": "对全量数据先 `fit` 等于让模型提前偷看了测试集的分布均值与方差（数据泄漏）；用 `sklearn.pipeline.Pipeline` 把预处理和模型打包是杜绝泄漏的工程最佳实践。"
+      },
+      "guide": {
+        "blocks": [
+          {
+            "heading": "看懂欠拟合 vs 过拟合：紧盯训练误差与验证误差的分叉点",
+            "markdown": "结合李宏毅机器学习课程与 Scikit-learn 官方指南，模型复杂度提升时会出现典型分叉：**欠拟合（高偏差）**表现为训练集和验证集误差双高（模型太简单抓不住规律）；**过拟合（高方差）**表现为训练误差一路逼近 0，而验证误差却触底反弹（模型把训练集里的偶然噪音全背下来了）。调参必须以独立的**交叉验证（Cross-Validation）**分数为准，测试集只在最终锁版时开启一次。",
+            "keyTakeaway": "训练集高分不算本事，未见过的验证集稳步下降才证明泛化有效。"
+          },
+          {
+            "heading": "防止数据泄漏与选对评估指标",
+            "markdown": "① **严防泄漏**：所有缺失值填充、特征缩放与特征选择必须放进 `Pipeline`，保证每折交叉验证严格只在训练折内拟合参数；② **拒绝被类别不平衡欺骗**：若缺陷样品只占 2%，哪怕模型全猜「正常」准确率也有 98%，此时必须看 **精确率（Precision）、召回率（Recall）、F1 或 PR-AUC** 而非单一 Accuracy。",
+            "keyTakeaway": "先跑通一个最简单的线性/随机森林基线模型，再谈复杂深度网络，对比才有标尺。"
+          }
+        ],
+        "visuals": [
+          {
+            "kind": "exact_svg",
+            "caption": "模型复杂度提升过程中的「训练误差 vs 验证误差」过拟合分叉曲线",
+            "svgSpec": {
+              "template": "curve_compare",
+              "data": {
+                "series": [
+                  { "label": "验证集表现（先升后降，防过拟合拐点）", "points": [48, 74, 86, 79, 64] },
+                  { "label": "训练集表现（一路虚高至死记噪音）", "points": [52, 80, 92, 97, 99] }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "conceptNodeIds": ["b1.ml_leakage_overfit"],
+      "quiz": {
+        "mode": "standard_mcq",
+        "passRatio": 0.8,
+        "questions": [
+          {
+            "id": "q-b1-l3-1",
+            "stem": "工业瑕疵检测数据中正常品占 97%、瑕疵品占 3%，某个模型把所有样本无脑预测为「正常品」并宣称准确率高达 97%，应指出什么问题？",
+            "options": [
+              "97% 准确率已经足够上线投入生产",
+              "在极度类别不平衡任务中单一准确率完全失真，该模型对瑕疵品的召回率（Recall）为 0%，应改用 F1 / 召回率 / PR-AUC 评估",
+              "说明测试集太小，直接复制瑕疵样本十倍放进训练集和测试集即可",
+              "应该把准确率改成平方根展示"
+            ],
+            "correctIndex": 1,
+            "explanation": "类别不平衡场景下必须观察少数类的召回率、精确率与 F1 分数，切忌被表面高 Accuracy 误导。",
+            "relatedConceptId": "b1.ml_leakage_overfit"
+          }
+        ]
+      },
+      "actionTask": {
+        "id": "act-b1-l3-overfit",
+        "title": "用 Scikit-learn Pipeline 跑一次带 5 折交叉验证的基线对照实验",
+        "lifeContext": "任选内置数据集或自己的表格数据，把预处理封装进 Pipeline 防泄漏",
+        "steps": [
+          "先调用 `train_test_split` 锁定独立测试集，切勿提前全局缩放",
+          "用 `make_pipeline(StandardScaler(), LogisticRegression())` 构建基线管道并跑 5 折交叉验证",
+          "对比训练集与验证集指标差距，写下是否存在欠拟合或过拟合判断"
+        ],
+        "deliverablePrompt": "记录你的基线模型 5 折验证平均分、测试集分数及是否存在过拟合诊断",
+        "feynmanCheckPrompt": "为什么绝不能在切分测试集之前对整张表做标准化缩放？",
+        "matchPoolCategory": "research_data"
+      },
+      "sources": [
+        {
+          "sourceOrg": "Scikit-learn Official User Guide · Common Pitfalls & Cross-Validation",
+          "sourceUrl": "https://scikit-learn.org/stable/user_guide.html",
+          "fetchedAt": "2026-11-25"
+        },
+        {
+          "sourceOrg": "台湾大学李宏毅实验室 · 机器学习公开课讲义",
+          "sourceUrl": "https://speech.ee.ntu.edu.tw/~hylee/ml/2023-spring.php",
+          "fetchedAt": "2026-11-25"
+        }
+      ]
+    },
+    {
+      "id": "unit-b1-l4-transformer",
+      "branchId": "B1",
+      "trackId": "b1-ai-l4",
+      "title": "自注意力机制与 RAG 检索增强：看懂大模型为何能挂载个人知识库",
+      "estimatedMinutes": 24,
+      "recommendedEnergy": "peak",
+      "isPlaceholder": false,
+      "scenarioHook": {
+        "sceneTitle": "想让大模型准确回答你实验室内部的 200 篇 PDF 文献，直接把全部文字粘进对话框却频频漏细节",
+        "story": "直接微调大模型门槛高且知识一更新就过时，而无脑塞满超长上下文既烧钱又容易在中间段「注意力稀释」。理解 Transformer 的自注意力机制与 RAG 检索增强，就能亲手搭出高准确率的个人文献问答系统。",
+        "guidingQuestion": "Transformer 的 Self-Attention 到底在算什么？什么时候该用 RAG，什么时候才真需要微调（Fine-tuning）？"
+      },
+      "prediction": {
+        "question": "你想搭建一个「随时能增删新论文、每句回答都必须标注来自哪篇文献哪一页」的个人科研知识库，最合适的工程路线是？",
+        "options": [
+          "每多看一篇论文就花大价钱从头重训一次基础大模型权重",
+          "采用 RAG（检索增强生成）：把文档切块建索引，提问时先精准检出最相关的 Top-K 原文片段塞进上下文，再约束模型仅据原文作答并标出处",
+          "靠纯聊天多说几句「请记住我刚才发的论文」祈祷模型永久记住",
+          "完全不用大模型，只用 Ctrl+F 逐个文件手动查"
+        ],
+        "commonTrapIndex": 0,
+        "answerIndex": 1,
+        "whyCounterIntuitive": "微调擅长改变模型的「说话风格、输出格式或领域推理习惯」，却极不擅长充当随时更新的精确数据库；RAG 把「外挂动态知识库」和「语言推理引擎」解耦，更新零成本且可逐句溯源。"
+      },
+      "guide": {
+        "blocks": [
+          {
+            "heading": "Self-Attention 直觉：每个词都在用 Query 去全句查谁最相关",
+            "markdown": "在经典论文《Attention Is All You Need》(Vaswani et al., 2017) 中，Transformer 抛弃了逐字串行推进的循环网络，让句子里的每个 token 同时生成三个向量：**Query（我在找什么信息）**、**Key（我身上有什么特征标签）**与**Value（我携带的实际语义内容）**。通过计算 Q 与所有词 K 的相似度权重，模型能一步把相隔几十个词的代词和主语直接关联起来，这也是大模型高度依赖「上下文里给了什么锚点」的底层物理原因。",
+            "keyTakeaway": "自注意力本质上是「按相关性动态加权读取上下文」——上下文里垃圾越多，注意力权重被稀释得越厉害。"
+          },
+          {
+            "heading": "RAG 四步闭环与落地避坑：切块边界 + 混合检索 + 引文约束",
+            "markdown": "一个好用的个人知识库 RAG 系统核心就四步：① **语义切块（Chunking）**——按章节段落切分并保留少量重叠，切忌把表格或公式从中间硬腰斩；② **混合检索（关键词 BM25 + 向量语义检索）**——防止纯向量检索漏掉精确专有名词或化学式；③ **重排精选 Top-K 原文片段**送入提示词 `<documents>`；④ 联动 L1 的 **Quote-First 引文核查约束**，找不到片段直接回答「知识库未收录」。",
+            "keyTakeaway": "RAG 回答不准，80% 的根因不是大模型不够聪明，而是切块太碎或检索根本没把正确段落捞出来。"
+          }
+        ],
+        "visuals": [
+          {
+            "kind": "exact_svg",
+            "caption": "个人知识库 RAG（检索增强生成）四步闭环架构",
+            "svgSpec": {
+              "template": "flow_pipeline",
+              "data": {
+                "steps": [
+                  "文档按语义切块建索引",
+                  "关键词+向量混合检索",
+                  "Top-K 原文置顶入上下文",
+                  "锚定出处生成并校验"
+                ]
+              }
+            }
+          }
+        ],
+        "originCards": [
+          {
+            "conceptOrExperiment": "Vaswani et al. (2017) Transformer 架构与缩放点积自注意力",
+            "citation": "Vaswani, A., Shazeer, N., Parmar, N., et al. (2017). Attention Is All You Need. NeurIPS / arXiv:1706.03762.",
+            "originalSampleAndData": "在 WMT 2014 英德/英法翻译基准上，纯注意力架构以远低于当时 RNN/CNN 模型的训练算力成本刷新 SOTA，并释放了大规模 GPU 并行训练潜力。",
+            "replicationControversy": "标准自注意力的显存与计算复杂度随上下文长度呈平方级增长（O(N²)），后续催生了 FlashAttention、稀疏注意力与混合状态空间架构等持续优化方向。"
+          }
+        ]
+      },
+      "conceptNodeIds": ["b1.transformer_rag_loop"],
+      "quiz": {
+        "mode": "standard_mcq",
+        "passRatio": 0.8,
+        "questions": [
+          {
+            "id": "q-b1-l4-1",
+            "stem": "你搭了一套本地论文 RAG 问答系统，但发现询问某个精确合金牌号（如 `Ti-6Al-4V`）时常检索不到对应段落，最优先的工程排查方向是？",
+            "options": [
+              "把大模型温度 temperature 调到 1.5 让它自由发挥",
+              "检查检索环节：引入关键词精确匹配（BM25）与向量语义检索做混合检索，并查看文档切块是否把该术语所在段落完整保留",
+              "强迫模型不要看检索段落直接凭记忆回答",
+              "把所有 PDF 截图转成低分辨率图片"
+            ],
+            "correctIndex": 1,
+            "explanation": "纯向量嵌入对精确编号、专有名词或化学式常不如关键词检索敏感，混合检索 + 检查切块是提升 RAG 召回率的首选解法。",
+            "relatedConceptId": "b1.transformer_rag_loop"
+          }
+        ]
+      },
+      "actionTask": {
+        "id": "act-b1-l4-rag",
+        "title": "设计你个人文献库的 RAG 切块与检索验收清单",
+        "lifeContext": "针对你电脑里存放的课程讲义或专业论文 PDF，先理清检索策略再选工具落地",
+        "steps": [
+          "挑 3 篇你常查的 PDF，规划每块按「标题层级 + 约 500 字」切分并附带文件名与页码元数据",
+          "准备 5 个你自己知道标准答案的测试问题（含 2 个精确专有名词查询、1 个库里没有的负样本问题）",
+          "验证检索出的 Top-3 片段是否命中原文，并确认对负样本能老实答出「知识库未提及」"
+        ],
+        "deliverablePrompt": "写下你的 3 条测试问题（含 1 条库外负样本）与切块元数据设计方案",
+        "feynmanCheckPrompt": "用一句话说明 RAG 和微调分别最擅长解决什么问题？",
+        "matchPoolCategory": "research_data"
+      },
+      "sources": [
+        {
+          "sourceOrg": "arXiv Open Access · Attention Is All You Need (arXiv:1706.03762)",
+          "sourceUrl": "https://arxiv.org/abs/1706.03762",
+          "fetchedAt": "2026-11-25"
+        }
+      ]
+    },
+    {
+      "id": "unit-b1-l5-paper",
+      "branchId": "B1",
+      "trackId": "b1-ai-l5",
+      "title": "前沿论文三遍精读法与 AI 交叉课题迁移评估",
+      "estimatedMinutes": 20,
+      "recommendedEnergy": "peak",
+      "isPlaceholder": false,
+      "scenarioHook": {
+        "sceneTitle": "每周 arXiv 冒出几百篇 AI 交叉新论文，每篇都从第一字硬啃到末尾，既看不完又抓不住重点",
+        "story": "面对 AI × 材料、AI × 心理等快速演进的前沿交叉文献，如果缺乏分层筛选框架，很容易在细枝末节的数学符号里迷路，或者被华丽榜单包装唬住却看不清该方法到底能不能迁移到自己的小样本实验上。",
+        "guidingQuestion": "科研高手怎么用「三遍阅读法」10 分钟筛掉 80% 灌水文，把精力全砸在真正能复现迁移的好论文上？"
+      },
+      "prediction": {
+        "question": "刚下载一篇 15 页的前沿交叉领域新论文，第一遍（5～10 分钟）最应该按什么顺序读？",
+        "options": [
+          "从第 1 页第 1 句逐字查字典翻译到参考文献最后一行",
+          "标题与摘要 → 核心框架图与主结果表 → 结论与局限性（Limitations），快速回答「解决什么问题、假设条件是什么、值不值得进入第二遍」",
+          "直接把整篇扔给 AI 总结三句话，自己一张图都不看",
+          "只看作者单位名气，名校就盲信、非名校直接删"
+        ],
+        "commonTrapIndex": 0,
+        "answerIndex": 1,
+        "whyCounterIntuitive": "第一遍的目标是「高效率筛选与建立鸟瞰地图」而非死抠公式；特别要看 Limitations 与实验数据集规模——很多顶会方法依赖百万级标注数据，直接套进小样本湿实验会彻底失效。"
+      },
+      "guide": {
+        "blocks": [
+          {
+            "heading": "经典三遍精读法（Keshav 框架 × AI 辅助核查）",
+            "markdown": "① **第一遍（10 分钟鸟瞰筛滤）**：只看标题、摘要、主图与结论局限，用一句话概括其核心贡献与边界；② **第二遍（40 分钟拆解骨架）**：精读方法论与消融实验（Ablation Study），看清**到底是哪个模块带来了真实提升、基线对比是否公平**，可让 AI 用 Quote-First 模式协助解释陌生符号，但图表数字必须亲眼核对；③ **第三遍（仅限 TOP 10% 核心论文）**：拉取开源代码在最小样本上亲手跑通复现，并尝试改一个假设检验其鲁棒性。",
+            "keyTakeaway": "读消融实验与 Limitations 往往比读炫酷的 Introduction 学到更多真东西。"
+          },
+          {
+            "heading": "交叉课题迁移四问：别拿大炮打蚊子",
+            "markdown": "评估一篇 AI 前沿论文能否迁移到自己的材料科学或心理实验时，先过四问：① **数据量级匹配吗？**（百级小样本优先物理约束特征/树模型，而非盲目上大模型）；② **评价指标和物理/现实约束一致吗？**；③ **有无公开可复现代码与数据脚本？**；④ **相比传统基线，提升幅度是否大于实验测量误差本身？**",
+            "keyTakeaway": "交叉科研的核心竞争力不是追最热的模型名字，而是把真实领域问题抽象干净、用最稳的工具解决。"
+          }
+        ],
+        "visuals": [
+          {
+            "kind": "exact_svg",
+            "caption": "前沿交叉论文「三遍精读 + 课题迁移」四步漏斗",
+            "svgSpec": {
+              "template": "flow_pipeline",
+              "data": {
+                "steps": [
+                  "10分钟鸟瞰筛滤",
+                  "拆解方法与消融实验",
+                  "核查局限与数据边界",
+                  "跑通代码评估迁移"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "conceptNodeIds": ["b1.paper_three_pass_eval"],
+      "quiz": {
+        "mode": "standard_mcq",
+        "passRatio": 0.8,
+        "questions": [
+          {
+            "id": "q-b1-l5-1",
+            "stem": "你在精读一篇 AI × 材料预测论文时，想确认作者提出的「新模块」是不是真的起了核心作用而非靠调参蹭高分，最应该重点看哪一部分？",
+            "options": [
+              "引言里的宏大前景展望段落",
+              "消融实验（Ablation Study）与公平基线对比表，观察去掉该模块后性能是否显著回落、且对比基线是否同条件调优",
+              "致谢段落和字体排版",
+              "参考文献数量是不是超过 100 篇"
+            ],
+            "correctIndex": 1,
+            "explanation": "消融实验是拆解每个组件边际贡献的试金石，配合局限性章节可快速识破过度包装。",
+            "relatedConceptId": "b1.paper_three_pass_eval"
+          }
+        ]
+      },
+      "actionTask": {
+        "id": "act-b1-l5-paper",
+        "title": "用「第一遍 10 分钟卡片」速评 1 篇你近期下载的 arXiv 论文",
+        "lifeContext": "直接从你文献文件夹挑 1 篇还没读的英文论文，10 分钟做出「留读还是跳过」决策",
+        "steps": [
+          "用 1 句话写清这篇论文要解决的具体问题与核心新意",
+          "从消融实验或图表里抓出 1 个关键对比数字",
+          "明确写下它的 1 条局限性（如数据量要求、算力门槛）以及是否值得投入第二遍精读"
+        ],
+        "deliverablePrompt": "贴出你的「论文标题 + 一句话贡献 + 1 条局限边界 + 是否进入第二遍」精读卡",
+        "matchPoolCategory": "research_data"
+      },
+      "sources": [
+        {
+          "sourceOrg": "arXiv Open Access · Condensed Matter & AI Cross-Disciplinary Repository",
+          "sourceUrl": "https://arxiv.org/",
+          "fetchedAt": "2026-11-25"
+        }
+      ]
+    }
+  ]
+}

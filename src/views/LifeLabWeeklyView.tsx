@@ -1,14 +1,17 @@
-import { useState } from 'preact/hooks';
-import { ExactDiagram } from '../components/ExactDiagram';
-import type { PlatformContentBundle } from '../core/contentLoader';
+import { Plus } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { ExactDiagram } from '@/components/ExactDiagram';
+import { Badge, Button, Card } from '@/components/ui/primitives';
+import type { PlatformContentBundle } from '@/core/contentLoader';
 import {
   addLifeLabEntry,
   createLifeLabExperiment,
   getLocalDateKey,
   updateLifeLabConclusion,
-} from '../core/db';
-import { computeWeeklyReviewSummary } from '../core/scheduler';
-import type { TelemetrySnapshot } from '../types/schema';
+} from '@/core/db';
+import { computeWeeklyReviewSummary } from '@/core/scheduler';
+import type { TelemetrySnapshot } from '@/types/schema';
 
 interface LifeLabWeeklyViewProps {
   content: PlatformContentBundle;
@@ -63,47 +66,57 @@ export function LifeLabWeeklyView({
   if (mode === 'weekly') {
     const weekly = computeWeeklyReviewSummary(content, telemetry);
     return (
-      <section class="surface-card" aria-label="每周生活复盘">
-        <div class="section-head-row" style={{ marginBottom: '16px' }}>
+      <Card className="space-y-5" aria-label="每周生活复盘">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 class="section-h2">每周生活与学习复盘</h2>
-            <p class="muted-desc tabular-num">
+            <h2 className="m-0 text-[18px] font-semibold text-[var(--ink-1)]">
+              每周生活与学习复盘
+            </h2>
+            <p className="mt-1 mb-0 font-mono-num text-[13px] text-[var(--ink-3)]">
               统计周期：{weekly.windowStart} 至 {weekly.windowEnd}
             </p>
           </div>
-          <span class="status-chip chip-growth">自动聚合本周真实留痕</span>
+          <Badge tone="growth">自动聚合本周真实留痕</Badge>
         </div>
 
-        <div class="kpi-strip-4">
-          <div class="kpi-cell">
-            <span class="kpi-label">近 7 日点亮</span>
-            <strong class="kpi-num tabular-num">{weekly.activeDaysInWeek} 天</strong>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="v3-card-raised p-3.5">
+            <div className="text-[12px] text-[var(--ink-3)]">近 7 日点亮</div>
+            <strong className="mt-1 block font-mono-num text-[22px] font-semibold text-[var(--ink-1)]">
+              {weekly.activeDaysInWeek} 天
+            </strong>
           </div>
-          <div class="kpi-cell">
-            <span class="kpi-label">专注学习时长</span>
-            <strong class="kpi-num tabular-num">{weekly.studyMinutesInWeek} min</strong>
+          <div className="v3-card-raised p-3.5">
+            <div className="text-[12px] text-[var(--ink-3)]">专注学习时长</div>
+            <strong className="mt-1 block font-mono-num text-[22px] font-semibold text-[var(--ink-1)]">
+              {weekly.studyMinutesInWeek} min
+            </strong>
           </div>
-          <div class="kpi-cell">
-            <span class="kpi-label">过关单元 / 概念</span>
-            <strong class="kpi-num tabular-num">
+          <div className="v3-card-raised p-3.5">
+            <div className="text-[12px] text-[var(--ink-3)]">过关单元 / 概念</div>
+            <strong className="mt-1 block font-mono-num text-[22px] font-semibold text-[var(--ink-1)]">
               {weekly.clearedUnitTitles.length} 节 / {weekly.practicedConceptCount} 个
             </strong>
           </div>
-          <div class="kpi-cell">
-            <span class="kpi-label">落地真实行动</span>
-            <strong class="kpi-num tabular-num">{weekly.completedActions.length} 项</strong>
+          <div className="v3-card-raised p-3.5">
+            <div className="text-[12px] text-[var(--ink-3)]">落地真实行动</div>
+            <strong className="mt-1 block font-mono-num text-[22px] font-semibold text-[var(--ink-1)]">
+              {weekly.completedActions.length} 项
+            </strong>
           </div>
         </div>
 
-        <div class="weekly-two-col">
-          <div class="weekly-subpanel">
-            <h3 class="rail-section-title">本周掌握与过关单元</h3>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="v3-card-raised space-y-2 p-4">
+            <h3 className="m-0 text-[13.5px] font-semibold text-[var(--ink-1)]">
+              本周掌握与过关单元
+            </h3>
             {weekly.clearedUnitTitles.length === 0 ? (
-              <p class="muted-desc" style={{ margin: 0 }}>
-                本周尚无新过关单元，哪怕只翻过几张概念卡也是有效推进。
+              <p className="m-0 text-[13.5px] text-[var(--ink-2)]">
+                本周尚无新过关单元，翻过几张概念卡也是有效推进
               </p>
             ) : (
-              <ul class="track-list">
+              <ul className="m-0 list-disc space-y-1 pl-5 text-[13.5px] text-[var(--ink-2)]">
                 {weekly.clearedUnitTitles.map((t) => (
                   <li key={t}>{t}</li>
                 ))}
@@ -111,14 +124,16 @@ export function LifeLabWeeklyView({
             )}
           </div>
 
-          <div class="weekly-subpanel">
-            <h3 class="rail-section-title">本周落地的真实行动</h3>
+          <div className="v3-card-raised space-y-2 p-4">
+            <h3 className="m-0 text-[13.5px] font-semibold text-[var(--ink-1)]">
+              本周落地的真实行动
+            </h3>
             {weekly.completedActions.length === 0 ? (
-              <p class="muted-desc" style={{ margin: 0 }}>
-                暂无已归档行动记录，可从「真实任务池」挑一件小事顺手落地。
+              <p className="m-0 text-[13.5px] text-[var(--ink-2)]">
+                暂无已归档行动记录，可从「真实任务池」挑一件小事顺手落地
               </p>
             ) : (
-              <ul class="track-list">
+              <ul className="m-0 list-disc space-y-1 pl-5 text-[13.5px] text-[var(--ink-2)]">
                 {weekly.completedActions.map((a, idx) => (
                   <li key={idx}>{a}</li>
                 ))}
@@ -128,21 +143,21 @@ export function LifeLabWeeklyView({
         </div>
 
         {weekly.activeExperimentBrief && (
-          <div class="scenario-question-panel" style={{ marginTop: '16px' }}>
-            <span class="guiding-label">本月生活实验室动态</span>
-            <p>{weekly.activeExperimentBrief}</p>
+          <div className="rounded-[10px] border border-[var(--accent-border)] bg-[var(--accent-soft)] p-4">
+            <div className="mb-1 text-[12px] font-semibold text-[var(--accent)]">
+              本月生活实验室动态
+            </div>
+            <p className="m-0 text-[14px] text-[var(--ink-1)]">{weekly.activeExperimentBrief}</p>
           </div>
         )}
 
-        <div class="wrap-up-card" style={{ marginTop: '16px' }}>
-          <div>
-            <span class="status-chip chip-growth">下周可执行建议</span>
-            <p class="wrap-up-desc" style={{ marginTop: '8px', fontSize: '15px' }}>
-              {weekly.nextWeekSuggestion}
-            </p>
-          </div>
+        <div className="rounded-[10px] border border-[var(--growth-border)] bg-[var(--growth-soft)] p-4">
+          <Badge tone="growth">下周可执行建议</Badge>
+          <p className="mt-2 mb-0 text-[14.5px] leading-[1.65] text-[var(--ink-1)]">
+            {weekly.nextWeekSuggestion}
+          </p>
         </div>
-      </section>
+      </Card>
     );
   }
 
@@ -152,6 +167,7 @@ export function LifeLabWeeklyView({
   const handleStartPreset = async (preset: (typeof EXPERIMENT_PRESETS)[number]) => {
     const next = await createLifeLabExperiment(preset);
     onTelemetryChange(next);
+    toast.success(`已立项实验：${preset.title}`);
   };
 
   const handleCreateCustom = async () => {
@@ -167,6 +183,7 @@ export function LifeLabWeeklyView({
     });
     setCustomTitle('');
     onTelemetryChange(next);
+    toast.success('已立项自定义生活实验');
   };
 
   const handleAddEntry = async () => {
@@ -180,6 +197,7 @@ export function LifeLabWeeklyView({
     });
     setEntryNote('');
     onTelemetryChange(next);
+    toast.success('已记录今日实验数据');
   };
 
   const renderExperimentChart = () => {
@@ -194,7 +212,7 @@ export function LifeLabWeeklyView({
     const baselinePts = pointsForLine.map(() => norm(activeExp.baselineValue));
 
     return (
-      <div style={{ margin: '16px 0' }}>
+      <div className="my-4">
         <ExactDiagram
           compact
           caption="实验期实测指标 vs 实验前基线动态对比"
@@ -219,134 +237,140 @@ export function LifeLabWeeklyView({
   };
 
   return (
-    <div class="life-lab-wrap">
-      <section class="surface-card">
-        <div class="section-head-row" style={{ marginBottom: '12px' }}>
-          <div>
-            <h2 class="section-h2">月度生活实验室 · 定变量、记数据、看前后变化</h2>
-            <p class="muted-desc">按科研对照实验的方式验证生活习惯，实测结果自动同步至周报与状态墙。</p>
-          </div>
+    <div className="space-y-4">
+      <Card className="space-y-4">
+        <div>
+          <h2 className="m-0 text-[18px] font-semibold text-[var(--ink-1)]">
+            月度生活实验室 · 定变量、记数据、看前后变化
+          </h2>
+          <p className="mt-1 mb-0 text-[13.5px] text-[var(--ink-2)]">
+            按科研对照实验的方式验证生活习惯，实测结果自动同步至周报与状态墙
+          </p>
         </div>
 
-        <div class="quick-templates-row">
-          <span class="muted-inline">预设实验模板：</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[12.5px] text-[var(--ink-3)]">预设实验模板：</span>
           {EXPERIMENT_PRESETS.map((p) => (
-            <button
-              key={p.title}
-              type="button"
-              class="btn btn-sm"
-              onClick={() => handleStartPreset(p)}
-            >
-              + {p.title}
-            </button>
+            <Button key={p.title} size="sm" variant="subtle" onClick={() => handleStartPreset(p)}>
+              <Plus size={13} strokeWidth={1.6} />
+              <span>{p.title}</span>
+            </Button>
           ))}
         </div>
 
-        <div class="task-pool-form">
+        <div className="grid grid-cols-1 gap-2.5 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_120px_auto]">
           <input
             type="text"
+            className="v3-input"
             placeholder="或自定义实验主题，如：连续 14 天晨起喝一杯温水"
             value={customTitle}
-            onInput={(e) => setCustomTitle((e.target as HTMLInputElement).value)}
+            onChange={(e) => setCustomTitle(e.target.value)}
           />
           <input
             type="text"
+            className="v3-input"
             placeholder="因变量名称"
             value={customMetric}
-            onInput={(e) => setCustomMetric((e.target as HTMLInputElement).value)}
+            onChange={(e) => setCustomMetric(e.target.value)}
           />
           <input
             type="number"
             step="0.5"
+            className="v3-input font-mono-num"
             placeholder="实验前基线值"
             value={customBaseline}
-            onInput={(e) => setCustomBaseline((e.target as HTMLInputElement).value)}
+            onChange={(e) => setCustomBaseline(e.target.value)}
           />
-          <button
-            type="button"
-            class="btn btn-primary"
-            disabled={!customTitle.trim()}
-            onClick={handleCreateCustom}
-          >
+          <Button variant="primary" disabled={!customTitle.trim()} onClick={handleCreateCustom}>
             立项实验
-          </button>
+          </Button>
         </div>
-      </section>
+      </Card>
 
       {activeExp ? (
-        <section class="surface-card" style={{ marginTop: '16px' }}>
-          <div class="path-track-badges">
-            <span class="status-chip chip-growth">当前主实验 · {activeExp.monthLabel}</span>
-            <span class="status-chip tabular-num">
+        <Card className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone="growth">当前主实验 · {activeExp.monthLabel}</Badge>
+            <Badge tone="neutral" className="font-mono-num">
               基线 {activeExp.baselineValue} {activeExp.metricUnit}
-            </span>
-            <span class="status-chip tabular-num">已记录 {activeExp.entries.length} 天</span>
+            </Badge>
+            <Badge tone="neutral" className="font-mono-num">
+              已记录 {activeExp.entries.length} 天
+            </Badge>
           </div>
-          <h3 class="path-track-title">{activeExp.title}</h3>
-          <p class="path-track-summary">
-            <strong>实验假设：</strong>
-            {activeExp.hypothesis}（自变量：{activeExp.independentVar}）
-          </p>
 
-          <div class="task-pool-form" style={{ marginBottom: '14px' }}>
+          <div className="space-y-1">
+            <h3 className="m-0 text-[18px] font-semibold text-[var(--ink-1)]">
+              {activeExp.title}
+            </h3>
+            <p className="m-0 text-[13.5px] text-[var(--ink-2)]">
+              <strong className="font-medium text-[var(--ink-1)]">实验假设：</strong>
+              {activeExp.hypothesis}（自变量：{activeExp.independentVar}）
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2.5 md:grid-cols-[150px_130px_minmax(0,1fr)_auto]">
             <input
               type="date"
+              className="v3-input font-mono-num"
               value={entryDate}
-              onInput={(e) => setEntryDate((e.target as HTMLInputElement).value)}
+              onChange={(e) => setEntryDate(e.target.value)}
             />
             <input
               type="number"
               step="0.1"
+              className="v3-input font-mono-num"
               value={entryValue}
-              onInput={(e) => setEntryValue((e.target as HTMLInputElement).value)}
-              placeholder={`今日 ${activeExp.metricName} (${activeExp.metricUnit})`}
+              onChange={(e) => setEntryValue(e.target.value)}
+              placeholder={`今日 ${activeExp.metricName}`}
             />
             <input
               type="text"
+              className="v3-input"
               value={entryNote}
-              onInput={(e) => setEntryNote((e.target as HTMLInputElement).value)}
+              onChange={(e) => setEntryNote(e.target.value)}
               placeholder="10 秒简注（如：昨晚按时关灯，今天下午没犯困）"
             />
-            <button type="button" class="btn btn-primary" onClick={handleAddEntry}>
+            <Button variant="primary" onClick={handleAddEntry}>
               记录今日数据
-            </button>
+            </Button>
           </div>
 
           {renderExperimentChart()}
 
           {activeExp.entries.length > 0 && (
-            <div class="weakness-top5-list" style={{ marginBottom: '14px' }}>
+            <div className="flex flex-wrap gap-2">
               {activeExp.entries.map((e) => (
-                <span class="status-chip tabular-num" key={e.dateKey}>
+                <Badge tone="neutral" className="font-mono-num" key={e.dateKey}>
                   {e.dateKey}：<strong>{e.value}</strong> {activeExp.metricUnit}
                   {e.note ? `（${e.note}）` : ''}
-                </span>
+                </Badge>
               ))}
             </div>
           )}
 
-          <div class="form-field-block" style={{ marginBottom: 0 }}>
-            <label class="form-label">阶段实验小结（前后对比结论）</label>
+          <div className="space-y-1.5">
+            <label className="block text-[13px] font-medium text-[var(--ink-1)]">
+              阶段实验小结（前后对比结论）
+            </label>
             <textarea
               rows={2}
+              className="v3-textarea"
               value={activeExp.conclusion ?? ''}
               placeholder="记录几组数据后，写下这个习惯值不值得长期保留…"
-              onInput={async (e) => {
-                const next = await updateLifeLabConclusion(
-                  activeExp.id,
-                  (e.target as HTMLTextAreaElement).value
-                );
+              onChange={async (e) => {
+                const next = await updateLifeLabConclusion(activeExp.id, e.target.value);
                 onTelemetryChange(next);
               }}
             />
           </div>
-        </section>
+        </Card>
       ) : (
-        <section class="surface-card" style={{ marginTop: '16px' }}>
-          <div class="empty-track-notice" style={{ marginBottom: 0 }}>
-            当前尚未立项月度实验，点击上方任一预设模板即可开启第一轮生活实验。
+        <Card>
+          <div className="v3-card-raised p-4 text-[14px] text-[var(--ink-2)]">
+            当前尚未立项月度实验，点击上方任一预设模板即可开启第一轮生活实验
           </div>
-        </section>
+        </Card>
       )}
     </div>
   );

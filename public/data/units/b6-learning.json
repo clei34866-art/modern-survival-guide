@@ -1,0 +1,204 @@
+{
+  "version": "1.0.0",
+  "units": [
+    {
+      "id": "unit-b6-retrieval",
+      "branchId": "B6",
+      "trackId": "b6-main",
+      "title": "主动提取与间隔重测：打破「顺读全懂、一考就忘」的流畅性错觉",
+      "estimatedMinutes": 18,
+      "recommendedEnergy": "fragment",
+      "isPlaceholder": false,
+      "scenarioHook": {
+        "sceneTitle": "用荧光笔把整本教材画得五彩斑斓、连读三遍觉得全懂了，合上书却写不出三行",
+        "story": "考前或读技术文档时，最让人安心却最坑人的错觉就是「眼睛扫过去觉得很眼熟」。你以为自己学会了，其实只是大脑在识别文字的熟悉感，并没有真正建立从空白记忆中把知识「抽出来」的神经通路。",
+        "guidingQuestion": "认知科学实证了上百年的十种学习策略里，哪两种效率碾压画重点和重复朗读？"
+      },
+      "prediction": {
+        "question": "把同一段科学材料学两遍：A 组连读四遍教材，B 组只读一遍后合上书努力回忆写下来（哪怕卡壳漏掉一半）。一周后突击测验，哪一组记住的内容显著更多？",
+        "options": [
+          "A 组（连读四遍）碾压 B 组，因为输入次数多四倍",
+          "B 组（读一遍 + 闭卷主动提取）在一周后的长期记忆留存率上显著高于 A 组，哪怕 A 组刚学完时自信心更高",
+          "两组完全没有差别",
+          "只要多换几种颜色的荧光笔画线效果就能超过自测"
+        ],
+        "commonTrapIndex": 0,
+        "answerIndex": 1,
+        "whyCounterIntuitive": "Roediger & Karpicke (2006) 经典测试效应实验发现：重复阅读制造的是「高自信、快遗忘」的短期熟悉感；只有费力闭卷提取（Testing Effect）才真正加固长期记忆索引。"
+      },
+      "guide": {
+        "blocks": [
+          {
+            "heading": "Dunlosky (2013) 十大策略元分析：把时间从低效重读转给两大王牌",
+            "markdown": "心理学家 Dunlosky 等人在知名综述《Strengthening the Student Toolbox》中评估了十种常见学习法，结论极其鲜明：学生最常用的**画荧光笔（Highlighting）**与**重复顺读（Rereading）**被评为**低效（Low Utility）**；唯二获得**最高效（High Utility）**评级的策略是：① **练习测试 / 主动提取（Practice Testing）**——合上资料靠自己回忆、刷闪卡、做题；② **间隔练习（Distributed Practice）**——把 4 小时集中突击拆成跨 1 / 3 / 7 天的多次短回顾。",
+            "keyTakeaway": "本平台「先预测 → 3D 翻卡 → 提取自测 → 1/3/7 天错题重测」的整套引擎，正是这两条最高效认知法则的直接落地。"
+          },
+          {
+            "heading": "把「卡壳和答错」当成信号灯而非挫败感",
+            "markdown": "为什么很多同学不敢早做题、总想「等我全部背熟了再刷题」？因为提取过程带来的适度吃力感（合意困难，Desirable Difficulty）让人不舒服。但恰恰是**先尝试提取 → 暴露卡壳 → 立刻核对解析**的纠偏瞬间，记忆加固效率最高。错题不必抄满整本漂亮错题集，直接丢进间隔队列在 1 天、3 天、7 天后重新闭卷提取即可。",
+            "keyTakeaway": "不要等「准备好」才自测——自测本身就是最高效的学习方式。"
+          }
+        ],
+        "visuals": [
+          {
+            "kind": "exact_svg",
+            "caption": "1/3/7 天间隔主动提取 vs 考前集中重复顺读的长期记忆留存走势示意",
+            "svgSpec": {
+              "template": "curve_compare",
+              "data": {
+                "series": [
+                  { "label": "间隔主动提取（1/3/7天稳固留存）", "points": [90, 76, 86, 84, 88] },
+                  { "label": "集中重复顺读（考后迅速滑坡）", "points": [92, 62, 40, 26, 18] }
+                ]
+              }
+            }
+          }
+        ],
+        "originCards": [
+          {
+            "conceptOrExperiment": "Roediger & Karpicke (2006) 测试效应实验 & Dunlosky (2013) 学习策略综述",
+            "citation": "Roediger, H. L., & Karpicke, J. D. (2006). Psychological Science, 17(3), 249–255; Dunlosky et al. (2013). Psychological Science in the Public Interest, 14(1), 4–58.",
+            "originalSampleAndData": "大学生阅读科学短文后分别采取「重复阅读组（SSSS）」与「读后闭卷回忆组（STTT）」。5 分钟后重读组略优，但 1 周后测试组的遗忘率仅 14%，而重读组遗忘率高达 52%。",
+            "replicationControversy": "测试效应与间隔效应是认知心理学中复现度最高的现象之一；唯一边界在于若学习者完全零基础且无及时纠偏反馈，盲目硬猜可能固化错误印象，因此必须配合「提取后即时看正确解析」。"
+          }
+        ]
+      },
+      "conceptNodeIds": ["b6.spaced_retrieval"],
+      "quiz": {
+        "mode": "standard_mcq",
+        "passRatio": 0.8,
+        "questions": [
+          {
+            "id": "q-b6-ret-1",
+            "stem": "距离一门专业课测验还有 10 天，总复习预算为 6 小时，下列哪种分配最符合 Dunlosky 实证结论？",
+            "options": [
+              "前 9 天不看，考前一晚通宵连看 6 小时讲义并画满荧光笔",
+              "拆分成第 1 / 3 / 6 / 9 天每次 1.5 小时，每次读完一节就合上书做闭卷提取自测，把卡壳点留给下一轮重测",
+              "花 6 小时把课本原封不动工整抄写两遍",
+              "只挑自己已经会做的简单题反复刷找自信"
+            ],
+            "correctIndex": 1,
+            "explanation": "间隔练习搭配主动提取 + 及时纠偏反馈，长期记忆留存率远超集中突击与被动重读。",
+            "relatedConceptId": "b6.spaced_retrieval"
+          }
+        ]
+      },
+      "actionTask": {
+        "id": "act-b6-retrieval",
+        "title": "用「闭卷白纸提取 3 分钟」替代你今天的一轮教材重读",
+        "lifeContext": "挑你今天读过的一节专业课、论文或本站任一学习单元，直接合上屏幕回忆",
+        "steps": [
+          "合上原文，拿一张白纸或空白文档，3 分钟内写出你能回忆出的 3 个核心机制",
+          "重新打开原文核对漏掉或记混的 1 处盲区（用不同颜色标出）",
+          "打开本站「3D 知识闪卡台」，用 Space 翻卡刷完 3 张卡片并如实评出 1/2/3 档"
+        ],
+        "deliverablePrompt": "写下你闭卷回忆时最意外漏掉的 1 个知识点盲区",
+        "matchPoolCategory": "general"
+      },
+      "sources": [
+        {
+          "sourceOrg": "American Educator / AFT · Strengthening the Student Toolbox (John Dunlosky, 2013)",
+          "sourceUrl": "https://www.aft.org/ae/fall2013/dunlosky",
+          "fetchedAt": "2026-11-25"
+        }
+      ]
+    },
+    {
+      "id": "unit-b6-feynman",
+      "branchId": "B6",
+      "trackId": "b6-main",
+      "title": "费曼输出与精力三时段匹配：把难知识拆进高能时段、做完即停",
+      "estimatedMinutes": 16,
+      "recommendedEnergy": "peak",
+      "isPlaceholder": false,
+      "scenarioHook": {
+        "sceneTitle": "晚上十点从实验室拖着残血身体回来，硬逼自己啃全新硬核公式，看一小时一页没翻过去",
+        "story": "拖延和自我怀疑往往不是懒，而是把「最烧前额叶皮层的重任务」错配到了「精力见底的残血时段」，同时用一堆唬人的专业黑话蒙混自己「好像懂了」。",
+        "guidingQuestion": "怎样用费曼白话检验真实理解深度，并把不同难度的任务精准装进早/晚/睡前三个精力档位？"
+      },
+      "prediction": {
+        "question": "检验你是不是真正弄懂了一个复杂技术或金融概念，最诚实、零水分的测试方法是？",
+        "options": [
+          "把定义背得一字不差，包含十几个专业术语",
+          "不准使用任何专业黑话，用一句初中生也能秒懂的大白话+一个生活类比讲清「为什么必须这样」",
+          "收藏 20 篇相关长文到收藏夹吃灰",
+          "在脑子里觉得「嗯，有道理」然后直接翻下一页"
+        ],
+        "commonTrapIndex": 0,
+        "answerIndex": 1,
+        "whyCounterIntuitive": "用术语解释术语只是文字搬运；一旦逼自己脱掉术语外衣，任何似懂非懂的逻辑断层都会在三秒内暴露无遗（费曼学习法精髓）。"
+      },
+      "guide": {
+        "blocks": [
+          {
+            "heading": "费曼四步检错闭环：脱掉黑话外衣，精准定位理解黑洞",
+            "markdown": "认知科学中的**自我解释（Self-Explanation）与精细加工追问（Elaborative Interrogation）**被 Dunlosky 综述评为高潜力学习法，实操即经典费曼四步：① **锁定单个核心概念**；② **用一句零术语大白话讲给外行听**；③ **卡壳或不得不搬出专业词的那一瞬间，就是你真正的理解黑洞**；④ **立刻回源补齐那一块，再压缩成一句带生活类比的精炼总结**。",
+            "keyTakeaway": "讲不明白不是嘴笨，而是脑中某处逻辑链条还没接通——找到卡壳点就完成了一半学习。"
+          },
+          {
+            "heading": "精力匹配而非时长内卷：早碎片、晚高能、睡前轻复盘",
+            "markdown": "工作记忆与意志力在一天内呈显著节律波动：把**高认知负荷任务**（全新概念攻坚、写代码脚本、做重大决策）锁定在一天最清醒的整块高能时段；把**中低负荷任务**（翻 3 张闪卡、看场景导读）放进早间通勤或课间碎片；把**低能实验后时段**严格限定为轻松错题复盘，**定额完成立刻收工**，用可持续节律跑赢三分钟热血。",
+            "keyTakeaway": "管理精力优先级永远大于硬熬时长——每天稳推 30 分钟胜过周末突击 8 小时然后彻底摆烂半个月。"
+          }
+        ],
+        "visuals": [
+          {
+            "kind": "exact_svg",
+            "caption": "费曼输出四步理解检错闭环",
+            "svgSpec": {
+              "template": "flow_pipeline",
+              "data": {
+                "steps": [
+                  "锚定单一核心概念",
+                  "零黑话大白话复述",
+                  "定位卡壳逻辑断层",
+                  "回源补漏压缩金句"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "conceptNodeIds": ["b6.feynman_energy_match"],
+      "quiz": {
+        "mode": "standard_mcq",
+        "passRatio": 0.8,
+        "questions": [
+          {
+            "id": "q-b6-fey-1",
+            "stem": "实验结束已是晚上 22:30，精力明显见底，按「精力三时段匹配」原则最合理的安排是？",
+            "options": [
+              "硬着头皮新开一节最难的推导硬扛到凌晨两点",
+              "绝不新开高难度模块，仅花 4 分钟轻翻 2 张熟卡或 1 道待重测错题，完成即收工洗漱睡觉",
+              "焦虑自责一小时然后报复性刷短视频到三点",
+              "把明天、后天的任务全压到今晚一起补"
+            ],
+            "correctIndex": 1,
+            "explanation": "保护睡眠底座与次日高能窗口远比残血硬熬有效；低能时段只做轻量巩固，做完即停。",
+            "relatedConceptId": "b6.feynman_energy_match"
+          }
+        ]
+      },
+      "actionTask": {
+        "id": "act-b6-feynman",
+        "title": "用一句话大白话向朋友（或自己）讲透你最近学的一个硬核概念",
+        "lifeContext": "从你本专业课程或本站已学单元里任选 1 个概念，禁绝搬运定义原文",
+        "steps": [
+          "写下你选定的概念名称，限时 2 分钟用生活类比写一句大白话解释",
+          "检查句子里是否偷渡了没解释清楚的二级专业术语，若有则拆掉重说",
+          "顺手规划明天高能时段只锁死哪 1 件最值钱的主线任务"
+        ],
+        "deliverablePrompt": "贴出你的「概念名 + 一句话零术语大白话解释」",
+        "feynmanCheckPrompt": "为什么费曼法要求严禁使用未解释的专业术语？",
+        "matchPoolCategory": "general"
+      },
+      "sources": [
+        {
+          "sourceOrg": "American Educator / AFT · Strengthening the Student Toolbox (Elaborative Interrogation & Self-Explanation)",
+          "sourceUrl": "https://www.aft.org/ae/fall2013/dunlosky",
+          "fetchedAt": "2026-11-25"
+        }
+      ]
+    }
+  ]
+}

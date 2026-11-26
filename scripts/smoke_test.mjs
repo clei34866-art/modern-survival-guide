@@ -6,22 +6,39 @@ async function main() {
     throw new Error('dist/ 静态构建产物缺失，请先运行 npm run build');
   }
 
-  const b1L1Units = JSON.parse(fs.readFileSync('public/data/units/b1-ai-l1.json', 'utf8')).units;
-  const b1BlenderUnits = JSON.parse(
-    fs.readFileSync('public/data/units/b1-sw-blender.json', 'utf8')
-  ).units;
-  const b2Units = JSON.parse(fs.readFileSync('public/data/units/b2-finance.json', 'utf8')).units;
-  const b3Units = JSON.parse(fs.readFileSync('public/data/units/b3-psych.json', 'utf8')).units;
+  const unitFileNames = [
+    'b1-ai-l1.json',
+    'b1-ai-advanced.json',
+    'b1-sw-blender.json',
+    'b1-sw-packs.json',
+    'b2-finance.json',
+    'b3-psych.json',
+    'b4-health.json',
+    'b5-career.json',
+    'b6-learning.json',
+    'b7-safety.json',
+  ];
+  const byFile = Object.fromEntries(
+    unitFileNames.map((fn) => [
+      fn,
+      JSON.parse(fs.readFileSync(`public/data/units/${fn}`, 'utf8')).units,
+    ])
+  );
+  const b1L1Units = byFile['b1-ai-l1.json'];
+  const b1BlenderUnits = byFile['b1-sw-blender.json'];
+  const b2Units = byFile['b2-finance.json'];
+  const b3Units = byFile['b3-psych.json'];
 
-  const allLoadedUnits = [...b1L1Units, ...b1BlenderUnits, ...b2Units, ...b3Units];
+  const allLoadedUnits = Object.values(byFile).flat();
   if (
     b1L1Units.length < 4 ||
     b1BlenderUnits.length < 3 ||
     b2Units.length < 3 ||
     b3Units.length < 2 ||
+    allLoadedUnits.length < 28 ||
     allLoadedUnits.some((u) => u.isPlaceholder)
   ) {
-    throw new Error('M10 首批 12 节正式学习单元（B1 L1+Blender / B2 三节 / B3 两节）未全部就绪');
+    throw new Error('全七分支 28 节正式学习单元未全部就绪或存在占位单元');
   }
 
   const bundle = {

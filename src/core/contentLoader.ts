@@ -22,94 +22,62 @@ export interface PlatformContentBundle {
   stagePrepPacks: StagePrepPack[];
 }
 
+const UNIT_FILES = [
+  'units/b1-ai-l1.json',
+  'units/b1-ai-advanced.json',
+  'units/b1-sw-blender.json',
+  'units/b1-sw-packs.json',
+  'units/b2-finance.json',
+  'units/b3-psych.json',
+  'units/b4-health.json',
+  'units/b5-career.json',
+  'units/b6-learning.json',
+  'units/b7-safety.json',
+] as const;
+
 export async function loadPlatformContent(): Promise<PlatformContentBundle> {
   const rawBase =
     (import.meta as unknown as { env?: { BASE_URL?: string } }).env?.BASE_URL || './';
   const dataPrefix = rawBase.endsWith('/') ? `${rawBase}data` : `${rawBase}/data`;
 
-  const [
-    catalogRes,
-    kgRes,
-    b1L1Res,
-    b1BlenderRes,
-    b2FinanceRes,
-    b3PsychRes,
-    tipsRes,
-    wallRes,
-    eventsRes,
-    toolsRes,
-  ] = await Promise.all([
-    fetch(`${dataPrefix}/catalog.json`),
-    fetch(`${dataPrefix}/knowledge-graph.json`),
-    fetch(`${dataPrefix}/units/b1-ai-l1.json`),
-    fetch(`${dataPrefix}/units/b1-sw-blender.json`),
-    fetch(`${dataPrefix}/units/b2-finance.json`),
-    fetch(`${dataPrefix}/units/b3-psych.json`),
-    fetch(`${dataPrefix}/daily-tips.json`),
-    fetch(`${dataPrefix}/wall-config.json`),
-    fetch(`${dataPrefix}/event-packs.json`),
-    fetch(`${dataPrefix}/toolbox-packs.json`),
+  const corePaths = [
+    'catalog.json',
+    'knowledge-graph.json',
+    'daily-tips.json',
+    'wall-config.json',
+    'event-packs.json',
+    'toolbox-packs.json',
+  ] as const;
+
+  const [coreResponses, unitResponses] = await Promise.all([
+    Promise.all(corePaths.map((p) => fetch(`${dataPrefix}/${p}`))),
+    Promise.all(UNIT_FILES.map((p) => fetch(`${dataPrefix}/${p}`))),
   ]);
 
-  if (
-    !catalogRes.ok ||
-    !kgRes.ok ||
-    !b1L1Res.ok ||
-    !b1BlenderRes.ok ||
-    !b2FinanceRes.ok ||
-    !b3PsychRes.ok ||
-    !tipsRes.ok ||
-    !wallRes.ok ||
-    !eventsRes.ok ||
-    !toolsRes.ok
-  ) {
+  if (coreResponses.some((r) => !r.ok) || unitResponses.some((r) => !r.ok)) {
     throw new Error('无法加载结构化内容 JSON，请检查 public/data/ 目录完整性');
   }
 
-  const [
-    catalog,
-    knowledgeGraph,
-    b1L1Bundle,
-    b1BlenderBundle,
-    b2FinanceBundle,
-    b3PsychBundle,
-    tipsBundle,
-    wallConfig,
-    eventsData,
-    toolsData,
-  ] = (await Promise.all([
-    catalogRes.json(),
-    kgRes.json(),
-    b1L1Res.json(),
-    b1BlenderRes.json(),
-    b2FinanceRes.json(),
-    b3PsychRes.json(),
-    tipsRes.json(),
-    wallRes.json(),
-    eventsRes.json(),
-    toolsRes.json(),
-  ])) as [
+  const [corePayloads, unitPayloads] = await Promise.all([
+    Promise.all(coreResponses.map((r) => r.json())),
+    Promise.all(unitResponses.map((r) => r.json() as Promise<UnitsBundle>)),
+  ]);
+
+  const [catalog, knowledgeGraph, tipsBundle, wallConfig, eventsData, toolsData] = corePayloads as [
     CatalogManifest,
     KnowledgeGraphManifest,
-    UnitsBundle,
-    UnitsBundle,
-    UnitsBundle,
-    UnitsBundle,
     DailyTipsBundle,
     WallConfigManifest,
     { packs: LifeEventPack[] },
     { toolboxes: ToolboxChecklist[]; stagePrepPacks: StagePrepPack[] },
   ];
 
+  const allUnits = unitPayloads.flatMap((bundle) => bundle.units);
+
   return {
     catalog,
     knowledgeGraph,
-    units: [
-      ...b1L1Bundle.units,
-      ...b1BlenderBundle.units,
-      ...b2FinanceBundle.units,
-      ...b3PsychBundle.units,
-    ],
+    units: allUnits,
     dailyTips: tipsBundle.tips,
     wallConfig,
     eventPacks: eventsData.packs,

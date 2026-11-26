@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "updatedAt": "2026-11-24",
+  "version": "3.0.0",
+  "updatedAt": "2026-11-26",
   "branches": [
     {
       "id": "B1",
@@ -60,7 +60,7 @@
             "title": "一份处理个人真实实验或生活数据的 Python 脚本与图表",
             "criteria": ["自测达标", "脚本可复现输出清洗结果与规范可视化图"]
           },
-          "unitIds": [],
+          "unitIds": ["unit-b1-l2-numpy"],
           "curatedResources": [
             {
               "title": "NumPy 官方快速入门与数组广播教程",
@@ -84,7 +84,7 @@
             "title": "一个包含基线对比与误差分析的完整建模小项目",
             "criteria": ["自测达标", "清晰区分训练/验证泄漏风险并给出评估结论"]
           },
-          "unitIds": [],
+          "unitIds": ["unit-b1-l3-overfit"],
           "curatedResources": [
             {
               "title": "李宏毅《机器学习》公开课讲义索引",
@@ -108,7 +108,7 @@
             "title": "复现轻量模型或落地一次真实个人知识库 RAG / 微调应用",
             "criteria": ["自测达标", "具备可验证的检索准确率或微调前后对比记录"]
           },
-          "unitIds": [],
+          "unitIds": ["unit-b1-l4-transformer"],
           "curatedResources": [
             {
               "title": "Attention Is All You Need (arXiv 开放获取原文)",
@@ -127,7 +127,7 @@
             "title": "一篇跨学科论文复现/精读卡片或交叉小实验",
             "criteria": ["提炼问题假设、方法边界与迁移到个人科研的可行点"]
           },
-          "unitIds": [],
+          "unitIds": ["unit-b1-l5-paper"],
           "curatedResources": [
             {
               "title": "arXiv Condensed Matter / Materials Science & AI 开放检索",
@@ -168,7 +168,7 @@
           "kind": "software_pack",
           "title": "软件包 S2 · Office / WPS 高效排版与表格",
           "summary": "长文档样式自动化、数据透视表核账、清爽学术汇报页母版",
-          "unitIds": [],
+          "unitIds": ["unit-b1-sw-office-style"],
           "curatedResources": [
             {
               "title": "Microsoft 365 Word 样式与长文档排版官方支持中心",
@@ -182,7 +182,7 @@
           "kind": "software_pack",
           "title": "软件包 S3 · Git 与现代开发工具链",
           "summary": "分支管理、后悔药回滚、终端效率与代码编辑器高频工作流",
-          "unitIds": [],
+          "unitIds": ["unit-b1-sw-git-safety"],
           "curatedResources": [
             {
               "title": "Pro Git 第二版（开源中文版）",
@@ -196,7 +196,7 @@
           "kind": "software_pack",
           "title": "软件包 S4 · 笔记工具与科研知识库",
           "summary": "Markdown 双链笔记、文献阅读卡片流与防囤积检索结构",
-          "unitIds": [],
+          "unitIds": ["unit-b1-sw-notes-graph"],
           "curatedResources": [
             {
               "title": "Obsidian 官方中文帮助文档（双链与本地 Markdown 库）",
@@ -210,7 +210,7 @@
           "kind": "software_pack",
           "title": "软件包 S5 · 剪辑工具与快速成片",
           "summary": "粗剪节奏、音画对齐、字幕批处理与课程/推文短视频交付",
-          "unitIds": [],
+          "unitIds": ["unit-b1-sw-video-pipeline"],
           "curatedResources": [
             {
               "title": "FFmpeg 音视频命令行快速处理官方文档",
@@ -235,7 +235,7 @@
           "id": "b2-main",
           "kind": "branch_path",
           "title": "个人财务生存主路径",
-          "summary": "已上线首批三节：记账与预算 → 保险常识 → 投资基础；后续章节目录（消费信用与负债 / 社保与税务常识 / 利率通胀与经济周期常识）随内容滚动扩充",
+          "summary": "覆盖记账与三桶预算 → 保险保障与条款核验 → 基金阶梯与期限匹配三大核心生存课",
           "unitIds": ["unit-b2-budget", "unit-b2-insurance", "unit-b2-investing"],
           "curatedResources": [
             {
@@ -272,7 +272,7 @@
           "id": "b3-main",
           "kind": "branch_path",
           "title": "应用心理与决策主路径",
-          "summary": "已上线首批两节：情绪管理 → 认知偏误与决策；后续章节目录（压力与睡眠心理 / 沟通与冲突 / 亲密关系 / 自我认知）随内容滚动扩充",
+          "summary": "覆盖情绪管理与认知重评 → 认知偏误与零基决策，附经典实验溯源与专业求助红线",
           "unitIds": ["unit-b3-emotion", "unit-b3-decision"],
           "curatedResources": [
             {
@@ -308,8 +308,8 @@
           "id": "b4-main",
           "kind": "branch_path",
           "title": "身体管理主路径",
-          "summary": "睡眠 → 运动（跑步为主）→ 营养基础 → 久坐、用眼与体态 → 体检指标怎么看",
-          "unitIds": [],
+          "summary": "科学睡眠与昼夜节律 → WHO 150 分钟跑步防伤与久坐自救",
+          "unitIds": ["unit-b4-sleep", "unit-b4-running"],
           "curatedResources": [
             {
               "title": "WHO 关于身体活动和久坐行为的指南",
@@ -333,8 +333,8 @@
           "id": "b5-main",
           "kind": "branch_path",
           "title": "清晰表达与职业准备路径",
-          "summary": "写作与表达 → 汇报与演讲 → 简历与面试 → 职场沟通 → 个人作品集",
-          "unitIds": [],
+          "summary": "结论先行结构化写作与汇报 → 经得起追问的 STAR 量化简历与作品集",
+          "unitIds": ["unit-b5-writing", "unit-b5-resume"],
           "curatedResources": [
             {
               "title": "Purdue Online Writing Lab (OWL) 公开写作结构指南",
@@ -358,8 +358,8 @@
           "id": "b6-main",
           "kind": "branch_path",
           "title": "高效学习与精力调度路径",
-          "summary": "自测提取 → 间隔重复与错题管理 → 费曼技巧 → 整体性学习 → 考试策略 → 时段匹配与专注 → 知识库搭建",
-          "unitIds": [],
+          "summary": "主动提取与 1/3/7 间隔重测 → 费曼输出与三时段精力精准匹配",
+          "unitIds": ["unit-b6-retrieval", "unit-b6-feynman"],
           "curatedResources": [
             {
               "title": "Strengthening the Student Toolbox: Study Strategies Boost Learning (Dunlosky 等公开综述)",
@@ -383,8 +383,8 @@
           "id": "b7-main",
           "kind": "branch_path",
           "title": "法律、数字安全与急救路径",
-          "summary": "法律常识（租房合同、劳动实习、消费者权益）→ 数字安全（密码、隐私、防诈骗）→ 急救与消防安全常识",
-          "unitIds": [],
+          "summary": "租房与实习合同民法典四步避坑 → 数字账号 2FA 防诈与黄金 4 分钟急救核心",
+          "unitIds": ["unit-b7-contract", "unit-b7-digital-firstaid"],
           "curatedResources": [
             {
               "title": "国家法律法规数据库（民法典·合同编 / 消费者权益保护法）",

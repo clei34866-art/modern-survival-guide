@@ -408,7 +408,7 @@ export function computeWeeklyReviewSummary(
   const openRealTasks = (telemetry.realTasks ?? []).filter((t) => t.status === 'open');
 
   let nextWeekSuggestion =
-    '下周保持晚饭后推进 1～2 节高杠杆内容即可，累的日子随时切保底版，稳住节奏比猛冲更重要。';
+    '下周保持晚饭后高精力时段推进 1～2 节高杠杆内容即可，做完即停，稳住节奏比猛冲更重要。';
   if (pendingRetests.length > 0) {
     const firstNode = content.knowledgeGraph.nodes.find(
       (n) => n.id === pendingRetests[0].conceptId

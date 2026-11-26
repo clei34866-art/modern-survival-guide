@@ -1,0 +1,389 @@
+{
+  "version": "1.0.0",
+  "units": [
+    {
+      "id": "unit-b1-sw-office-style",
+      "branchId": "B1",
+      "trackId": "b1-sw-office",
+      "title": "Office / WPS 长文档样式自动化与数据透视表：告别通宵调格式",
+      "estimatedMinutes": 18,
+      "recommendedEnergy": "fragment",
+      "isPlaceholder": false,
+      "scenarioHook": {
+        "sceneTitle": "毕业论文或大创报告改完一章，全篇 28 张图编号全乱、目录页码全歪，通宵手动逐行敲回车",
+        "story": "90% 的文档排版折磨，都源于把文字处理器当成了「画板」——手动选中加粗改字号、手工敲空格居中、手工敲「图 3-2」。只要正文增删两段，整份文档瞬间崩盘。",
+        "guidingQuestion": "用好样式集、多级列表和交叉引用，怎样让 50 页长报告 3 秒一键刷新全篇格式与图表编号？"
+      },
+      "prediction": {
+        "question": "撰写超过 20 页的实验报告或学位论文时，给各级章节标题排版最专业省力的做法是？",
+        "options": [
+          "每写一个标题就手动选一次黑体四号加粗，最后手工打一份目录",
+          "统一修改内置「标题 1 / 标题 2 / 正文」样式并绑定多级列表，一键自动生成可跳转目录与导航窗格",
+          "用大量空行敲回车硬把下一章顶到下一页",
+          "全文写成纯记事本最后截图粘进 Word"
+        ],
+        "commonTrapIndex": 0,
+        "answerIndex": 1,
+        "whyCounterIntuitive": "样式是文档的「CSS」：修改一次样式定义，全篇几十个标题瞬间同步更新；换页请用 `Ctrl+Enter` 插入分页符而非狂敲十几个回车，前面增删段落绝不会带偏后面页首。"
+      },
+      "guide": {
+        "blocks": [
+          {
+            "heading": "长文档三件套：样式（Styles）、分页符与图表交叉引用",
+            "markdown": "遵循 Microsoft 365 官方长文档最佳实践：① **先定样式再写作**：把学校/期刊要求的字体、行距、段前段后距配进 `正文`、`标题 1/2/3` 样式；② **题注 + 交叉引用**：给每张图/表插入自动「题注」，正文提到「如图 2-1 所示」时插入「交叉引用」，删增图片后按 `Ctrl+A` 再按 `F9` 全篇编号与目录一秒自动重排；③ **善用分节符**隔离封面、罗马数字摘要页码与阿拉伯数字正文页码。",
+            "keyTakeaway": "禁止用连续回车换页、禁止手动打空格对齐、禁止手敲图表编号和目录页码。"
+          },
+          {
+            "heading": "表格核账神器：数据透视表（PivotTable）30 秒多维汇总",
+            "markdown": "无论是实验室试剂采购表还是个人月度消费流水，只要原始表满足「第一行唯一表头、无合并单元格、无空行小计」的规范一维表结构，选中插入**数据透视表**，拖拽字段即可在 30 秒内按月、按分类、按项目完成求和、均值与占比透视，无需手写几十条容易漏行的 `SUMIFS`。",
+            "keyTakeaway": "一维流水表负责干净存数，数据透视表负责灵活看数——把存数和展示分开。"
+          }
+        ],
+        "visuals": [
+          {
+            "kind": "exact_svg",
+            "caption": "长文档零崩溃排版四步自动化工作流",
+            "svgSpec": {
+              "template": "flow_pipeline",
+              "data": {
+                "steps": [
+                  "定义标题与正文样式",
+                  "分节符隔离页码体系",
+                  "题注+交叉引用图表",
+                  "一键刷新目录与编号"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "conceptNodeIds": ["b1.office_style_pivot"],
+      "quiz": {
+        "mode": "standard_mcq",
+        "passRatio": 0.8,
+        "questions": [
+          {
+            "id": "q-b1-off-1",
+            "stem": "你在写 30 页结题报告时，在第二章中间新插了一张实验流程图，怎样让后续二十多张图的编号和正文引用全部自动顺延不出错？",
+            "options": [
+              "从头到尾手工肉眼一个个把「图 2-3」改成「图 2-4」",
+              "所有图片均通过「插入题注」编号、正文通过「交叉引用」引用，插图后全选按 F9 更新域即可自动同步",
+              "把新图强行命名为「图 2-2 补充版」凑合过去",
+              "把所有图片编号全删掉不写了"
+            ],
+            "correctIndex": 1,
+            "explanation": "自动题注配合交叉引用域，能彻底消灭长报告插图删图后的编号错位噩梦。",
+            "relatedConceptId": "b1.office_style_pivot"
+          }
+        ]
+      },
+      "actionTask": {
+        "id": "act-b1-sw-office",
+        "title": "为自己存一份「论文/报告通用样式母版 .docx」",
+        "lifeContext": "花 10 分钟配好一次，以后所有课程论文、实验报告和大创材料直接复制开写",
+        "steps": [
+          "新建文档，配好「正文」「标题 1」「标题 2」的规范中英文字体与 1.5 倍行距",
+          "插入一个自动目录与 1 处测试图片题注 + 正文交叉引用，按 F9 验证同步更新",
+          "另存为个人 `Report-Template.docx` 放进常用文档夹"
+        ],
+        "deliverablePrompt": "简记你的母版配置要点（字体行距规范与是否成功验证自动目录/交叉引用）",
+        "matchPoolCategory": "course_slides"
+      },
+      "sources": [
+        {
+          "sourceOrg": "Microsoft Support · Microsoft 365 Word 样式与长文档排版官方指南",
+          "sourceUrl": "https://support.microsoft.com/zh-cn/office",
+          "fetchedAt": "2026-11-25"
+        }
+      ]
+    },
+    {
+      "id": "unit-b1-sw-git-safety",
+      "branchId": "B1",
+      "trackId": "b1-sw-git",
+      "title": "Git 分支隔离与后悔药：用 branch、revert 与 reflog 保护实验代码",
+      "estimatedMinutes": 20,
+      "recommendedEnergy": "peak",
+      "isPlaceholder": false,
+      "scenarioHook": {
+        "sceneTitle": "文件夹里躺着 `最终版_v2_改完_真最终版_千万别动.py`，一改新想法把原本能跑的脚本全弄崩了",
+        "story": "没有版本控制时，每次尝试重构算法或调大创项目代码都像走钢丝；而刚学 Git 的同学又常因为怕敲错命令丢代码不敢用分支，结果一不小心 `reset --hard` 吓出一身冷汗。",
+        "guidingQuestion": "掌握哪四个核心动作，就能在独立分支放心大胆折腾、随时一键时光倒流？"
+      },
+      "prediction": {
+        "question": "你刚刚提交了一次代码，紧接着手滑执行 `git reset --hard HEAD~1` 发现把刚才写了两小时的功能抹掉了，只要还没关机清理仓库，能不能找回？",
+        "options": [
+          "彻底永久丢失，只能重写一遍",
+          "完全能找回！只要改完前做过 commit，运行 `git reflog` 查到误删前的提交哈希值再 `git checkout` 或 `git reset` 就能秒级恢复",
+          "必须去重装 Git 软件才能恢复",
+          "只有买付费云盘会员才能找回"
+        ],
+        "commonTrapIndex": 0,
+        "answerIndex": 1,
+        "whyCounterIntuitive": "Git 的提交对象在本地会保留一段回收保护期，且 `git reflog` 默默记录了你每一次 HEAD 指针的移动轨迹——**commit 过就有后悔药，未 commit 才要极度警惕 `--hard` 与 `clean -fd`**。"
+      },
+      "guide": {
+        "blocks": [
+          {
+            "heading": "把主分支当保险柜：新想法一律切分支小步提交",
+            "markdown": "依据开源权威教材《Pro Git 第二版》，最稳的个人与科研协作工作流仅需四步：① `main` 主分支永远保持「当前可跑通的干净版本」；② 准备试新思路或大改脚本时，先敲 `git switch -c feat/新方案` 切出独立分支；③ 每完成一个可验证小步就执行 `git status` → `git add` → `git commit -m \"清晰动词描述\"`；④ 验证通过后再合并回主干，失败了直接丢弃分支，主干毫发无损。",
+            "keyTakeaway": "分支在 Git 里只是轻量指针，创建切换只需毫秒，是最低成本的「安全实验沙盒」。"
+          },
+          {
+            "heading": "分清 `revert` 与 `reset`，守住团队协作与防丢铁律",
+            "markdown": "后悔时选对工具不伤队友：① **已推送到远程共享分支的错误提交**，用 `git revert <hash>` 生成一条「反向抵消的新提交」，不篡改公共历史；② **仅在本地尚未推送的草稿**，才酌情使用 `git reset`；③ **手滑回退过头立刻跑 `git reflog`** 找回丢失提交的 SHA 编号；④ 大文件与密钥（`.env`、数据集、渲染视频）第一时间写进 `.gitignore`，严防把 API Key 推上公开仓库。",
+            "keyTakeaway": "养成「开工前看 `git status`，每干完一小步就 `commit`」的肌肉记忆，再也不怕改崩代码。"
+          }
+        ],
+        "visuals": [
+          {
+            "kind": "exact_svg",
+            "caption": "Git 安全开发与时光回溯四步闭环",
+            "svgSpec": {
+              "template": "flow_pipeline",
+              "data": {
+                "steps": [
+                  "switch -c 切独立分支",
+                  "小步验证并清晰 commit",
+                  "误操作用 reflog/revert 兜底",
+                  "验收通过安全合并主干"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "conceptNodeIds": ["b1.git_branch_reflog"],
+      "quiz": {
+        "mode": "standard_mcq",
+        "passRatio": 0.8,
+        "questions": [
+          {
+            "id": "q-b1-git-1",
+            "stem": "你和队友共用一个 GitHub 仓库的 `main` 分支，发现你昨晚已经 `push` 上去的一次提交引入了 Bug，最稳妥不破坏队友同步历史的撤销方式是？",
+            "options": [
+              "在本地 `git reset --hard HEAD~1` 后强行 `git push --force` 覆盖远程历史",
+              "使用 `git revert <错误提交哈希>` 生成一个新的反向还原提交并正常推送",
+              "把整个 GitHub 仓库删掉重新建一个",
+              "手动把整个 `.git` 隐藏文件夹删掉"
+            ],
+            "correctIndex": 1,
+            "explanation": "`git revert` 通过新增抵消提交安全撤销改动，不会改写公共分支提交历史，避免引发队友冲突与数据丢失。",
+            "relatedConceptId": "b1.git_branch_reflog"
+          }
+        ]
+      },
+      "actionTask": {
+        "id": "act-b1-sw-git",
+        "title": "在本地仓库实操一次「建分支 → 提交 → 用 `git reflog` 查看轨迹」",
+        "lifeContext": "在你的任意练习仓库或新建临时目录里跑通一遍安全分支工作流",
+        "steps": [
+          "执行 `git switch -c exp/test-safety` 切出测试分支，新建一个测试笔记文件并完成一次 commit",
+          "执行 `git log --oneline -n 5` 与 `git reflog -n 5`，看懂 HEAD 指针移动记录",
+          "检查项目根目录 `.gitignore`，确保敏感密钥文件与临时大缓存已被忽略"
+        ],
+        "deliverablePrompt": "记下你演练过的两条最顺手 Git 命令以及你在 `.gitignore` 中重点屏蔽的文件类型",
+        "feynmanCheckPrompt": "为什么已经 push 到公共分支的提交应该用 `git revert` 而不是 `reset --hard` + 强推？",
+        "matchPoolCategory": "research_data"
+      },
+      "sources": [
+        {
+          "sourceOrg": "Git SCM · Pro Git 第二版（开源中文版）",
+          "sourceUrl": "https://git-scm.com/book/zh/v2",
+          "fetchedAt": "2026-11-25"
+        }
+      ]
+    },
+    {
+      "id": "unit-b1-sw-notes-graph",
+      "branchId": "B1",
+      "trackId": "b1-sw-notes",
+      "title": "科研双链笔记与防囤积检索结构：从「收藏吃灰」到「随时调用」",
+      "estimatedMinutes": 16,
+      "recommendedEnergy": "fragment",
+      "isPlaceholder": false,
+      "scenarioHook": {
+        "sceneTitle": "收藏夹和笔记软件里躺着 800 篇全文剪藏，真到写论文或汇报时却一篇也翻不出来",
+        "story": "把别人的文章原封不动「一键剪藏」进笔记软件，会制造一种「我已经拥有了这些知识」的囤积快感；可一旦超过 100 篇，满屏未经消化的二手文字反而把你自己真正思考出的洞见淹没了。",
+        "guidingQuestion": "用纯文本 Markdown 搭个人长期知识库，怎样做到结构极简、十年不锁死格式且写文章时 10 秒就能调出卡片？"
+      },
+      "prediction": {
+        "question": "在 Obsidian 等本地 Markdown 双链笔记软件中，防止知识库沦为「数字垃圾场」最核心的一条入库纪律是？",
+        "options": [
+          "装满 50 个花哨插件和复杂五层嵌套文件夹，每天调配色主题",
+          "拒绝原封不动整篇剪藏，只用自己的话写清「核心论点 + 1 处原始出处链接 + 1 条与已有笔记的关联双向链接」",
+          "把所有网页 PDF 全部复制粘贴成 3 万字单篇超级长文档",
+          "每换一台新电脑就重头换一款新的云端封闭格式笔记软件"
+        ],
+        "commonTrapIndex": 0,
+        "answerIndex": 1,
+        "whyCounterIntuitive": "工具折腾是最高级的拖延；本地纯文本 `.md` 文件保证十年后依然随时可读可搜索，而「强迫自己用三句话转述 + 挂双链」把被动收藏变成了主动理解与复用资产。"
+      },
+      "guide": {
+        "blocks": [
+          {
+            "heading": "把精力按 30 / 50 / 20 投向加工与产出，而非收藏与折腾插件",
+            "markdown": "结合 Obsidian 官方文档与科研卡片盒实践，健康的知识库时间配比应当是：**文献原文检索与精读占 30%**、**用自己的语言提炼原子笔记并建立 `[[双链]]` 关联占 50%**、**直接组装卡片输出论文/推文/代码占 20%**。文件目录坚持极简扁平（如仅分 `00-收件箱 / 10-文献卡片 / 20-常青概念 / 30-项目产出`），靠全文搜索与 `[[双向链接]]` 而非十层深文件夹找资料。",
+            "keyTakeaway": "笔记不是拿来「存」的，是拿来「下次写作或做决策时直接调用」的。"
+          },
+          {
+            "heading": "单张高价值文献卡片的极简 4 行模板",
+            "markdown": "读完一篇论文或技术文档，只留 4 块内容即可关掉页面：① **一句话核心发现**；② **关键数据/图表原出处（URL/DOI/页码）**；③ **局限性或与我已知观点的冲突点**；④ **关联到我哪个在研项目或哪张概念卡 `[[...]]`**。每张卡片 150～300 字足够轻盈，写报告时直接拼装 5 张卡片就能搭出扎实骨架。",
+            "keyTakeaway": "本地纯文本 Markdown + Git/定期压缩备份，让你彻底告别软件停服或收费锁死数据的焦虑。"
+          }
+        ],
+        "visuals": [
+          {
+            "kind": "exact_svg",
+            "caption": "防囤积科研知识库精力投入黄金配比结构",
+            "svgSpec": {
+              "template": "tree_breakdown",
+              "data": {
+                "buckets": [
+                  { "name": "个人转述与双链加工", "ratio": 50 },
+                  { "name": "一手文献与资料输入", "ratio": 30 },
+                  { "name": "组装输出汇报/文章", "ratio": 20 }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "conceptNodeIds": ["b1.markdown_atomic_notes"],
+      "quiz": {
+        "mode": "standard_mcq",
+        "passRatio": 0.8,
+        "questions": [
+          {
+            "id": "q-b1-not-1",
+            "stem": "关于搭建能陪伴 5～10 年的个人科研与生活知识库，以下哪项原则最稳健？",
+            "options": [
+              "把所有网络长文一键全文抓取进去，从不写自己的话",
+              "采用开放通用纯文本 Markdown 格式本地存储，配合极简目录、原子化个人转述与双向链接，定期导出备份",
+              "花 80% 时间调试笔记外观插件和 8 级子文件夹分类",
+              "绝不记录原始来源链接，反正以后不会复查"
+            ],
+            "correctIndex": 1,
+            "explanation": "开放纯文本防厂商锁定，原子转述与双链让知识从「吃灰收藏」真正变成「可检索复用的思维积木」。",
+            "relatedConceptId": "b1.markdown_atomic_notes"
+          }
+        ]
+      },
+      "actionTask": {
+        "id": "act-b1-sw-notes",
+        "title": "写下 1 张 200 字以内的「4 行标准原子卡片」并挂上 1 条关联链接",
+        "lifeContext": "就在你的本地 Markdown 笔记或文档里，把今天刚读过的一篇文章压缩成一张可调用卡片",
+        "steps": [
+          "用一句话大白话概括核心观点（禁复制粘贴原文）",
+          "附上准确原始来源链接与核验日期",
+          "写明它可以服务你近期哪一个具体项目或与哪条已有知识相关"
+        ],
+        "deliverablePrompt": "贴出这张原子卡片的标题、一句话摘要与关联的应用场景",
+        "matchPoolCategory": "tweet_writing"
+      },
+      "sources": [
+        {
+          "sourceOrg": "Obsidian Official Help · 本地 Markdown 双链知识库中文文档",
+          "sourceUrl": "https://publish.obsidian.md/help-zh/",
+          "fetchedAt": "2026-11-25"
+        }
+      ]
+    },
+    {
+      "id": "unit-b1-sw-video-pipeline",
+      "branchId": "B1",
+      "trackId": "b1-sw-video",
+      "title": "剪辑与快速成片流水线：先定人声骨架，再批处理字幕与规范导出",
+      "estimatedMinutes": 18,
+      "recommendedEnergy": "low",
+      "isPlaceholder": false,
+      "scenarioHook": {
+        "sceneTitle": "为了剪一段 3 分钟大创展示视频，还没定内容骨架就花两小时调片头特效，最后整片节奏拖沓音画发闷",
+        "story": "新手剪辑最常踩的坑是「从第 0 秒开始精修细节」——给前 10 秒加满转场和花字，结果后面主线大改，前面调的特效全作废；而真正决定观众看不看得下去的，其实是清晰人声与干脆的粗剪节奏。",
+        "guidingQuestion": "一套不依赖昂贵插件、适合学生课程展示与科普短视频的快速成片四步流水线怎么跑？"
+      },
+      "prediction": {
+        "question": "制作一条 3 分钟课程展示或科研科普视频，最省时且成片质量最高的剪辑顺序是？",
+        "options": [
+          "从第 1 秒开始逐帧加炫酷转场和滤镜，剪到哪算哪",
+          "先只切人声与核心主线完成「A-roll 粗剪定节奏」，再铺演示画面（B-roll），最后统一校对字幕、均衡人声音量并按统一规格导出",
+          "把所有 4K 原素材不做裁剪直接拼在一起，配上比人声还响的背景音乐",
+          "先做完片尾字幕再决定中间要讲什么"
+        ],
+        "commonTrapIndex": 0,
+        "answerIndex": 1,
+        "whyCounterIntuitive": "声音与内容骨架是视频的脊梁：粗剪未定型前调的一切花字、调色和音乐卡点都是随时报废的沉没工时；观众能容忍朴素画面，却几乎无法忍受口误拖沓与背景音乐盖过人声。"
+      },
+      "guide": {
+        "blocks": [
+          {
+            "heading": "四步成片流水线：先听后看，先骨架后包装",
+            "markdown": "无论是剪映、DaVinci Resolve 还是命令行 FFmpeg 批处理，高效交付永远遵守四步顺序：① **A-roll 粗剪（去口误与长静音）**——先把废话、重复卡壳和超过 0.5 秒的空白停顿剪干净，紧缩信息密度；② **铺设 B-roll 演示画面**——用录屏、实验实拍或清晰结构图盖住生硬切口；③ **音频统一与字幕批处理**——人声响度保持清晰平稳，背景音乐压低至比人声低 `18～24 dB`（绝不喧宾夺主），语音转字幕后统一校对专业术语错别字；④ **标准规格导出**（如 `1080p / 30fps / H.264 MP4`）。",
+            "keyTakeaway": "先把「纯闭眼听声音也流畅紧凑」的粗剪定下来，再去碰任何转场、贴纸和背景音乐。"
+          },
+          {
+            "heading": "命令行利器 FFmpeg：一条指令搞定无损裁切、压缩与格式转换",
+            "markdown": "参考 FFmpeg 官方文档，日常提交大创/课程视频遇到文件超过平台 100MB 限制或需要截取片段时，不必重新打开庞大剪辑工程重新渲染：一条 `ffmpeg -i input.mp4 -c:v libx264 -crf 23 -c:a aac output.mp4` 即可在肉眼几乎无损画质下将视频体积压缩数倍，或用 `-ss` / `-to` 搭配 `-c copy` 秒级无损截片。",
+            "keyTakeaway": "把重复的压制、抽音频、裁片段交给标准工具链，把创造力留给叙事节奏本身。"
+          }
+        ],
+        "visuals": [
+          {
+            "kind": "exact_svg",
+            "caption": "课程汇报与科普短视频四步快速成片流水线",
+            "svgSpec": {
+              "template": "flow_pipeline",
+              "data": {
+                "steps": [
+                  "A-roll 去停顿定骨架",
+                  "铺演示录屏与B-roll",
+                  "控BGM音量+批校字幕",
+                  "统一 1080p MP4 导出"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "conceptNodeIds": ["b1.video_aroll_pipeline"],
+      "quiz": {
+        "mode": "standard_mcq",
+        "passRatio": 0.8,
+        "questions": [
+          {
+            "id": "q-b1-vid-1",
+            "stem": "剪辑一条科普讲解或答辩录屏视频时，下列哪项音频与节奏处理最能立刻提升观看质感？",
+            "options": [
+              "把背景流行音乐音量拉得和人声一样响制造气氛",
+              "先剪掉所有口误与冗长空白停顿定好 A-roll 骨架，人声清晰响亮、背景音乐压低 18～24 dB 做轻衬底，并校对专业词字幕",
+              "每隔两秒换一种旋转爆炸转场特效",
+              "导出 120fps 8K 超大原片直接传进汇报 PPT"
+            ],
+            "correctIndex": 1,
+            "explanation": "紧凑无废话的人声粗剪 + 清晰不盖人声的音画平衡 + 准确无错字的字幕，是专业成片最核心的质感来源。",
+            "relatedConceptId": "b1.video_aroll_pipeline"
+          }
+        ]
+      },
+      "actionTask": {
+        "id": "act-b1-sw-video",
+        "title": "用「先粗剪去停顿 → 控音轨 → 导出 1080p」跑通一段 60 秒示范短片",
+        "lifeContext": "可用手机录一段 1 分钟实验操作或电脑录一段软件操作讲解实操练习",
+        "steps": [
+          "导入素材后先只做 A-roll 剪辑，砍掉所有「呃、那个」和长空白停顿",
+          "若加背景音乐，将其音量压低至完全不干扰人声清晰度（-20 dB 左右）",
+          "导出标准 `1080p H.264 MP4` 并核对文件体积与音画同步"
+        ],
+        "deliverablePrompt": "记下你粗剪前后片长压缩了多少秒以及最终导出分辨率与体积",
+        "matchPoolCategory": "course_slides"
+      },
+      "sources": [
+        {
+          "sourceOrg": "FFmpeg Project · Official Documentation",
+          "sourceUrl": "https://ffmpeg.org/documentation.html",
+          "fetchedAt": "2026-11-25"
+        }
+      ]
+    }
+  ]
+}

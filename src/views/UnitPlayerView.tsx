@@ -1,40 +1,50 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  CheckCircle2,
+  Moon,
+  RotateCw,
+  Search,
+  Sun,
+} from 'lucide-react';
+import { motion } from 'motion/react';
+import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import {
   OriginCardsList,
   PlaceholderBanner,
   PsychBoundaryNotice,
   SourceTimelinessFooter,
   UnitVisualFrame,
-} from '../components/ComplianceBadges';
-import {
-  IconArrowLeft,
-  IconArrowRight,
-  IconCheck,
-  IconFlip,
-  IconSprout,
-} from '../components/Icons';
-import { RichText } from '../components/RichText';
-import type { PlatformContentBundle } from '../core/contentLoader';
+} from '@/components/ComplianceBadges';
+import { RichText } from '@/components/RichText';
+import { Badge, Button, Card } from '@/components/ui/primitives';
+import type { PlatformContentBundle } from '@/core/contentLoader';
 import {
   recordActionSubmission,
   recordCardReview,
   recordMilestoneSubmission,
   recordQuizAttempt,
   recordStudyDuration,
-} from '../core/db';
-import { evaluateUnitPassGate, isTrackUnlocked } from '../core/gatekeeper';
+} from '@/core/db';
+import { evaluateUnitPassGate, isTrackUnlocked } from '@/core/gatekeeper';
+import { cn } from '@/lib/utils';
 import type {
   CardRating,
   ConceptNode,
   LearningUnit,
   StudyDurationLog,
   TelemetrySnapshot,
-} from '../types/schema';
+} from '@/types/schema';
 
 interface UnitPlayerViewProps {
   unit: LearningUnit;
   content: PlatformContentBundle;
   telemetry: TelemetrySnapshot;
+  theme: 'dark' | 'light';
+  onToggleTheme: () => void;
+  onOpenCommandPalette: () => void;
   onTelemetryChange: (next: TelemetrySnapshot) => void;
   onBackToBranches: (branchId: LearningUnit['branchId']) => void;
   onOpenUnit: (unitId: string) => void;
@@ -43,10 +53,10 @@ interface UnitPlayerViewProps {
 const STEP_META = [
   { num: 1, short: '场景', full: '场景开场' },
   { num: 2, short: '预测', full: '先预测' },
-  { num: 3, short: '动图导学', full: '动图导学' },
-  { num: 4, short: '概念卡', full: '概念闪卡' },
+  { num: 3, short: '实验室', full: '互动实验室' },
+  { num: 4, short: '闪卡', full: '3D 概念闪卡' },
   { num: 5, short: '自测', full: '提取自测' },
-  { num: 6, short: '行动', full: '行动任务' },
+  { num: 6, short: '行动', full: '实战行动' },
   { num: 7, short: '过关', full: '完成过关' },
 ] as const;
 
@@ -54,6 +64,9 @@ export function UnitPlayerView({
   unit,
   content,
   telemetry,
+  theme,
+  onToggleTheme,
+  onOpenCommandPalette,
   onTelemetryChange,
   onBackToBranches,
   onOpenUnit,
@@ -62,26 +75,20 @@ export function UnitPlayerView({
   const [step, setStep] = useState<number>(1);
   const [maxVisitedStep, setMaxVisitedStep] = useState<number>(existingSub?.isCleared ? 7 : 1);
 
-  // 第 2 步：先预测
   const [predChoice, setPredChoice] = useState<number | null>(null);
   const [predSubmitted, setPredSubmitted] = useState<boolean>(false);
-
-  // 第 3 步：动图与正文联动高亮步数
   const [diagramStep, setDiagramStep] = useState<number | undefined>(undefined);
 
-  // 第 4 步：单卡聚焦翻转闪卡台
   const [cardIdx, setCardIdx] = useState<number>(0);
   const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
   const [ratedCards, setRatedCards] = useState<Record<string, CardRating>>({});
 
-  // 第 5 步：自测
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>({});
   const [quizSubmitted, setQuizSubmitted] = useState<boolean>(false);
   const [quizScoreRatio, setQuizScoreRatio] = useState<number>(
     existingSub?.quizPassScoreRatio ?? 0
   );
 
-  // 第 6 步：行动任务 + 费曼一句话 + 层级实战产出勾选
   const [deliverableText, setDeliverableText] = useState<string>(
     existingSub?.deliverableSummary ?? ''
   );
@@ -89,6 +96,7 @@ export function UnitPlayerView({
   const [linkedRealTaskId, setLinkedRealTaskId] = useState<string | undefined>(
     existingSub?.linkedRealTaskId
   );
+
   const parentBranch = content.catalog.branches.find((b) => b.id === unit.branchId);
   const parentTrack = parentBranch?.tracks.find((t) => t.id === unit.trackId);
   const existingMilestone = parentTrack
@@ -131,7 +139,28 @@ export function UnitPlayerView({
 
   const currentConcept = concepts[Math.min(cardIdx, Math.max(0, concepts.length - 1))];
 
-  // 第 4 步支持键盘空格翻卡
+  const handleRateCard = async (conceptId: string, rating: CardRating) => {
+    setRatedCards((prev) => ({ ...prev, [conceptId]: rating }));
+    const next = await recordCardReview(conceptId, rating, {
+      branchId: unit.branchId,
+      trackId: unit.trackId,
+      durationMs: Math.max(2000, Date.now() - stepEnteredAtRef.current),
+    });
+    stepEnteredAtRef.current = Date.now();
+    onTelemetryChange(next);
+    toast(
+      rating === 'easy'
+        ? '已标记：熟练掌握'
+        : rating === 'fuzzy'
+          ? '已标记：有点模糊（排入 3 天后重测）'
+          : '已标记：没想起来（排入明日重测）'
+    );
+    if (cardIdx < concepts.length - 1) {
+      setTimeout(() => setCardIdx((i) => Math.min(concepts.length - 1, i + 1)), 220);
+    }
+  };
+
+  // 第 4 步键盘快捷键：Space 翻卡，1/2/3 直接评分
   useEffect(() => {
     if (step !== 4 || !currentConcept) return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -143,11 +172,15 @@ export function UnitPlayerView({
           ...prev,
           [currentConcept.id]: !prev[currentConcept.id],
         }));
+      } else if (flippedCards[currentConcept.id]) {
+        if (e.key === '1') handleRateCard(currentConcept.id, 'easy');
+        else if (e.key === '2') handleRateCard(currentConcept.id, 'fuzzy');
+        else if (e.key === '3') handleRateCard(currentConcept.id, 'again');
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [step, currentConcept]);
+  });
 
   const handlePredictionSubmit = async () => {
     if (predChoice === null) return;
@@ -165,20 +198,6 @@ export function UnitPlayerView({
       durationMs: elapsed,
     });
     onTelemetryChange(next);
-  };
-
-  const handleRateCard = async (conceptId: string, rating: CardRating) => {
-    setRatedCards((prev) => ({ ...prev, [conceptId]: rating }));
-    const next = await recordCardReview(conceptId, rating, {
-      branchId: unit.branchId,
-      trackId: unit.trackId,
-      durationMs: Math.max(2000, Date.now() - stepEnteredAtRef.current),
-    });
-    stepEnteredAtRef.current = Date.now();
-    onTelemetryChange(next);
-    if (cardIdx < concepts.length - 1) {
-      setTimeout(() => setCardIdx((i) => Math.min(concepts.length - 1, i + 1)), 220);
-    }
   };
 
   const handleQuizSubmit = async () => {
@@ -220,6 +239,11 @@ export function UnitPlayerView({
     setQuizSubmitted(true);
     stepEnteredAtRef.current = Date.now();
     onTelemetryChange(latestSnap);
+    toast(
+      ratio >= unit.quiz.passRatio
+        ? `自测通过（${Math.round(ratio * 100)}%）`
+        : `本次得分 ${Math.round(ratio * 100)}%，可查看解析后重测`
+    );
   };
 
   const handleCompleteUnit = async () => {
@@ -261,6 +285,7 @@ export function UnitPlayerView({
     }
 
     onTelemetryChange(latest);
+    toast.success(`单元已过关：${unit.title}`);
     goToStep(7);
   };
 
@@ -270,116 +295,166 @@ export function UnitPlayerView({
       isTrackUnlocked(t, parentBranch.tracks, telemetry)
   );
 
-  const allQuestionsAnswered =
-    Object.keys(quizAnswers).length >= unit.quiz.questions.length;
+  const allQuestionsAnswered = Object.keys(quizAnswers).length >= unit.quiz.questions.length;
+
+  const isCurrentFlipped = currentConcept ? Boolean(flippedCards[currentConcept.id]) : false;
 
   return (
-    <div class="unit-focus-layout">
-      {/* 56px 吸顶沉浸专注顶栏：返回面包屑 + 连线 7 步进度轴 + 用时 */}
-      <header class="focus-topbar">
-        <div class="focus-topbar-inner">
-          <button
-            type="button"
-            class="btn btn-sm focus-back-btn"
+    <div className="min-h-screen bg-[var(--bg)] pb-14">
+      {/* 56px 吸顶沉浸专注顶栏：返回 + 7步进度轨 + 时长与快捷工具 */}
+      <header className="sticky top-0 z-40 h-[56px] border-b border-[var(--line)] bg-[var(--surface-glass)] backdrop-blur-md">
+        <div className="mx-auto flex h-full max-w-[1280px] items-center justify-between gap-3 px-4 sm:px-6">
+          <Button
+            size="sm"
+            variant="outline"
             onClick={() => onBackToBranches(unit.branchId)}
           >
-            <IconArrowLeft size={15} />
+            <ArrowLeft size={14} strokeWidth={1.6} />
             <span>返回 {unit.branchId}</span>
-          </button>
+          </Button>
 
-          <nav class="unit-stepper-rail" aria-label="7 步学习进度">
+          <nav
+            className="hidden md:flex items-center gap-1"
+            aria-label="7 步学习进度"
+          >
             {STEP_META.map((item, idx) => {
               const isCurrent = step === item.num;
               const isPassed = item.num < step;
               const canJump = item.num <= maxVisitedStep;
               return (
-                <div class="stepper-rail-item" key={item.num}>
+                <div className="flex items-center" key={item.num}>
                   <button
                     type="button"
                     disabled={!canJump}
-                    class={`stepper-node ${isCurrent ? 'is-current' : ''} ${
-                      isPassed ? 'is-visited' : ''
-                    }`}
                     onClick={() => goToStep(item.num)}
                     title={`第 ${item.num} 步 · ${item.full}`}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-[7px] px-2.5 py-1 text-[12.5px] font-medium transition-colors',
+                      canJump ? 'cursor-pointer' : 'cursor-not-allowed opacity-45',
+                      isCurrent
+                        ? 'bg-[var(--accent)] text-white'
+                        : isPassed
+                          ? 'bg-[var(--growth-soft)] text-[var(--growth)]'
+                          : 'text-[var(--ink-3)]'
+                    )}
                   >
-                    <span class="stepper-num tabular-num">
-                      {isPassed ? <IconCheck size={12} /> : item.num}
+                    <span className="font-mono-num flex h-4 w-4 items-center justify-center rounded-full text-[11px]">
+                      {isPassed ? <Check size={11} strokeWidth={2.4} /> : item.num}
                     </span>
-                    <span class="stepper-label">{item.short}</span>
+                    <span className="hidden xl:inline">{item.short}</span>
                   </button>
                   {idx < STEP_META.length - 1 && (
-                    <span class={`stepper-connector ${item.num < step ? 'is-lit' : ''}`} />
+                    <span
+                      className={cn(
+                        'mx-1 h-[1.5px] w-3',
+                        item.num < step ? 'bg-[var(--growth)]' : 'bg-[var(--line-strong)]'
+                      )}
+                    />
                   )}
                 </div>
               );
             })}
           </nav>
 
-          <div class="focus-topbar-right">
-            <span class="status-chip tabular-num">{unit.estimatedMinutes} 分钟</span>
+          <div className="flex items-center gap-1.5">
+            <Badge tone="neutral" className="font-mono-num">
+              {step}/7 · {unit.estimatedMinutes}m
+            </Badge>
             {telemetry.unitSubmissions[unit.id]?.isCleared && (
-              <span class="status-chip chip-growth">已过关</span>
+              <Badge tone="growth">已过关</Badge>
             )}
+            <Button
+              size="icon"
+              variant="outline"
+              aria-label="全局快速搜索"
+              onClick={onOpenCommandPalette}
+            >
+              <Search size={14} strokeWidth={1.5} />
+            </Button>
+            <Button
+              size="icon"
+              variant="outline"
+              aria-label="切换浅色或深色主题"
+              onClick={onToggleTheme}
+            >
+              {theme === 'dark' ? (
+                <Sun size={14} strokeWidth={1.5} />
+              ) : (
+                <Moon size={14} strokeWidth={1.5} />
+              )}
+            </Button>
           </div>
         </div>
       </header>
 
-      <main class={`unit-player-wrap ${step === 3 ? 'is-wide-guide' : ''}`}>
+      <main
+        id="main-content"
+        className={cn(
+          'mx-auto px-4 py-6 sm:px-6 sm:py-8',
+          step === 3 ? 'max-w-[1280px]' : 'max-w-[820px]'
+        )}
+      >
         {/* 单元大标题头 */}
-        <div class="unit-hero-head">
-          <div class="branch-dot-label">
+        <div className="mb-6 space-y-2">
+          <div className="flex flex-wrap items-center gap-2 text-[13px] text-[var(--ink-2)]">
             <span
-              class="branch-dot"
-              style={{ backgroundColor: parentBranch?.accentToken ?? '#266D7E' }}
+              className="h-2.5 w-2.5 rounded-full"
+              style={{ backgroundColor: parentBranch?.accentToken ?? 'var(--accent)' }}
             />
-            <span>
-              {unit.branchId} · {parentTrack?.title ?? unit.trackId}
-            </span>
+            <span className="font-mono-num font-semibold">{unit.branchId}</span>
+            <span>·</span>
+            <span>{parentTrack?.title ?? unit.trackId}</span>
           </div>
-          <h1 class="unit-main-title">{unit.title}</h1>
+          <h1 className="m-0 text-[24px] sm:text-[30px] font-semibold leading-[1.25] tracking-[-0.02em] text-[var(--ink-1)]">
+            {unit.title}
+          </h1>
           <PlaceholderBanner visible={unit.isPlaceholder} />
         </div>
 
         {/* 第 1 步：生活场景开场 */}
         {step === 1 && (
-          <section class="surface-card unit-stage-card">
-            <div class="step-badge-row">
-              <span class="status-chip chip-accent">第 1 步 · 场景开场</span>
-            </div>
-            <h2 class="scenario-title">{unit.scenarioHook.sceneTitle}</h2>
-            <div class="scenario-story-panel">
-              <p>
+          <Card className="space-y-5">
+            <Badge tone="accent">第 1 步 · 场景开场</Badge>
+            <h2 className="m-0 text-[20px] sm:text-[22px] font-semibold text-[var(--ink-1)]">
+              {unit.scenarioHook.sceneTitle}
+            </h2>
+            <div className="rounded-[10px] border border-[var(--line)] bg-[var(--surface-raised)] p-5 text-[15.5px] leading-[1.8] text-[var(--ink-1)]">
+              <p className="m-0">
                 <RichText text={unit.scenarioHook.story} />
               </p>
             </div>
-            <div class="scenario-question-panel">
-              <span class="guiding-label">带着这个问题继续</span>
-              <p>
+            <div className="rounded-[10px] border border-[var(--accent-border)] bg-[var(--accent-soft)] p-4">
+              <div className="mb-1 text-[12px] font-semibold text-[var(--accent)]">
+                带着这个问题继续
+              </div>
+              <p className="m-0 text-[15px] font-medium leading-[1.65] text-[var(--ink-1)]">
                 <RichText text={unit.scenarioHook.guidingQuestion} />
               </p>
             </div>
             <PsychBoundaryNotice sources={unit.sources} />
-            <div class="step-footer-nav">
-              <button type="button" class="btn btn-primary" onClick={() => goToStep(2)}>
+            <div className="flex justify-end border-t border-[var(--line)] pt-4">
+              <Button variant="primary" size="lg" onClick={() => goToStep(2)}>
                 <span>先做一道直觉预测</span>
-                <IconArrowRight size={15} />
-              </button>
+                <ArrowRight size={15} strokeWidth={1.6} />
+              </Button>
             </div>
-          </section>
+          </Card>
         )}
 
-        {/* 第 2 步：先预测（反直觉判断） */}
+        {/* 第 2 步：先预测 */}
         {step === 2 && (
-          <section class="surface-card unit-stage-card">
-            <div class="step-badge-row">
-              <span class="status-chip chip-accent">第 2 步 · 先预测</span>
-              <span class="muted-inline">激活已有直觉，猜错反而印象最深</span>
+          <Card className="space-y-5">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <Badge tone="accent">第 2 步 · 先预测</Badge>
+              <span className="text-[13px] text-[var(--ink-3)]">
+                激活已有直觉，猜错反而印象最深
+              </span>
             </div>
-            <h2 class="scenario-title">
+            <h2 className="m-0 text-[19px] sm:text-[21px] font-semibold leading-[1.45] text-[var(--ink-1)]">
               <RichText text={unit.prediction.question} />
             </h2>
-            <div class="quiz-options-list">
+
+            <div className="space-y-2.5">
               {unit.prediction.options.map((opt, idx) => {
                 const letter = String.fromCharCode(65 + idx);
                 const isSelected = predChoice === idx;
@@ -392,13 +467,22 @@ export function UnitPlayerView({
                     key={idx}
                     type="button"
                     disabled={predSubmitted}
-                    class={`quiz-option-btn ${isSelected ? 'is-selected' : ''} ${
-                      isAnswer ? 'is-correct' : ''
-                    } ${isWrongPick ? 'is-wrong' : ''}`}
                     onClick={() => setPredChoice(idx)}
+                    className={cn(
+                      'quiz-option-btn flex min-h-[48px] w-full cursor-pointer items-start gap-3 rounded-[10px] border p-3.5 text-left text-[15px] leading-[1.55] transition-colors disabled:cursor-default',
+                      isAnswer
+                        ? 'border-[var(--growth)] bg-[var(--growth-soft)] text-[var(--ink-1)]'
+                        : isWrongPick
+                          ? 'border-[var(--danger)] bg-[var(--danger-soft)] text-[var(--ink-1)]'
+                          : isSelected
+                            ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--ink-1)]'
+                            : 'border-[var(--line-strong)] bg-[var(--surface)] text-[var(--ink-2)] hover:bg-[var(--surface-raised)] hover:text-[var(--ink-1)]'
+                    )}
                   >
-                    <span class="option-letter">{letter}</span>
-                    <span class="option-text">
+                    <span className="font-mono-num mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-[6px] border border-[var(--line-strong)] bg-[var(--surface-raised)] text-[12px] font-semibold text-[var(--ink-1)]">
+                      {letter}
+                    </span>
+                    <span className="flex-1">
                       <RichText text={opt} />
                     </span>
                   </button>
@@ -407,134 +491,157 @@ export function UnitPlayerView({
             </div>
 
             {!predSubmitted ? (
-              <div class="step-footer-nav">
-                <button
-                  type="button"
-                  class="btn btn-primary"
+              <div className="flex justify-end border-t border-[var(--line)] pt-4">
+                <Button
+                  variant="primary"
+                  size="lg"
                   disabled={predChoice === null}
                   onClick={handlePredictionSubmit}
                 >
                   锁定我的直觉判断
-                </button>
+                </Button>
               </div>
             ) : (
-              <div class="prediction-compare-grid">
-                <div class="compare-col is-trap">
-                  <div class="compare-col-label">多数人的直觉判断</div>
-                  <p>
-                    {predChoice === unit.prediction.answerIndex
-                      ? '你成功避开了最常见的第一直觉陷阱。'
-                      : `常见误区是选项 ${String.fromCharCode(65 + unit.prediction.commonTrapIndex)} —— 踩中陷阱恰恰说明这一节很值。`}
-                  </p>
+              <div className="space-y-4 border-t border-[var(--line)] pt-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="rounded-[10px] border border-[var(--warning-border)] bg-[var(--warning-soft)] p-4">
+                    <div className="mb-1 text-[12px] font-semibold text-[var(--warning)]">
+                      多数人的直觉判断
+                    </div>
+                    <p className="m-0 text-[14px] leading-[1.65] text-[var(--ink-1)]">
+                      {predChoice === unit.prediction.answerIndex
+                        ? '你成功避开了最常见的第一直觉陷阱'
+                        : `常见误区是选项 ${String.fromCharCode(65 + unit.prediction.commonTrapIndex)} —— 踩中陷阱恰恰说明这一节很值`}
+                    </p>
+                  </div>
+                  <div className="rounded-[10px] border border-[var(--growth-border)] bg-[var(--growth-soft)] p-4">
+                    <div className="mb-1 text-[12px] font-semibold text-[var(--growth)]">
+                      真实底层规律
+                    </div>
+                    <p className="m-0 text-[14px] leading-[1.65] text-[var(--ink-1)]">
+                      <RichText text={unit.prediction.whyCounterIntuitive} />
+                    </p>
+                  </div>
                 </div>
-                <div class="compare-col is-truth">
-                  <div class="compare-col-label">真实底层规律</div>
-                  <p>
-                    <RichText text={unit.prediction.whyCounterIntuitive} />
-                  </p>
-                </div>
-                <div class="step-footer-nav compare-footer">
-                  <button type="button" class="btn btn-primary" onClick={() => goToStep(3)}>
-                    <span>进入动图导学看清机制</span>
-                    <IconArrowRight size={15} />
-                  </button>
+                <div className="flex justify-end">
+                  <Button variant="primary" size="lg" onClick={() => goToStep(3)}>
+                    <span>进入互动实验室看清机制</span>
+                    <ArrowRight size={15} strokeWidth={1.6} />
+                  </Button>
                 </div>
               </div>
             )}
-          </section>
+          </Card>
         )}
 
-        {/* 第 3 步：动图导学（顶部宽幅动图舞台 + 下方 2:1 均衡双栏阅读） */}
+        {/* 第 3 步：左 55% 吸顶互动沙盒实验室 + 右 45% 精排导学栏 */}
         {step === 3 && (
-          <div class="guide-editorial-wrap">
-            {/* 顶部主角：瑞士风逻辑分步动图舞台 */}
-            <UnitVisualFrame
-              visuals={unit.guide.visuals}
-              activeStep={diagramStep}
-              onStepChange={setDiagramStep}
-            />
+          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1.22fr)_minmax(0,1fr)]">
+            {/* 左粘性互动实验室栏 */}
+            <div className="space-y-4 lg:sticky lg:top-[76px]">
+              <UnitVisualFrame
+                visuals={unit.guide.visuals}
+                activeStep={diagramStep}
+                onStepChange={setDiagramStep}
+              />
 
-            {/* 下方 2:1 均衡阅读栏：左 65ch 精排正文 + 右粘性划重点/溯源/合规栏 */}
-            <div class="guide-two-col">
-              <article class="surface-card guide-prose-col">
-                <div class="step-badge-row">
-                  <span class="status-chip chip-accent">第 3 步 · 原理拆解</span>
-                  <span class="muted-inline">带虚线下划线的术语可点击查看人话卡片</span>
+              <Card className="p-4">
+                <div className="mb-2.5 text-[13px] font-semibold text-[var(--ink-1)]">
+                  本节人话划重点
+                </div>
+                <ul className="m-0 list-disc space-y-2 pl-5 text-[13.5px] leading-[1.65] text-[var(--ink-2)]">
+                  {unit.guide.blocks
+                    .filter((b) => Boolean(b.keyTakeaway))
+                    .map((b, i) => (
+                      <li key={i}>
+                        <RichText text={b.keyTakeaway!} />
+                      </li>
+                    ))}
+                </ul>
+              </Card>
+            </div>
+
+            {/* 右侧滚动原理拆解与溯源合规栏 */}
+            <div className="space-y-4">
+              <Card className="space-y-5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Badge tone="accent">第 3 步 · 原理拆解</Badge>
+                  <span className="text-[12.5px] text-[var(--ink-3)]">
+                    点击段落可联动左侧步骤；虚线术语可点开解释
+                  </span>
                 </div>
 
-                {unit.guide.blocks.map((blk, idx) => (
-                  <section
-                    class="guide-block"
-                    key={idx}
-                    onClick={() => setDiagramStep(idx)}
-                  >
-                    <h2 class="guide-block-heading">
-                      <span class="guide-block-num tabular-num">0{idx + 1}</span>
-                      <span>
-                        <RichText text={blk.heading} />
-                      </span>
-                    </h2>
-                    <p class="guide-block-body">
-                      <RichText text={blk.markdown} concepts={concepts} />
-                    </p>
-                  </section>
-                ))}
+                <div className="divide-y divide-[var(--line)]">
+                  {unit.guide.blocks.map((blk, idx) => (
+                    <section
+                      key={idx}
+                      onClick={() => setDiagramStep(idx)}
+                      className={cn(
+                        'cursor-pointer py-4 first:pt-1 last:pb-1 transition-colors',
+                        diagramStep === idx &&
+                          'rounded-[10px] bg-[var(--accent-soft)] px-3 -mx-3'
+                      )}
+                    >
+                      <h2 className="m-0 mb-2 flex items-baseline gap-2.5 text-[17px] font-semibold leading-[1.4] text-[var(--ink-1)]">
+                        <span className="font-mono-num text-[13px] text-[var(--accent)]">
+                          0{idx + 1}
+                        </span>
+                        <span>
+                          <RichText text={blk.heading} />
+                        </span>
+                      </h2>
+                      <p className="m-0 text-[15px] leading-[1.8] text-[var(--ink-2)]">
+                        <RichText text={blk.markdown} concepts={concepts} />
+                      </p>
+                    </section>
+                  ))}
+                </div>
 
-                <div class="step-footer-nav">
-                  <button
-                    type="button"
-                    class="btn btn-primary"
+                <div className="flex justify-end border-t border-[var(--line)] pt-4">
+                  <Button
+                    variant="primary"
+                    size="lg"
                     onClick={async () => {
                       await flushStepDuration('guide');
                       goToStep(4);
                     }}
                   >
-                    <span>读完了，翻看概念闪卡</span>
-                    <IconArrowRight size={15} />
-                  </button>
+                    <span>读完了，翻看 3D 概念闪卡</span>
+                    <ArrowRight size={15} strokeWidth={1.6} />
+                  </Button>
                 </div>
-              </article>
+              </Card>
 
-              <aside class="guide-side-rail">
-                <section class="rail-card">
-                  <h3 class="rail-section-title">本节人话划重点</h3>
-                  <ul class="takeaway-rail-list">
-                    {unit.guide.blocks
-                      .filter((b) => Boolean(b.keyTakeaway))
-                      .map((b, i) => (
-                        <li key={i}>
-                          <RichText text={b.keyTakeaway!} />
-                        </li>
-                      ))}
-                  </ul>
-                </section>
-
-                <PsychBoundaryNotice sources={unit.sources} />
-                <OriginCardsList cards={unit.guide.originCards} />
-                <SourceTimelinessFooter sources={unit.sources} />
-              </aside>
+              <PsychBoundaryNotice sources={unit.sources} />
+              <OriginCardsList cards={unit.guide.originCards} />
+              <SourceTimelinessFooter sources={unit.sources} />
             </div>
           </div>
         )}
 
-        {/* 第 4 步：单卡聚焦 3D 翻转概念卡台 */}
+        {/* 第 4 步：真 3D 弹性翻卡概念台 */}
         {step === 4 && currentConcept && (
-          <section class="surface-card unit-stage-card">
-            <div class="flashcard-stage-top">
+          <Card className="space-y-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <span class="status-chip chip-accent">第 4 步 · 概念闪卡</span>
-                <p class="muted-desc" style={{ marginTop: '6px' }}>
-                  先在脑中复述再点击翻面（桌面可按空格键）；选「模糊 / 重来」会自动排入 1/3/7 天重测。
+                <Badge tone="accent">第 4 步 · 3D 概念闪卡</Badge>
+                <p className="mt-2 mb-0 text-[13.5px] text-[var(--ink-2)]">
+                  先在脑中复述再点卡片翻面（快捷键：Space 翻面，1/2/3 评分）
                 </p>
               </div>
-              <span class="status-chip tabular-num">
+              <Badge tone="neutral" className="font-mono-num">
                 第 {cardIdx + 1} / {concepts.length} 张
-              </span>
+              </Badge>
             </div>
 
-            <div class="flip-deck-stage">
-              <div
-                class={`flip-card-box ${flippedCards[currentConcept.id] ? 'is-flipped' : ''}`}
+            <div className="flip-perspective mx-auto max-w-[660px]">
+              <motion.div
+                className={cn(
+                  'flip-card-box flip-preserve-3d relative grid cursor-pointer',
+                  isCurrentFlipped && 'is-flipped'
+                )}
+                animate={{ rotateY: isCurrentFlipped ? 180 : 0 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 24 }}
                 onClick={() =>
                   setFlippedCards((prev) => ({
                     ...prev,
@@ -542,217 +649,272 @@ export function UnitPlayerView({
                   }))
                 }
               >
-                <div class="flip-card-face">
-                  <div class="flip-card-eyebrow">{currentConcept.label}</div>
-                  {!flippedCards[currentConcept.id] ? (
-                    <div class="flip-front-content">
-                      <div class="flip-question-text">{currentConcept.cardPrompt}</div>
-                      <button type="button" class="btn btn-subtle">
-                        <IconFlip size={15} />
-                        <span>翻看解析</span>
+                {/* 正面 */}
+                <div
+                  className={cn(
+                    'flip-backface-hidden col-start-1 row-start-1 flex min-h-[290px] flex-col justify-between rounded-[14px] border border-[var(--line-strong)] bg-[var(--surface-raised)] p-6',
+                    isCurrentFlipped && 'pointer-events-none'
+                  )}
+                >
+                  <div className="flex items-center justify-between text-[12.5px] text-[var(--ink-3)]">
+                    <span className="font-semibold text-[var(--ink-1)]">
+                      {currentConcept.label}
+                    </span>
+                    <span className="font-mono-num">{currentConcept.branchId} · 正面提问</span>
+                  </div>
+
+                  <div className="my-6 text-center text-[19px] sm:text-[21px] font-medium leading-[1.55] text-[var(--ink-1)]">
+                    {currentConcept.cardPrompt}
+                  </div>
+
+                  <div className="flex justify-center">
+                    <Button variant="outline" size="sm">
+                      <RotateCw size={14} strokeWidth={1.5} />
+                      <span>翻看解析</span>
+                    </Button>
+                  </div>
+                </div>
+
+                {/* 背面 */}
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className={cn(
+                    'flip-backface-hidden col-start-1 row-start-1 flex min-h-[290px] flex-col justify-between gap-4 rounded-[14px] border border-[var(--accent-border)] bg-[var(--surface)] p-6 [transform:rotateY(180deg)]',
+                    !isCurrentFlipped && 'pointer-events-none'
+                  )}
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-[12.5px]">
+                      <span className="font-semibold text-[var(--accent)]">
+                        {currentConcept.label}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFlippedCards((prev) => ({ ...prev, [currentConcept.id]: false }))
+                        }
+                        className="cursor-pointer border-0 bg-transparent text-[12px] text-[var(--ink-3)] hover:text-[var(--ink-1)]"
+                      >
+                        翻回正面
                       </button>
                     </div>
-                  ) : (
-                    <div
-                      class="flip-back-content"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div class="flip-answer-main">
-                        <RichText text={currentConcept.cardAnswer} />
-                      </div>
-                      <div class="flip-plain-def">
-                        <strong>人话定义：</strong>
-                        {currentConcept.plainDefinition}
-                      </div>
 
-                      {currentConcept.crossLinks.length > 0 && (
-                        <div class="concept-crosslinks">
-                          {currentConcept.crossLinks.map((link) => {
-                            const targetNode = content.knowledgeGraph.nodes.find(
-                              (n) => n.id === link.targetId
-                            );
-                            const linkedUnit = content.units.find((u) =>
-                              u.conceptNodeIds.includes(link.targetId)
-                            );
-                            return (
-                              <div class="crosslink-item" key={link.targetId}>
-                                <span>
-                                  跨分支互链 ·{' '}
-                                  <strong>{targetNode?.label ?? link.targetId}</strong>：
-                                  {link.bridgeNote}
-                                </span>
-                                {linkedUnit && linkedUnit.id !== unit.id && (
-                                  <button
-                                    type="button"
-                                    class="btn btn-sm"
-                                    onClick={() => onOpenUnit(linkedUnit.id)}
-                                  >
-                                    前往关联单元
-                                  </button>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      <div class="card-rating-row">
-                        <button
-                          type="button"
-                          class={`btn ${
-                            ratedCards[currentConcept.id] === 'easy' ? 'btn-growth' : ''
-                          }`}
-                          onClick={() => handleRateCard(currentConcept.id, 'easy')}
-                        >
-                          熟练掌握
-                        </button>
-                        <button
-                          type="button"
-                          class={`btn ${
-                            ratedCards[currentConcept.id] === 'fuzzy' ? 'btn-warning' : ''
-                          }`}
-                          onClick={() => handleRateCard(currentConcept.id, 'fuzzy')}
-                        >
-                          有点模糊（3天后）
-                        </button>
-                        <button
-                          type="button"
-                          class={`btn ${
-                            ratedCards[currentConcept.id] === 'again' ? 'btn-danger-outline' : ''
-                          }`}
-                          onClick={() => handleRateCard(currentConcept.id, 'again')}
-                        >
-                          没想起来（明日重测）
-                        </button>
-                      </div>
+                    <div className="text-[15px] leading-[1.75] text-[var(--ink-1)]">
+                      <RichText text={currentConcept.cardAnswer} />
                     </div>
-                  )}
+
+                    <div className="v3-card-raised px-3.5 py-2.5 text-[13.5px] leading-[1.6] text-[var(--ink-2)]">
+                      <strong className="font-medium text-[var(--ink-1)]">人话定义：</strong>
+                      {currentConcept.plainDefinition}
+                    </div>
+
+                    {currentConcept.crossLinks.length > 0 && (
+                      <div className="space-y-2">
+                        {currentConcept.crossLinks.map((link) => {
+                          const targetNode = content.knowledgeGraph.nodes.find(
+                            (n) => n.id === link.targetId
+                          );
+                          const linkedUnit = content.units.find((u) =>
+                            u.conceptNodeIds.includes(link.targetId)
+                          );
+                          return (
+                            <div
+                              key={link.targetId}
+                              className="flex flex-wrap items-center justify-between gap-2 rounded-[8px] border border-[var(--line)] bg-[var(--surface-raised)] px-3 py-2 text-[12.5px] text-[var(--ink-2)]"
+                            >
+                              <span>
+                                跨分支互链 ·{' '}
+                                <strong className="text-[var(--ink-1)]">
+                                  {targetNode?.label ?? link.targetId}
+                                </strong>
+                                ：{link.bridgeNote}
+                              </span>
+                              {linkedUnit && linkedUnit.id !== unit.id && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => onOpenUnit(linkedUnit.id)}
+                                >
+                                  前往关联单元
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 border-t border-[var(--line)] pt-3">
+                    <Button
+                      size="sm"
+                      variant={ratedCards[currentConcept.id] === 'easy' ? 'growth' : 'outline'}
+                      onClick={() => handleRateCard(currentConcept.id, 'easy')}
+                    >
+                      1 熟练掌握
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={ratedCards[currentConcept.id] === 'fuzzy' ? 'warning' : 'outline'}
+                      onClick={() => handleRateCard(currentConcept.id, 'fuzzy')}
+                    >
+                      2 有点模糊（3天后）
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={ratedCards[currentConcept.id] === 'again' ? 'danger' : 'outline'}
+                      onClick={() => handleRateCard(currentConcept.id, 'again')}
+                    >
+                      3 没想起来（明日重测）
+                    </Button>
+                  </div>
                 </div>
+              </motion.div>
+            </div>
+
+            {concepts.length > 1 && (
+              <div className="flex items-center justify-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={cardIdx === 0}
+                  onClick={() => setCardIdx((i) => Math.max(0, i - 1))}
+                >
+                  <ArrowLeft size={14} strokeWidth={1.5} />
+                  <span>上一张</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={cardIdx >= concepts.length - 1}
+                  onClick={() => setCardIdx((i) => Math.min(concepts.length - 1, i + 1))}
+                >
+                  <span>下一张</span>
+                  <ArrowRight size={14} strokeWidth={1.5} />
+                </Button>
               </div>
+            )}
 
-              {concepts.length > 1 && (
-                <div class="deck-pager-row">
-                  <button
-                    type="button"
-                    class="btn btn-sm"
-                    disabled={cardIdx === 0}
-                    onClick={() => setCardIdx((i) => Math.max(0, i - 1))}
-                  >
-                    <IconArrowLeft size={14} /> 上一张
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-sm"
-                    disabled={cardIdx >= concepts.length - 1}
-                    onClick={() => setCardIdx((i) => Math.min(concepts.length - 1, i + 1))}
-                  >
-                    下一张 <IconArrowRight size={14} />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div class="step-footer-nav">
-              <button type="button" class="btn btn-primary" onClick={() => goToStep(5)}>
+            <div className="flex justify-end border-t border-[var(--line)] pt-4">
+              <Button variant="primary" size="lg" onClick={() => goToStep(5)}>
                 <span>进入第 5 步提取自测</span>
-                <IconArrowRight size={15} />
-              </button>
+                <ArrowRight size={15} strokeWidth={1.6} />
+              </Button>
             </div>
-          </section>
+          </Card>
         )}
 
         {/* 第 5 步：自测 */}
         {step === 5 && (
-          <section class="surface-card unit-stage-card">
-            <div class="step-badge-row">
-              <span class="status-chip chip-accent">第 5 步 · 提取自测</span>
-              <span class="muted-inline">
+          <Card className="space-y-6">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <Badge tone="accent">第 5 步 · 提取自测</Badge>
+              <span className="text-[13px] text-[var(--ink-3)]">
                 达标线 {Math.round(unit.quiz.passRatio * 100)}%，错题自动排入 1/3/7 天重测
               </span>
             </div>
 
-            {unit.quiz.questions.map((q, qIdx) => {
-              const picked = quizAnswers[q.id];
-              return (
-                <div class="quiz-question-block" key={q.id}>
-                  <div class="quiz-stem">
-                    <span class="quiz-q-num tabular-num">Q{qIdx + 1}</span>
-                    <span>
-                      <RichText text={q.stem} />
-                    </span>
-                  </div>
-                  <div class="quiz-options-list">
-                    {q.options.map((opt, oIdx) => {
-                      const letter = String.fromCharCode(65 + oIdx);
-                      const isSelected = picked === oIdx;
-                      const isCorrectOpt = quizSubmitted && oIdx === q.correctIndex;
-                      const isWrongPick =
-                        quizSubmitted && isSelected && oIdx !== q.correctIndex;
-
-                      return (
-                        <button
-                          key={oIdx}
-                          type="button"
-                          disabled={quizSubmitted}
-                          class={`quiz-option-btn ${isSelected ? 'is-selected' : ''} ${
-                            isCorrectOpt ? 'is-correct' : ''
-                          } ${isWrongPick ? 'is-wrong' : ''}`}
-                          onClick={() =>
-                            setQuizAnswers((prev) => ({ ...prev, [q.id]: oIdx }))
-                          }
-                        >
-                          <span class="option-letter">{letter}</span>
-                          <span class="option-text">
-                            <RichText text={opt} />
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {quizSubmitted && (
-                    <div
-                      class={`quiz-explanation-box ${
-                        picked === q.correctIndex ? 'is-right' : 'is-wrong'
-                      }`}
-                    >
-                      <strong>
-                        {picked === q.correctIndex ? '回答正确：' : '纠偏解析（已排入明日重测）：'}
-                      </strong>
-                      <RichText text={q.explanation} />
+            <div className="space-y-6">
+              {unit.quiz.questions.map((q, qIdx) => {
+                const picked = quizAnswers[q.id];
+                return (
+                  <div className="quiz-question-block space-y-3" key={q.id}>
+                    <div className="flex items-baseline gap-2.5 text-[16px] font-semibold leading-[1.5] text-[var(--ink-1)]">
+                      <span className="font-mono-num text-[13px] text-[var(--accent)]">
+                        Q{qIdx + 1}
+                      </span>
+                      <span>
+                        <RichText text={q.stem} />
+                      </span>
                     </div>
-                  )}
-                </div>
-              );
-            })}
+
+                    <div className="space-y-2">
+                      {q.options.map((opt, oIdx) => {
+                        const letter = String.fromCharCode(65 + oIdx);
+                        const isSelected = picked === oIdx;
+                        const isCorrectOpt = quizSubmitted && oIdx === q.correctIndex;
+                        const isWrongPick =
+                          quizSubmitted && isSelected && oIdx !== q.correctIndex;
+
+                        return (
+                          <button
+                            key={oIdx}
+                            type="button"
+                            disabled={quizSubmitted}
+                            onClick={() =>
+                              setQuizAnswers((prev) => ({ ...prev, [q.id]: oIdx }))
+                            }
+                            className={cn(
+                              'quiz-option-btn flex min-h-[46px] w-full cursor-pointer items-start gap-3 rounded-[10px] border p-3.5 text-left text-[14.5px] leading-[1.55] transition-colors disabled:cursor-default',
+                              isCorrectOpt
+                                ? 'border-[var(--growth)] bg-[var(--growth-soft)] text-[var(--ink-1)]'
+                                : isWrongPick
+                                  ? 'border-[var(--danger)] bg-[var(--danger-soft)] text-[var(--ink-1)]'
+                                  : isSelected
+                                    ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--ink-1)]'
+                                    : 'border-[var(--line-strong)] bg-[var(--surface)] text-[var(--ink-2)] hover:bg-[var(--surface-raised)] hover:text-[var(--ink-1)]'
+                            )}
+                          >
+                            <span className="font-mono-num mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-[6px] border border-[var(--line-strong)] bg-[var(--surface-raised)] text-[12px] font-semibold text-[var(--ink-1)]">
+                              {letter}
+                            </span>
+                            <span className="flex-1">
+                              <RichText text={opt} />
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {quizSubmitted && (
+                      <div
+                        className={cn(
+                          'rounded-[10px] border p-3.5 text-[13.5px] leading-[1.65]',
+                          picked === q.correctIndex
+                            ? 'border-[var(--growth-border)] bg-[var(--growth-soft)] text-[var(--ink-1)]'
+                            : 'border-[var(--danger-border)] bg-[var(--danger-soft)] text-[var(--ink-1)]'
+                        )}
+                      >
+                        <strong className="font-semibold">
+                          {picked === q.correctIndex
+                            ? '回答正确：'
+                            : '纠偏解析（已排入明日重测）：'}
+                        </strong>
+                        <RichText text={q.explanation} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
 
             {!quizSubmitted ? (
-              <div class="step-footer-nav">
-                <button
-                  type="button"
-                  class="btn btn-primary"
+              <div className="flex justify-end border-t border-[var(--line)] pt-4">
+                <Button
+                  variant="primary"
+                  size="lg"
                   disabled={!allQuestionsAnswered}
                   onClick={handleQuizSubmit}
                 >
                   提交自测并查看解析
-                </button>
+                </Button>
               </div>
             ) : (
-              <div class="quiz-result-bar">
-                <div class="quiz-score-readout">
-                  本次得分：<strong class="tabular-num">{Math.round(quizScoreRatio * 100)}%</strong>
-                  <span
-                    class={`status-chip ${
-                      quizScoreRatio >= unit.quiz.passRatio ? 'chip-growth' : 'chip-warning'
-                    }`}
-                  >
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] pt-4">
+                <div className="flex items-center gap-2.5 text-[15px]">
+                  <span className="text-[var(--ink-2)]">本次得分</span>
+                  <strong className="font-mono-num text-[20px] font-semibold text-[var(--ink-1)]">
+                    {Math.round(quizScoreRatio * 100)}%
+                  </strong>
+                  <Badge tone={quizScoreRatio >= unit.quiz.passRatio ? 'growth' : 'warning'}>
                     {quizScoreRatio >= unit.quiz.passRatio ? '已达标' : '未达标，请重测'}
-                  </span>
+                  </Badge>
                 </div>
-                <div class="btn-row">
+
+                <div className="flex items-center gap-2">
                   {quizScoreRatio < unit.quiz.passRatio && (
-                    <button
-                      type="button"
-                      class="btn"
+                    <Button
+                      variant="outline"
                       onClick={() => {
                         setQuizSubmitted(false);
                         setQuizAnswers({});
@@ -760,32 +922,34 @@ export function UnitPlayerView({
                       }}
                     >
                       重测本节题目
-                    </button>
+                    </Button>
                   )}
                   {quizScoreRatio >= unit.quiz.passRatio && (
-                    <button type="button" class="btn btn-primary" onClick={() => goToStep(6)}>
+                    <Button variant="primary" size="lg" onClick={() => goToStep(6)}>
                       <span>进入行动任务落地</span>
-                      <IconArrowRight size={15} />
-                    </button>
+                      <ArrowRight size={15} strokeWidth={1.6} />
+                    </Button>
                   )}
                 </div>
               </div>
             )}
-          </section>
+          </Card>
         )}
 
-        {/* 第 6 步：行动任务 */}
+        {/* 第 6 步：实战行动任务 */}
         {step === 6 && (
-          <section class="surface-card unit-stage-card">
-            <div class="step-badge-row">
-              <span class="status-chip chip-accent">第 6 步 · 实战行动任务</span>
+          <Card className="space-y-5">
+            <Badge tone="accent">第 6 步 · 实战行动任务</Badge>
+            <div className="space-y-1.5">
+              <h2 className="m-0 text-[20px] sm:text-[22px] font-semibold text-[var(--ink-1)]">
+                <RichText text={unit.actionTask.title} />
+              </h2>
+              <p className="m-0 text-[14px] text-[var(--ink-2)]">
+                切入场景：{unit.actionTask.lifeContext}
+              </p>
             </div>
-            <h2 class="scenario-title">
-              <RichText text={unit.actionTask.title} />
-            </h2>
-            <p class="muted-desc">切入场景：{unit.actionTask.lifeContext}</p>
 
-            <ol class="action-steps-list">
+            <ol className="m-0 list-decimal space-y-2 rounded-[10px] border border-[var(--line)] bg-[var(--surface-raised)] py-4 pr-4 pl-9 text-[14.5px] leading-[1.7] text-[var(--ink-1)]">
               {unit.actionTask.steps.map((s) => (
                 <li key={s}>
                   <RichText text={s} />
@@ -802,18 +966,18 @@ export function UnitPlayerView({
               );
               if (matchingPoolTasks.length === 0) return null;
               return (
-                <div class="milestone-inline-check" style={{ marginBottom: '16px' }}>
-                  <div class="inline-check-title">
-                    绑定真实任务池待办（提交本节时同步标为已交付）：
+                <div className="v3-card-raised space-y-2.5 p-4">
+                  <div className="text-[13px] font-medium text-[var(--ink-1)]">
+                    绑定真实任务池待办（提交本节时同步标为已交付）
                   </div>
-                  <div class="btn-row">
+                  <div className="flex flex-wrap gap-2">
                     {matchingPoolTasks.map((rt) => {
                       const isPicked = linkedRealTaskId === rt.id;
                       return (
-                        <button
+                        <Button
                           key={rt.id}
-                          type="button"
-                          class={`btn btn-sm ${isPicked ? 'btn-primary' : ''}`}
+                          size="sm"
+                          variant={isPicked ? 'primary' : 'outline'}
                           onClick={() => {
                             if (isPicked) {
                               setLinkedRealTaskId(undefined);
@@ -827,7 +991,7 @@ export function UnitPlayerView({
                         >
                           {isPicked ? '已绑定：' : '+ 绑定：'}
                           {rt.title}
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>
@@ -835,106 +999,109 @@ export function UnitPlayerView({
               );
             })()}
 
-            <div class="form-field-block">
-              <label class="form-label">{unit.actionTask.deliverablePrompt}</label>
+            <div className="space-y-1.5">
+              <label className="block text-[13.5px] font-medium text-[var(--ink-1)]">
+                {unit.actionTask.deliverablePrompt}
+              </label>
               <textarea
                 rows={3}
+                className="v3-textarea"
                 value={deliverableText}
-                onInput={(e) => setDeliverableText((e.target as HTMLTextAreaElement).value)}
+                onChange={(e) => setDeliverableText(e.target.value)}
                 placeholder="写下你的执行结果、模板内容或本地文件路径…"
               />
             </div>
 
             {unit.actionTask.feynmanCheckPrompt && (
-              <div class="form-field-block">
-                <label class="form-label">
+              <div className="space-y-1.5">
+                <label className="block text-[13.5px] font-medium text-[var(--ink-1)]">
                   费曼一句话复述：{unit.actionTask.feynmanCheckPrompt}
                 </label>
                 <input
                   type="text"
+                  className="v3-input"
                   value={feynmanText}
-                  onInput={(e) => setFeynmanText((e.target as HTMLInputElement).value)}
+                  onChange={(e) => setFeynmanText(e.target.value)}
                   placeholder="不拽术语，用一句大白话说清核心原理…"
                 />
               </div>
             )}
 
             {parentTrack?.milestoneDeliverable && (
-              <div class="milestone-inline-check">
-                <label class="task-check-wrap inline-checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={signOffMilestone}
-                    onChange={(e) =>
-                      setSignOffMilestone((e.target as HTMLInputElement).checked)
-                    }
-                  />
-                  <span class="custom-checkbox" aria-hidden="true">
-                    {signOffMilestone && <IconCheck size={13} />}
-                  </span>
-                  <span>
-                    同步确认本阶总产出已达标：
-                    <strong>{parentTrack.milestoneDeliverable.title}</strong>
-                  </span>
-                </label>
-              </div>
+              <label className="flex cursor-pointer items-center gap-2.5 rounded-[10px] border border-[var(--line)] bg-[var(--surface-raised)] p-3.5 text-[13.5px] text-[var(--ink-1)]">
+                <input
+                  type="checkbox"
+                  checked={signOffMilestone}
+                  onChange={(e) => setSignOffMilestone(e.target.checked)}
+                  className="h-4 w-4 accent-[var(--accent)]"
+                />
+                <span>
+                  同步确认本阶总产出已达标：
+                  <strong>{parentTrack.milestoneDeliverable.title}</strong>
+                </span>
+              </label>
             )}
 
             {actionError && (
-              <div class="action-gate-error" role="alert">
+              <div
+                className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-[var(--danger-border)] bg-[var(--danger-soft)] p-3.5 text-[13.5px] text-[var(--ink-1)]"
+                role="alert"
+              >
                 <span>过关条件未满足：{actionError}</span>
                 {quizScoreRatio < unit.quiz.passRatio && (
-                  <button type="button" class="btn btn-sm" onClick={() => goToStep(5)}>
+                  <Button size="sm" variant="outline" onClick={() => goToStep(5)}>
                     返回第 5 步自测
-                  </button>
+                  </Button>
                 )}
               </div>
             )}
 
-            <div class="step-footer-nav">
-              <button type="button" class="btn btn-primary" onClick={handleCompleteUnit}>
+            <div className="flex justify-end border-t border-[var(--line)] pt-4">
+              <Button variant="primary" size="lg" onClick={handleCompleteUnit}>
                 <span>提交行动记录并完成过关</span>
-                <IconArrowRight size={15} />
-              </button>
+                <ArrowRight size={15} strokeWidth={1.6} />
+              </Button>
             </div>
-          </section>
+          </Card>
         )}
 
         {/* 第 7 步：过关完成 */}
         {step === 7 && (
-          <section class="wrap-up-card unit-clear-celebration">
-            <div class="wrap-up-icon-wrap">
-              <IconSprout size={28} />
-            </div>
-            <div class="unit-clear-body">
-              <span class="status-chip chip-growth">单元过关已留痕</span>
-              <h2 class="wrap-up-title" style={{ marginTop: '8px' }}>
-                已完成：{unit.title}
-              </h2>
-              <p class="wrap-up-desc">
-                自测得分 {Math.round(quizScoreRatio * 100)}% · 行动记录已写入本地 IndexedDB 并同步更新技能树与状态墙。
-              </p>
-
-              {newlyUnlockedTrack && (
-                <div class="unlock-celebration-banner">
-                  新阶段已解锁：<strong>{newlyUnlockedTrack.title}</strong>
-                </div>
-              )}
-
-              <div class="btn-row" style={{ marginTop: '16px' }}>
-                <button
-                  type="button"
-                  class="btn btn-primary"
-                  onClick={() => onBackToBranches(unit.branchId)}
-                >
-                  返回 {unit.branchId} 路径图
-                </button>
-                <a href="#/" class="btn">
-                  回到「今天」首页
-                </a>
+          <Card className="space-y-5 border-[var(--growth-border)]">
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-[var(--growth-soft)] text-[var(--growth)]">
+                <CheckCircle2 size={24} strokeWidth={1.7} />
+              </div>
+              <div className="space-y-1.5">
+                <Badge tone="growth">单元过关已留痕</Badge>
+                <h2 className="m-0 text-[22px] font-semibold text-[var(--ink-1)]">
+                  已完成：{unit.title}
+                </h2>
+                <p className="m-0 text-[14.5px] text-[var(--ink-2)]">
+                  自测得分 {Math.round(quizScoreRatio * 100)}% · 行动记录已写入本地 IndexedDB
+                  并同步更新技能星图与 1080P 状态墙
+                </p>
               </div>
             </div>
-          </section>
+
+            {newlyUnlockedTrack && (
+              <div className="rounded-[10px] border border-[var(--accent-border)] bg-[var(--accent-soft)] px-4 py-3 text-[14px] text-[var(--ink-1)]">
+                新阶段已解锁：<strong>{newlyUnlockedTrack.title}</strong>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-3 border-t border-[var(--line)] pt-4">
+              <Button variant="primary" onClick={() => onBackToBranches(unit.branchId)}>
+                返回 {unit.branchId} 路径图
+              </Button>
+              <a
+                href="#/"
+                className="inline-flex min-h-[40px] items-center justify-center rounded-[8px] border border-[var(--line-strong)] bg-[var(--surface)] px-4 text-[14px] font-medium text-[var(--ink-1)] no-underline hover:bg-[var(--surface-raised)]"
+              >
+                回到今日主线
+              </a>
+            </div>
+          </Card>
         )}
       </main>
     </div>

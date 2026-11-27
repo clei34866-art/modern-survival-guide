@@ -1,11 +1,13 @@
 import {
   ArrowLeft,
   ArrowRight,
+  Droplets,
   Eye,
   EyeOff,
   Plus,
   RefreshCw,
   SlidersHorizontal,
+  Sparkles,
   Trash2,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -44,23 +46,29 @@ const WALL_BRANCH_SHORT: Record<string, string> = {
   B2: '财经',
   B3: '心理',
   B4: '健康',
-  B5: '表达职业',
-  B6: '学习精力',
-  B7: '生活自保',
+  B5: '表达',
+  B6: '精力',
+  B7: '自保',
 };
 
-function formatClock(date: Date): string {
-  const hh = String(date.getHours()).padStart(2, '0');
-  const mm = String(date.getMinutes()).padStart(2, '0');
-  const ss = String(date.getSeconds()).padStart(2, '0');
-  return `${hh}:${mm}:${ss}`;
+function getClockParts(date: Date) {
+  return {
+    hh: String(date.getHours()).padStart(2, '0'),
+    mm: String(date.getMinutes()).padStart(2, '0'),
+    ss: String(date.getSeconds()).padStart(2, '0'),
+  };
 }
 
-function formatDateLabel(date: Date): string {
+function formatEditorialDate(date: Date): string {
   const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
-    date.getDate()
-  ).padStart(2, '0')} ${weekdays[date.getDay()]}`;
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y} · ${m} · ${d}   ${weekdays[date.getDay()]}`;
+}
+
+function formatDotDate(iso: string): string {
+  return iso.replace(/-/g, '.');
 }
 
 export function StatusWallView({
@@ -76,7 +84,7 @@ export function StatusWallView({
   const [externalSync, setExternalSync] = useState<WallExternalSyncPayload | null>(null);
   const [forcePreviewDemo, setForcePreviewDemo] = useState<boolean>(false);
 
-  // Gen-2 R1：右侧状态墙个人配置 Drawer
+  // 右侧状态墙个人配置 Drawer
   const [configOpen, setConfigOpen] = useState<boolean>(false);
   const [configTab, setConfigTab] = useState<'countdowns' | 'life' | 'display'>('countdowns');
 
@@ -121,7 +129,7 @@ export function StatusWallView({
     return () => clearInterval(clockTimer);
   }, []);
 
-  // 六宫格 ⇄ B1 专项看板自动轮播（配置抽屉打开或纯净观景时暂停）
+  // 主墙 ⇄ B1 专项看板自动轮播（配置抽屉打开或纯净观景时暂停）
   useEffect(() => {
     if (!autoRotateSeconds || configOpen || pureView) return;
     const timer = setInterval(() => {
@@ -183,7 +191,7 @@ export function StatusWallView({
     onTelemetryChange?.(next);
     setNewCdLabel('');
     setNewCdDate('');
-    toast.success('已添加真实倒计时节点');
+    toast.success('已添加倒计时节点');
   };
 
   const handleRemoveCountdown = async (id: string) => {
@@ -209,7 +217,7 @@ export function StatusWallView({
       weatherNote: weatherDraft.trim() || undefined,
     });
     onTelemetryChange?.(next);
-    toast.success('已保存今日生活打卡与状态墙吉光');
+    toast.success('已更新书桌打卡与每日金句');
   };
 
   const handleSetRotate = async (secs: 0 | 30 | 60) => {
@@ -221,38 +229,38 @@ export function StatusWallView({
   const handleSetClarity = async (mode: GlassClarityMode) => {
     const next = await saveWallPersonalConfig({ glassClarity: mode });
     onTelemetryChange?.(next);
-    toast(`玻璃通透度已切至：${mode === 'clear' ? '清透' : mode === 'regular' ? '标准' : '深读'}`);
+    toast(`浮岛通透度已切至：${mode === 'clear' ? '极透' : mode === 'regular' ? '柔雾' : '深读'}`);
   };
 
-  const totalDualMinutes = Math.max(
-    1,
-    vm.b1Kanban.aiLineMinutes + vm.b1Kanban.softwareLineMinutes
-  );
-  const aiRatioPercent = Math.round((vm.b1Kanban.aiLineMinutes / totalDualMinutes) * 100);
-  const swRatioPercent = 100 - aiRatioPercent;
+  const rawDualMinutes = vm.b1Kanban.aiLineMinutes + vm.b1Kanban.softwareLineMinutes;
+  const aiRatioPercent =
+    rawDualMinutes > 0 ? Math.round((vm.b1Kanban.aiLineMinutes / rawDualMinutes) * 100) : 0;
+  const swRatioPercent = rawDualMinutes > 0 ? 100 - aiRatioPercent : 0;
 
   const b1Branch = content.catalog.branches.find((b) => b.id === 'B1');
   const swPacks = (b1Branch?.tracks ?? []).filter((t) => t.kind === 'software_pack');
 
-  const ringR = 34;
-  const ringC = 2 * Math.PI * ringR;
-  const ringOffset = ringC * (1 - vm.learning.todayPercent / 100);
+  const clock = getClockParts(now);
+  const primaryCountdown = vm.countdowns[0];
+  const secondaryCountdowns = vm.countdowns.slice(1, 3);
+  const waterGoal = Math.max(1, vm.lifeBlock.waterGoalToday || 8);
+  const waterFilled = Math.min(waterGoal, Math.max(0, vm.lifeBlock.waterCupsToday));
 
   const configDrawer = (
     <Drawer
       open={configOpen}
       onOpenChange={setConfigOpen}
-      title="1080P 状态墙个人配置"
-      description="所有倒计时、生活打卡与显示选项仅存本机浏览器，实时同步主站与周报"
+      title="书桌常亮墙配置"
+      description="倒计时、喝水睡眠与金句仅保存于本机浏览器，实时与主页联动"
       widthClassName="w-[min(480px,94vw)]"
     >
       <div className="space-y-4">
         <div className="glass-plate grid grid-cols-3 gap-1 p-1" role="tablist">
           {(
             [
-              { id: 'countdowns', label: '真实倒计时' },
-              { id: 'life', label: '打卡与吉光' },
-              { id: 'display', label: '轮播与通透' },
+              { id: 'countdowns', label: '重要日子' },
+              { id: 'life', label: '打卡与金句' },
+              { id: 'display', label: '通透与轮播' },
             ] as const
           ).map((t) => (
             <button
@@ -276,11 +284,11 @@ export function StatusWallView({
         {configTab === 'countdowns' && (
           <div className="space-y-4">
             <div className="glass-plate space-y-2.5 p-4">
-              <div className="text-[13px] font-semibold text-[var(--ink-1)]">新增真实倒计时</div>
+              <div className="text-[13px] font-semibold text-[var(--ink-1)]">新增倒计时</div>
               <input
                 type="text"
                 className="v3-input text-[14px]"
-                placeholder="如：大创中期答辩 / 期末考试 / 马拉松"
+                placeholder="如：大创中期答辩 / 期末考试 / 出行"
                 value={newCdLabel}
                 onChange={(e) => setNewCdLabel(e.target.value)}
               />
@@ -305,7 +313,7 @@ export function StatusWallView({
 
             <div className="space-y-2">
               <div className="text-[12.5px] text-[var(--ink-3)]">
-                当前展示列表（大屏固定展示前 3 项，零滚屏）
+                主画布右侧固定展示最近 3 项，第一项自动高亮
               </div>
               {currentCountdowns.map((cd) => (
                 <div
@@ -318,7 +326,6 @@ export function StatusWallView({
                     </div>
                     <div className="font-mono-num text-[12px] text-[var(--ink-3)]">
                       {cd.targetDate}
-                      {cd.isSample ? ' · 默认示例' : ''}
                     </div>
                   </div>
                   <Popconfirm
@@ -367,7 +374,7 @@ export function StatusWallView({
                   />
                 </label>
                 <label className="space-y-1 text-[12px] text-[var(--ink-2)]">
-                  <span>今日跑步（km）</span>
+                  <span>今日运动（km）</span>
                   <input
                     type="number"
                     step="0.5"
@@ -386,17 +393,17 @@ export function StatusWallView({
                 <input
                   type="text"
                   className="v3-input text-[13.5px]"
-                  placeholder="如：晴 · 21°C · 书桌模式"
+                  placeholder="如：晴 · 21°C · 书桌"
                   value={weatherDraft}
                   onChange={(e) => setWeatherDraft(e.target.value)}
                 />
               </label>
               <label className="block space-y-1 text-[12px] text-[var(--ink-2)]">
-                <span>今日吉光一句</span>
+                <span>大时钟下方金句</span>
                 <textarea
                   rows={2}
                   className="v3-textarea text-[13.5px]"
-                  placeholder="写一句想挂在副屏上提醒自己的话…"
+                  placeholder="写一句想浮在星空下提醒自己的话…"
                   value={quoteDraft}
                   onChange={(e) => setQuoteDraft(e.target.value)}
                 />
@@ -413,7 +420,7 @@ export function StatusWallView({
               </label>
               <div className="flex justify-end">
                 <Button size="sm" variant="primary" onClick={handleSaveLifeAndContent}>
-                  保存打卡与吉光
+                  保存更新
                 </Button>
               </div>
             </div>
@@ -424,7 +431,36 @@ export function StatusWallView({
           <div className="space-y-4">
             <div className="glass-plate space-y-2.5 p-4">
               <div className="text-[13px] font-semibold text-[var(--ink-1)]">
-                六宫格 ⇄ B1 专项看板自动轮播
+                底部浮岛通透度
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {(
+                  [
+                    { v: 'clear', label: '极透' },
+                    { v: 'regular', label: '柔雾' },
+                    { v: 'frosted', label: '深读' },
+                  ] as const
+                ).map((item) => (
+                  <button
+                    key={item.v}
+                    type="button"
+                    onClick={() => handleSetClarity(item.v)}
+                    className={cn(
+                      'min-h-[38px] cursor-pointer rounded-[10px] border text-[13px] font-medium transition-colors',
+                      glassClarity === item.v
+                        ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--ink-1)]'
+                        : 'border-[var(--line)] text-[var(--ink-2)] hover:border-[var(--line-strong)]'
+                    )}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="glass-plate space-y-2.5 p-4">
+              <div className="text-[13px] font-semibold text-[var(--ink-1)]">
+                画报主墙 ⇄ B1 专项看板自动轮播
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {(
@@ -451,31 +487,17 @@ export function StatusWallView({
               </div>
             </div>
 
-            <div className="glass-plate space-y-2.5 p-4">
-              <div className="text-[13px] font-semibold text-[var(--ink-1)]">玻璃面板通透度</div>
-              <div className="grid grid-cols-3 gap-2">
-                {(
-                  [
-                    { v: 'clear', label: '清透' },
-                    { v: 'regular', label: '标准' },
-                    { v: 'frosted', label: '深读' },
-                  ] as const
-                ).map((item) => (
-                  <button
-                    key={item.v}
-                    type="button"
-                    onClick={() => handleSetClarity(item.v)}
-                    className={cn(
-                      'min-h-[38px] cursor-pointer rounded-[10px] border text-[13px] font-medium transition-colors',
-                      glassClarity === item.v
-                        ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--ink-1)]'
-                        : 'border-[var(--line)] text-[var(--ink-2)] hover:border-[var(--line-strong)]'
-                    )}
-                  >
-                    {item.label}
-                  </button>
-                ))}
+            <div className="glass-plate flex items-center justify-between gap-3 p-4">
+              <div className="text-[12.5px] text-[var(--ink-2)]">
+                数据演示切换（用于查看满进度星盘效果）
               </div>
+              <Button
+                size="sm"
+                variant="subtle"
+                onClick={() => setForcePreviewDemo((v) => !v)}
+              >
+                {forcePreviewDemo ? '恢复实况' : '预览演示数据'}
+              </Button>
             </div>
           </div>
         )}
@@ -484,7 +506,7 @@ export function StatusWallView({
   );
 
   // ============================================================================
-  // 二级切换子视图：B1 AI 与软件专项数字看板
+  // 二级切换子视图：B1 AI 与软件专项数字看板（同步极简细线玻璃语言）
   // ============================================================================
   if (subView === 'b1') {
     return (
@@ -495,7 +517,7 @@ export function StatusWallView({
             <div className="wall-b1-topbar-group">
               <button type="button" className="wall-btn" onClick={() => setSubView('main')}>
                 <ArrowLeft size={14} strokeWidth={1.6} />
-                <span>返回六宫格个人状态墙</span>
+                <span>返回画报主墙</span>
               </button>
               <h1 className="wall-panel-title">
                 <span className="wall-dot" />
@@ -512,9 +534,11 @@ export function StatusWallView({
               <span
                 className={`wall-tag ${vm.dataMode === 'LIVE' ? 'wall-tag-live' : 'wall-tag-demo'}`}
               >
-                {vm.dataMode === 'LIVE' ? 'LIVE 真实留痕' : 'DEMO 示例演示'}
+                {vm.dataMode === 'LIVE' ? 'LIVE 实况' : 'DEMO 预览'}
               </span>
-              <span className="wall-tag font-mono-num">{formatClock(now)}</span>
+              <span className="wall-tag font-mono-num">
+                {clock.hh}:{clock.mm}:{clock.ss}
+              </span>
               <a href="#/" className="wall-btn no-underline">
                 返回站内
               </a>
@@ -527,11 +551,11 @@ export function StatusWallView({
               <div className="wall-kpi-hero" style={{ color: 'var(--wall-green)' }}>
                 {vm.b1Kanban.fiveLayerOverallPercent}%
               </div>
-              <div className="wall-kpi-foot">逐层过关 + 实战项目验收</div>
+              <div className="wall-kpi-foot">全部 5 层已开放自由精读</div>
             </div>
 
             <div className="wall-panel wall-kpi-card">
-              <div className="wall-kpi-sub">当前层级与产出完成度</div>
+              <div className="wall-kpi-sub">当前焦点层级</div>
               <div className="wall-kpi-mid-title">{vm.b1Kanban.currentLayerTitle}</div>
               <div className="wall-kpi-hero" style={{ color: 'var(--wall-amber)' }}>
                 {vm.b1Kanban.currentDeliverablePercent}%
@@ -549,18 +573,18 @@ export function StatusWallView({
             </div>
 
             <div className="wall-panel wall-kpi-card">
-              <div className="wall-kpi-sub">今日流程完成情况</div>
+              <div className="wall-kpi-sub">今日小事完成度</div>
               <div className="wall-kpi-hero" style={{ color: 'var(--wall-green)' }}>
                 {vm.learning.todayDone}/{vm.learning.todayTotal}
               </div>
-              <div className="wall-kpi-foot">完成率 {vm.learning.todayPercent}%（做完即停）</div>
+              <div className="wall-kpi-foot">完成率 {vm.learning.todayPercent}% · 做完即停</div>
             </div>
           </div>
 
           <section className="wall-panel wall-b1-layers">
             <div className="wall-panel-head">
-              <h2 className="wall-panel-title">AI 能力线 L1–L5 各层掌握度与产出矩阵</h2>
-              <span className="wall-tag">按答题与单元过关聚合</span>
+              <h2 className="wall-panel-title">AI 能力线 L1–L5 掌握度与产出矩阵</h2>
+              <span className="wall-tag">按阅读与练习留痕聚合</span>
             </div>
             <div className="wall-layers-stack">
               {vm.b1Kanban.layers.map((layer) => (
@@ -577,12 +601,12 @@ export function StatusWallView({
                       className="wall-bar-fill"
                       style={{
                         width: `${Math.max(4, layer.masteryPercent)}%`,
-                        backgroundColor: layer.unlocked ? '#5ea8ff' : '#3a424d',
+                        backgroundColor: layer.isCleared ? '#5eead4' : '#5ea8ff',
                       }}
                     />
                   </div>
                   <span className={`wall-tag ${layer.isCleared ? 'wall-tag-live' : ''}`}>
-                    {layer.isCleared ? '已过关' : layer.unlocked ? '当前可学' : '待解锁'}
+                    {layer.isCleared ? '已完成' : '开放精读'}
                   </span>
                 </div>
               ))}
@@ -629,7 +653,7 @@ export function StatusWallView({
 
             <div className="wall-sw-packs-strip">
               <div className="wall-kpi-sub" style={{ marginBottom: '8px' }}>
-                软件技能分包状态（按需即学即用）
+                软件技能分包（即查即用）
               </div>
               <div className="wall-sw-grid">
                 {swPacks.map((pack) => {
@@ -641,7 +665,7 @@ export function StatusWallView({
                         {pack.title.replace(/^软件包 S\d · /, '')}
                       </span>
                       <span className="wall-sw-chip-stat font-mono-num">
-                        {`${cleared}/${total} 节`}
+                        {`${cleared}/${total} 篇`}
                       </span>
                     </div>
                   );
@@ -650,10 +674,10 @@ export function StatusWallView({
             </div>
 
             <div className="wall-weakness-box">
-              <div className="wall-kpi-sub">薄弱概念 TOP 5（待 1/3/7 天重测）</div>
+              <div className="wall-kpi-sub">待温习概念 TOP 5</div>
               <div className="wall-weakness-items">
                 {vm.learning.weaknessTop5.length === 0 ? (
-                  <span className="wall-kpi-sub">当前无积压错题</span>
+                  <span className="wall-kpi-sub">当前无积压温习项</span>
                 ) : (
                   vm.learning.weaknessTop5.map((w) => (
                     <span className="wall-weak-chip" key={w.label}>
@@ -670,15 +694,24 @@ export function StatusWallView({
   }
 
   // ============================================================================
-  // 默认主视图：1080P 全站个人状态墙六宫格 + 底部 36px 极简状态条
+  // 默认主视图：留白画报 × 悬浮液态玻璃（Apple StandBy / 桌面艺术挂钟风）
+  // - 中央与中上方星海原画大片呼吸，零沉重盒中盒墙面
+  // - 140px 超细艺术时钟 + 衬线体每日金句无框浮于深空之上
+  // - 右上轻浮倒计时焦点 + 底部 3 座极透液态玻璃浮岛
   // ============================================================================
   return (
-    <div className="wall-viewport" aria-label="1080P 个人状态墙六宫格主视图">
+    <div
+      className="wall-viewport wall-editorial-viewport"
+      aria-label="1080P 个人常亮画报状态墙"
+    >
       {configDrawer}
 
+      {/* 极轻局部渐暗光晕：仅柔和托起左上时钟与底部浮岛，中央地平线与人物 100% 透亮呼吸 */}
+      <div className="wall-editorial-vignette" aria-hidden="true" />
+
       {pureView && onTogglePureView && (
-        <div className="fixed top-4 right-4 z-50">
-          <button type="button" className="wall-btn" onClick={onTogglePureView}>
+        <div className="fixed top-5 right-6 z-50">
+          <button type="button" className="wall-whisper-btn" onClick={onTogglePureView}>
             <EyeOff size={14} strokeWidth={1.6} />
             <span>退出纯净观景 (ESC)</span>
           </button>
@@ -686,244 +719,224 @@ export function StatusWallView({
       )}
 
       <div
-        className="wall-bento-grid"
+        className="wall-editorial-canvas"
         style={{
           opacity: pureView ? 0 : 1,
           pointerEvents: pureView ? 'none' : 'auto',
-          transition: 'opacity 280ms ease',
+          transition: 'opacity 320ms ease',
         }}
       >
-        {/* [1] 今日时光与天气 */}
-        <section className="wall-panel wall-panel-today" aria-label="今日时光与天气">
-          <div className="wall-panel-head">
-            <h2 className="wall-panel-title">
-              <span className="wall-dot" />
-              今日时光
-            </h2>
-            <div className="wall-head-actions">
-              {vm.lifeBlock.todayMood && (
-                <span className="wall-tag wall-tag-mood">
-                  {vm.lifeBlock.todayMood === 'relaxed'
-                    ? '松弛'
-                    : vm.lifeBlock.todayMood === 'focused'
-                      ? '充实'
-                      : '慢一点'}
-                </span>
+        {/* 1. 顶部无框微光信息条（零厚重顶栏，极轻悬浮） */}
+        <header className="wall-ambient-rail" aria-label="状态墙顶部环境与控制">
+          <div className="wall-ambient-left">
+            <span
+              className={cn(
+                'wall-status-pulse',
+                vm.dataMode === 'LIVE' ? 'is-live' : 'is-demo'
               )}
-              <span className="wall-tag">{vm.weather}</span>
-            </div>
-          </div>
-
-          <div className="wall-today-hero">
-            <div>
-              <div className="wall-clock">{formatClock(now)}</div>
-              <div className="wall-date-weather">{formatDateLabel(now)}</div>
-            </div>
-            <Tooltip content={`今日小事已完成 ${vm.learning.todayPercent}%`} side="top">
-              <div className="wall-ring-wrap">
-                <svg width="84" height="84" viewBox="0 0 84 84">
-                  <circle
-                    cx="42"
-                    cy="42"
-                    r={ringR}
-                    fill="none"
-                    stroke="rgba(190, 222, 255, 0.16)"
-                    strokeWidth="7"
-                  />
-                  <circle
-                    cx="42"
-                    cy="42"
-                    r={ringR}
-                    fill="none"
-                    stroke="#5eead4"
-                    strokeWidth="7"
-                    strokeLinecap="round"
-                    strokeDasharray={ringC}
-                    strokeDashoffset={ringOffset}
-                    transform="rotate(-90 42 42)"
-                  />
-                  <text
-                    x="42"
-                    y="40"
-                    textAnchor="middle"
-                    fontSize="16"
-                    fontWeight="600"
-                    fontFamily="var(--font-mono)"
-                    fill="#f4f8ff"
-                  >
-                    {vm.learning.todayDone}/{vm.learning.todayTotal}
-                  </text>
-                  <text x="42" y="55" textAnchor="middle" fontSize="10" fill="#c6d7f0">
-                    今日小事
-                  </text>
-                </svg>
-              </div>
-            </Tooltip>
-          </div>
-
-          <ul className="wall-todo-list">
-            {vm.todos.slice(0, 4).map((item, idx) => (
-              <li className="wall-todo-item" key={idx}>
-                <span className="wall-todo-bullet" />
-                <span className="wall-todo-text">{item}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        {/* [2] 吉光片羽与待看片单（居中书桌生活主画框） */}
-        <section className="wall-panel wall-panel-content" aria-label="今日吉光与生活一招">
-          <div className="wall-panel-head">
-            <h2 className="wall-panel-title">
-              <span className="wall-dot" style={{ background: 'var(--wall-amber)' }} />
-              吉光片羽与书桌片单
-            </h2>
-            <span className="wall-tag">{vm.contentBlock.sourceLabel}</span>
-          </div>
-          <div className="wall-quote-body">
-            <p className="wall-quote-text" style={{ fontSize: '21px' }}>
-              「{vm.contentBlock.quote}」
-            </p>
-            <div className="wall-kpi-sub" style={{ marginTop: '10px' }}>
-              — {vm.contentBlock.quoteSource}
-            </div>
-          </div>
-          <div className="wall-weakness-box" style={{ marginBottom: '10px' }}>
-            <div className="wall-tip-inline">
-              <span className="wall-tip-tag">每日一招</span>
-              <span className="wall-tip-title">{vm.learning.dailyTipTitle}</span>
-            </div>
-          </div>
-          <div className="wall-movie-foot" style={{ marginTop: 0 }}>
-            近期想看：{vm.contentBlock.movie}
-          </div>
-        </section>
-
-        {/* [3] 生活技能轻览（收轻至中下位，保留全部 7 分支与 B1 专项切换） */}
-        <section className="wall-panel wall-panel-learning" aria-label="生活技能轻览">
-          <div className="wall-panel-head">
-            <h2 className="wall-panel-title">
-              <span className="wall-dot" />
-              成长与技能轻览
-            </h2>
-            <div className="wall-head-actions">
-              <span
-                className={`wall-tag ${vm.dataMode === 'LIVE' ? 'wall-tag-live' : 'wall-tag-demo'}`}
-              >
-                {vm.dataMode === 'LIVE' ? 'LIVE' : 'DEMO'}
+              aria-hidden="true"
+            />
+            <span className="wall-ambient-date font-mono-num">{formatEditorialDate(now)}</span>
+            <span className="wall-ambient-sep" aria-hidden="true">
+              /
+            </span>
+            <span className="wall-ambient-weather">{vm.weather}</span>
+            {vm.lifeBlock.todayMood && (
+              <span className="wall-mood-whisper">
+                {vm.lifeBlock.todayMood === 'relaxed'
+                  ? '今日状态 · 松弛'
+                  : vm.lifeBlock.todayMood === 'focused'
+                    ? '今日状态 · 充实'
+                    : '今日状态 · 慢一点'}
               </span>
-              <Tooltip content="切换查看 B1 AI 与软件专项数字看板" side="bottom">
-                <button type="button" className="wall-btn" onClick={() => setSubView('b1')}>
-                  <span>B1 专项看板</span>
-                  <ArrowRight size={13} strokeWidth={1.6} />
+            )}
+          </div>
+
+          <div className="wall-ambient-right">
+            <span
+              className={cn(
+                'wall-mode-pill',
+                vm.dataMode === 'LIVE' ? 'wall-tag-live' : 'wall-tag-demo'
+              )}
+            >
+              {vm.dataMode === 'LIVE' ? 'LIVE' : 'DEMO'}
+            </span>
+            {autoRotateSeconds > 0 && (
+              <span className="wall-mode-pill">
+                <RefreshCw size={11} strokeWidth={1.6} />
+                {autoRotateSeconds}s
+              </span>
+            )}
+            <Tooltip content="切换查看 B1 AI 与软件专项看板" side="bottom">
+              <button
+                type="button"
+                className="wall-whisper-btn"
+                onClick={() => setSubView('b1')}
+              >
+                <span>B1 专项</span>
+                <ArrowRight size={13} strokeWidth={1.6} />
+              </button>
+            </Tooltip>
+            <Tooltip content="自定义重要日子、喝水睡眠、金句与通透度" side="bottom">
+              <button
+                type="button"
+                className="wall-whisper-btn"
+                data-testid="wall-config-drawer-trigger"
+                onClick={() => setConfigOpen(true)}
+              >
+                <SlidersHorizontal size={13} strokeWidth={1.6} />
+                <span>配置</span>
+              </button>
+            </Tooltip>
+            {onTogglePureView && (
+              <Tooltip content="隐去全部文字，静静欣赏星海画面" side="bottom">
+                <button type="button" className="wall-whisper-btn" onClick={onTogglePureView}>
+                  <Eye size={13} strokeWidth={1.6} />
+                  <span>观景</span>
                 </button>
               </Tooltip>
+            )}
+            <a href="#/" className="wall-whisper-btn no-underline">
+              <ArrowLeft size={13} strokeWidth={1.6} />
+              <span>返回站内</span>
+            </a>
+          </div>
+        </header>
+
+        {/* 2. 中上开放留白画报舞台：中央星海与人物完全敞开，左右轻浮无框排版 */}
+        <section className="wall-hero-stage" aria-label="主视觉时钟与每日金句">
+          {/* 左上无框巨幅艺术时钟 + 衬线体每日金句 */}
+          <div className="wall-hero-editorial">
+            <div className="wall-clock" aria-label={`当前时间 ${clock.hh}:${clock.mm}:${clock.ss}`}>
+              <span className="wall-clock-digits">{clock.hh}</span>
+              <span className="wall-clock-colon" aria-hidden="true">
+                :
+              </span>
+              <span className="wall-clock-digits">{clock.mm}</span>
+              <span className="wall-clock-sec">{clock.ss}</span>
+            </div>
+
+            <div className="wall-hero-hairline" aria-hidden="true" />
+
+            <blockquote className="wall-serif-quote">「{vm.contentBlock.quote}」</blockquote>
+
+            <div className="wall-quote-meta">
+              <span>{vm.contentBlock.quoteSource}</span>
+              {vm.contentBlock.movie && (
+                <>
+                  <span className="wall-meta-dot" aria-hidden="true">
+                    ·
+                  </span>
+                  <span>片单 {vm.contentBlock.movie}</span>
+                </>
+              )}
             </div>
           </div>
 
-          <div className="wall-learning-body">
-            <div className="wall-tree-summary-col">
-              <SkillAtlasSvg
-                content={content}
-                telemetry={telemetry}
-                variant="wall"
-                demoFallback={vm.dataMode === 'DEMO'}
-              />
-              <div className="wall-tree-metrics">
-                <div className="wall-big-kpi font-mono-num">{vm.learning.activeDaysTotal}</div>
-                <div className="wall-kpi-sub">
-                  累计足迹（连着 {vm.learning.consecutiveDays} 天）
-                </div>
+          {/* 右上无框倒计时焦点（避开画面中央地平线人物） */}
+          {primaryCountdown && (
+            <aside className="wall-hero-countdown" aria-label="重要日子倒计时">
+              <div className="wall-cd-hero-eyebrow">
+                <span className="wall-cd-eyebrow-dot" aria-hidden="true" />
+                <span>{personal?.countdowns?.length ? '我的倒数日' : '重要日子'}</span>
               </div>
-            </div>
 
-            <div className="wall-branches-col">
-              <div className="wall-branch-bars">
-                {vm.learning.branchProgress.map((bp) => (
-                  <div className="wall-bar-row" key={bp.id}>
-                    <span className="wall-bar-name">
-                      {WALL_BRANCH_SHORT[bp.id] ?? bp.name.slice(0, 4)}
-                    </span>
-                    <div className="wall-bar-track">
-                      <div
-                        className="wall-bar-fill"
-                        style={{
-                          width: `${Math.max(4, bp.percent)}%`,
-                          backgroundColor: bp.accentToken,
-                        }}
-                      />
-                    </div>
-                    <span className="wall-bar-pct font-mono-num">{bp.percent}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* [4] 重要日子倒数 */}
-        <section className="wall-panel wall-panel-countdown" aria-label="重要日子倒数">
-          <div className="wall-panel-head">
-            <h2 className="wall-panel-title">
-              <span className="wall-dot" style={{ background: 'var(--wall-amber)' }} />
-              重要日子
-            </h2>
-            <span className="wall-tag">
-              {personal?.countdowns && personal.countdowns.length > 0 ? '我的日子' : '倒数日'}
-            </span>
-          </div>
-          <div className="wall-countdown-stack">
-            {vm.countdowns.slice(0, 3).map((cd) => {
-              const urgencyPct = Math.max(
-                8,
-                Math.min(100, Math.round(100 - Math.min(cd.daysLeft, 365) / 3.65))
-              );
-              return (
-                <div className="wall-cd-card" key={cd.id}>
-                  <div className="wall-cd-top">
-                    <div>
-                      <div className="wall-cd-label">{cd.label}</div>
-                      <div className="wall-cd-date font-mono-num">{cd.targetDate}</div>
-                    </div>
-                    <div className={`wall-cd-days font-mono-num ${cd.isUrgent ? 'is-urgent' : ''}`}>
-                      {cd.daysLeft}
-                      <span>天</span>
-                    </div>
-                  </div>
-                  <div className="wall-cd-bar">
-                    <div
-                      className="wall-cd-bar-fill"
-                      style={{
-                        width: `${urgencyPct}%`,
-                        backgroundColor: cd.isUrgent ? 'var(--wall-coral)' : 'var(--wall-amber)',
-                      }}
-                    />
+              <div className="wall-cd-hero-main">
+                <div className="wall-cd-hero-info">
+                  <div className="wall-cd-hero-title">{primaryCountdown.label}</div>
+                  <div className="wall-cd-hero-date font-mono-num">
+                    {formatDotDate(primaryCountdown.targetDate)}
                   </div>
                 </div>
-              );
-            })}
-          </div>
+                <div
+                  className={cn(
+                    'wall-cd-hero-num',
+                    primaryCountdown.isUrgent && 'is-urgent'
+                  )}
+                >
+                  <span>{primaryCountdown.daysLeft}</span>
+                  <small>天</small>
+                </div>
+              </div>
+
+              <div className="wall-cd-thread" aria-hidden="true">
+                <div
+                  className="wall-cd-thread-fill"
+                  style={{
+                    width: `${Math.max(
+                      12,
+                      Math.min(100, Math.round(100 - Math.min(primaryCountdown.daysLeft, 365) / 3.65))
+                    )}%`,
+                    background: primaryCountdown.isUrgent
+                      ? 'linear-gradient(90deg, rgba(251,133,133,0.4), #fb8585)'
+                      : 'linear-gradient(90deg, rgba(245,184,154,0.32), #f5b89a)',
+                  }}
+                />
+              </div>
+
+              {secondaryCountdowns.length > 0 && (
+                <div className="wall-cd-secondary-list">
+                  {secondaryCountdowns.map((cd) => (
+                    <div className="wall-cd-secondary-row" key={cd.id}>
+                      <span className="wall-cd-sec-label">{cd.label}</span>
+                      <span className="wall-cd-sec-days font-mono-num">
+                        <strong>{cd.daysLeft}</strong> 天
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </aside>
+          )}
         </section>
 
-        {/* [5] 身体照顾与日常小挑战（支持大屏一键 +1 喝水打卡） */}
-        <section className="wall-panel wall-panel-life" aria-label="身体照顾与日常节律">
-          <div className="wall-panel-head">
-            <h2 className="wall-panel-title">
-              <span className="wall-dot" />
-              身体照顾与小挑战
-            </h2>
-            <span
-              data-testid="wall-life-source-tag"
-              className={`wall-tag ${vm.lifeBlock.sourceLabel === '个人打卡' ? 'wall-tag-live' : ''}`}
-            >
-              {vm.lifeBlock.sourceLabel}
-            </span>
-          </div>
-          <div className="wall-life-grid-2x2">
-            <div className="wall-micro-tile">
-              <div className="flex items-center justify-between gap-2">
-                <span className="wall-micro-label">今日喝水</span>
-                <Tooltip content="顺手记一杯水，实时同步周报" side="top">
+        {/* 3. 底部三座极透悬浮液态玻璃岛（无盒中盒嵌套，仅极细折射高光边） */}
+        <section className="wall-dock-islands" aria-label="书桌生活与成长浮岛">
+          {/* 浮岛 A：今日节奏与每日一招 */}
+          <article className="wall-island wall-island-today" aria-label="今日节奏">
+            <div className="wall-island-head">
+              <div className="wall-island-title">
+                <span className="wall-dot" style={{ background: 'var(--wall-amber)' }} />
+                <span>今日节奏</span>
+              </div>
+              <span className="wall-island-stat font-mono-num">
+                {vm.learning.todayDone} / {vm.learning.todayTotal}
+              </span>
+            </div>
+
+            <ul className="wall-clean-todo-list">
+              {vm.todos.slice(0, 3).map((item, idx) => (
+                <li className="wall-clean-todo-row" key={idx}>
+                  <span className="wall-clean-bullet" aria-hidden="true" />
+                  <span className="wall-clean-todo-text">{item}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="wall-island-whisper-foot">
+              <Sparkles size={12} strokeWidth={1.8} className="shrink-0 text-[var(--wall-amber)]" />
+              <span className="truncate">每日一招 · {vm.learning.dailyTipTitle}</span>
+            </div>
+          </article>
+
+          {/* 浮岛 B：身体照顾与可视化饮水打卡 */}
+          <article className="wall-island wall-island-body" aria-label="身体照顾与饮水">
+            <div className="wall-island-head">
+              <div className="wall-island-title">
+                <Droplets size={14} strokeWidth={1.7} className="text-[var(--wall-green)]" />
+                <span>身体照顾</span>
+              </div>
+              <div className="wall-island-actions">
+                <span
+                  data-testid="wall-life-source-tag"
+                  className={cn(
+                    'wall-island-badge',
+                    vm.lifeBlock.sourceLabel === '个人打卡' && 'is-active'
+                  )}
+                >
+                  {vm.lifeBlock.sourceLabel}
+                </span>
+                <Tooltip content="顺手记一杯水，实时同步主页与周报" side="top">
                   <button
                     type="button"
                     data-testid="wall-water-plus-btn"
@@ -934,101 +947,89 @@ export function StatusWallView({
                   </button>
                 </Tooltip>
               </div>
-              <strong className="wall-micro-val" data-testid="wall-water-val">
-                {vm.lifeBlock.water}
-              </strong>
             </div>
-            <div className="wall-micro-tile">
-              <span className="wall-micro-label">睡眠照顾</span>
-              <strong className="wall-micro-val">{vm.lifeBlock.sleep}</strong>
-            </div>
-            <div className="wall-micro-tile">
-              <span className="wall-micro-label">本周运动</span>
-              <strong className="wall-micro-val">{vm.lifeBlock.running}</strong>
-            </div>
-            <div className="wall-micro-tile is-accent-tile">
-              <span className="wall-micro-label">日常小挑战</span>
-              <strong className="wall-micro-val">{vm.lifeBlock.experimentLine}</strong>
-            </div>
-          </div>
-        </section>
 
-        {/* [6] 书桌状态与同步 */}
-        <section className="wall-panel wall-panel-status" aria-label="书桌状态与同步">
-          <div className="wall-panel-head">
-            <h2 className="wall-panel-title">书桌状态</h2>
-            <span className="wall-tag">
-              {autoRotateSeconds > 0
-                ? `每 ${autoRotateSeconds}s 轮播`
-                : `本机常亮`}
-            </span>
-          </div>
-          <div className="wall-status-two-col">
-            <div className="wall-micro-tile">
-              <span className="wall-micro-label">云端续期</span>
-              <strong className="wall-micro-val" style={{ fontSize: '14px' }}>
-                {vm.statusBlock.serverExpiry}
-              </strong>
+            {/* 可视化 8 格水位条 */}
+            <div className="wall-hydration-block">
+              <div className="wall-hydration-row">
+                <span className="wall-micro-eyebrow">今日饮水</span>
+                <strong className="wall-hydration-num font-mono-num" data-testid="wall-water-val">
+                  {vm.lifeBlock.water}
+                </strong>
+              </div>
+              <div className="wall-water-capsules" aria-hidden="true">
+                {Array.from({ length: waterGoal }).map((_, idx) => (
+                  <span
+                    key={idx}
+                    className={cn('wall-water-capsule', idx < waterFilled && 'is-filled')}
+                  />
+                ))}
+              </div>
             </div>
-            <div className="wall-micro-tile">
-              <span className="wall-micro-label">数据同步</span>
-              <strong className="wall-micro-val" style={{ fontSize: '14px' }}>
-                {vm.statusBlock.cloudSync}
-              </strong>
+
+            {/* 睡眠 & 运动无框双列排版（零内部黑盒） */}
+            <div className="wall-body-metrics-pair">
+              <div className="wall-body-metric">
+                <span className="wall-micro-eyebrow">睡眠照顾</span>
+                <div className="wall-body-metric-val font-mono-num">{vm.lifeBlock.sleepMetric}</div>
+                <span className="wall-body-metric-sub">{vm.lifeBlock.sleepCaption}</span>
+              </div>
+              <div className="wall-body-metric-divider" aria-hidden="true" />
+              <div className="wall-body-metric">
+                <span className="wall-micro-eyebrow">本周运动</span>
+                <div className="wall-body-metric-val font-mono-num">
+                  {vm.lifeBlock.runningMetric}
+                </div>
+                <span className="wall-body-metric-sub">{vm.lifeBlock.runningCaption}</span>
+              </div>
             </div>
-          </div>
+          </article>
+
+          {/* 浮岛 C：星盘微览与 7 域丝线进度 */}
+          <article className="wall-island wall-island-growth" aria-label="成长与技能微览">
+            <div className="wall-island-head">
+              <div className="wall-island-title">
+                <span className="wall-dot" />
+                <span>成长微星盘</span>
+              </div>
+              <span className="wall-island-stat font-mono-num">
+                {vm.learning.activeDaysTotal} 天足迹 · 连 {vm.learning.consecutiveDays} 天
+              </span>
+            </div>
+
+            <div className="wall-growth-split">
+              <div className="wall-atlas-floating">
+                <SkillAtlasSvg
+                  content={content}
+                  telemetry={telemetry}
+                  variant="wall"
+                  demoFallback={vm.dataMode === 'DEMO'}
+                />
+              </div>
+
+              <div className="wall-spark-list">
+                {vm.learning.branchProgress.map((bp) => (
+                  <div className="wall-spark-row" key={bp.id}>
+                    <span className="wall-spark-name">
+                      {WALL_BRANCH_SHORT[bp.id] ?? bp.name.slice(0, 3)}
+                    </span>
+                    <div className="wall-spark-track">
+                      <div
+                        className="wall-spark-fill"
+                        style={{
+                          width: `${Math.max(4, bp.percent)}%`,
+                          backgroundColor: bp.accentToken,
+                        }}
+                      />
+                    </div>
+                    <span className="wall-spark-pct font-mono-num">{bp.percent}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </article>
         </section>
       </div>
-
-      {/* 底部极简 36px 细系统状态栏 */}
-      <footer
-        className="wall-slim-footer"
-        aria-label="状态墙控制栏"
-        style={{
-          opacity: pureView ? 0 : 1,
-          pointerEvents: pureView ? 'none' : 'auto',
-          transition: 'opacity 280ms ease',
-        }}
-      >
-        <div className="wall-slim-footer-left">
-          <span className={`wall-tag ${vm.dataMode === 'LIVE' ? 'wall-tag-live' : 'wall-tag-demo'}`}>
-            {vm.dataMode === 'LIVE' ? 'LIVE 真实留痕驱动' : 'DEMO 示例数据演示'}
-          </span>
-          <span className="wall-kpi-sub">现代必备生存指南 · 常亮状态墙</span>
-        </div>
-        <div className="wall-slim-footer-right">
-          <Tooltip content="编辑个人倒计时、生活打卡、轮播与玻璃通透度" side="top">
-            <button
-              type="button"
-              className="wall-btn"
-              data-testid="wall-config-drawer-trigger"
-              onClick={() => setConfigOpen(true)}
-            >
-              <SlidersHorizontal size={13} strokeWidth={1.6} />
-              <span>配置</span>
-            </button>
-          </Tooltip>
-          {onTogglePureView && (
-            <Tooltip content="收起全部面板欣赏 Wave 星空海面" side="top">
-              <button type="button" className="wall-btn" onClick={onTogglePureView}>
-                <Eye size={13} strokeWidth={1.6} />
-                <span>纯净观景</span>
-              </button>
-            </Tooltip>
-          )}
-          <button
-            type="button"
-            className="wall-btn"
-            onClick={() => setForcePreviewDemo((v) => !v)}
-          >
-            {forcePreviewDemo ? '恢复实况判定' : '预览 DEMO 态'}
-          </button>
-          <a href="#/" className="wall-btn no-underline">
-            <ArrowLeft size={13} strokeWidth={1.6} />
-            <span>返回站内</span>
-          </a>
-        </div>
-      </footer>
     </div>
   );
 }

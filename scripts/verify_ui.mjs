@@ -546,21 +546,31 @@ async function main() {
     await cdp.screenshot('07-wall-main-1920.png', false);
 
     const wallMainAudit = await cdp.evalJs(`(() => {
-      const panels = [...document.querySelectorAll('.wall-panel')];
-      const footer = document.querySelector('.wall-slim-footer');
-      const fRect = footer?.getBoundingClientRect();
+      const islands = [...document.querySelectorAll('.wall-island')];
+      const clockEl = document.querySelector('.wall-clock');
+      const clockSize = clockEl ? parseFloat(getComputedStyle(clockEl).fontSize) : 0;
+      const quoteEl = document.querySelector('.wall-serif-quote');
+      const dockEl = document.querySelector('.wall-dock-islands');
+      const dockRect = dockEl?.getBoundingClientRect();
+      const text = document.body.innerText || '';
+      const uglyLeaks = ['示例占位', 'IndexedDB', '未配置端点', '个人云服务器'].filter((s) => text.includes(s));
       return {
         scrollH: document.documentElement.scrollHeight,
         scrollW: document.documentElement.scrollWidth,
-        panelCount: panels.length,
-        minPanelH: panels.length ? Math.min(...panels.map((p) => Math.round(p.getBoundingClientRect().height))) : 0,
-        footerBottom: fRect ? Math.round(fRect.bottom) : 9999,
+        islandCount: islands.length,
+        minIslandH: islands.length ? Math.min(...islands.map((p) => Math.round(p.getBoundingClientRect().height))) : 0,
+        clockSize: Math.round(clockSize),
+        hasQuote: Boolean(quoteEl && quoteEl.textContent?.trim().length > 4),
+        dockBottom: dockRect ? Math.round(dockRect.bottom) : 9999,
+        dockTop: dockRect ? Math.round(dockRect.top) : 0,
+        uglyLeaks,
       };
     })()`);
 
-    check(wallMainAudit.scrollH <= 1080 && wallMainAudit.scrollW <= 1920, 'L4', `1080P 状态墙主视图严格一屏零滚动 (${wallMainAudit.scrollW}×${wallMainAudit.scrollH})`);
-    check(wallMainAudit.panelCount === 6 && wallMainAudit.minPanelH >= 180, 'L4', `状态墙六宫格全部铺展无塌陷 (minH=${wallMainAudit.minPanelH}px)`);
-    check(wallMainAudit.footerBottom <= 1080, 'L4', `状态墙 36px 细底栏完整落入 1080px 视口 (bottom=${wallMainAudit.footerBottom}px)`);
+    check(wallMainAudit.scrollH <= 1080 && wallMainAudit.scrollW <= 1920, 'L4', `1080P 画报状态墙主视图严格一屏零滚动 (${wallMainAudit.scrollW}×${wallMainAudit.scrollH})`);
+    check(wallMainAudit.clockSize >= 100 && wallMainAudit.hasQuote, 'L4', `电影级超细艺术大时钟(${wallMainAudit.clockSize}px) + 衬线金句无框悬浮正常`);
+    check(wallMainAudit.islandCount === 3 && wallMainAudit.minIslandH >= 180 && wallMainAudit.dockTop >= 760 && wallMainAudit.dockBottom <= 1080, 'L4', `底部三座极透液态玻璃浮岛布局完整且中央留白呼吸充足 (top=${wallMainAudit.dockTop}px, bottom=${wallMainAudit.dockBottom}px)`);
+    check(wallMainAudit.uglyLeaks.length === 0, 'L3', `状态墙已彻底清理「示例占位 / IndexedDB / 未配置端点」调试废话 (${wallMainAudit.uglyLeaks.join(',')})`);
 
     // Gen-2 R1 验证：1080P 状态墙一键 +1 喝水打卡（去示例占位 -> 个人打卡 & 自动 LIVE）+ 配置 Drawer
     await cdp.evalJs(`document.querySelector('[data-testid="wall-water-plus-btn"]')?.click()`);

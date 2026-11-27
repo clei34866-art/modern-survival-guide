@@ -65,20 +65,24 @@ export interface WallViewModel {
   };
   lifeBlock: {
     running: string;
+    runningMetric: string;
+    runningCaption: string;
     sleep: string;
+    sleepMetric: string;
+    sleepCaption: string;
     water: string;
     waterCupsToday: number;
     waterGoalToday: number;
     todayMood?: 'relaxed' | 'focused' | 'tired';
     experimentLine: string;
-    sourceLabel: '同步源' | '个人打卡' | '示例占位';
+    sourceLabel: '同步源' | '个人打卡' | '今日节律';
     isExternalSynced: boolean;
   };
   contentBlock: {
     quote: string;
     quoteSource: string;
     movie: string;
-    sourceLabel: '同步源' | '个人配置' | '示例占位';
+    sourceLabel: '同步源' | '个人配置' | '日常摘录';
     isExternalSynced: boolean;
   };
   statusBlock: {
@@ -194,20 +198,36 @@ export function computeWallViewModel(
       (runLogs.length > 0
         ? `本周 ${runLogs.length} 次 · 累计 ${totalRunKm} km`
         : todayLife
-          ? '本周还没出门跑，晚风舒服时走两圈也不错'
+          ? '还没出门跑，晚风舒服时走两圈'
           : cfg.reservedBlocksSample.life.running),
+    runningMetric:
+      runLogs.length > 0 ? `${totalRunKm} km` : todayLife ? '待出发' : '10.4 km',
+    runningCaption:
+      runLogs.length > 0
+        ? `本周 ${runLogs.length} 次记录`
+        : todayLife
+          ? '晚风舒服时散步也算'
+          : '本周轻运动参考',
     sleep:
       externalSync?.life?.sleep ??
       (avgSleep !== null
         ? `近 7 日均睡 ${avgSleep} h${todayLife?.sleepHours ? `（昨夜 ${todayLife.sleepHours}h）` : ''}`
         : todayLife
-          ? '昨夜睡得怎么样？点配置顺手记一下'
+          ? '昨夜睡得如何？点配置顺手记'
           : cfg.reservedBlocksSample.life.sleep),
+    sleepMetric:
+      avgSleep !== null ? `${avgSleep} h` : todayLife ? '未记录' : '7h 20m',
+    sleepCaption:
+      avgSleep !== null
+        ? todayLife?.sleepHours
+          ? `昨夜 ${todayLife.sleepHours}h · 7 日均值`
+          : '近 7 日平均时长'
+        : todayLife
+          ? '右上角配置可随手记'
+          : '建议 7–8 小时',
     water:
       externalSync?.life?.water ??
-      (todayLife
-        ? `今日 ${waterCupsToday} / ${waterGoalToday} 杯${waterCupsToday >= waterGoalToday ? ' · 已达标' : ''}`
-        : cfg.reservedBlocksSample.life.water),
+      `今日 ${waterCupsToday} / ${waterGoalToday} 杯${waterCupsToday >= waterGoalToday ? ' · 已达标' : ''}`,
     waterCupsToday,
     waterGoalToday,
     todayMood: todayLife?.mood,
@@ -216,7 +236,7 @@ export function computeWallViewModel(
       ? ('同步源' as const)
       : hasPersonalLife
         ? ('个人打卡' as const)
-        : ('示例占位' as const),
+        : ('今日节律' as const),
     isExternalSynced: Boolean(externalSync?.life) || hasPersonalLife,
   };
 
@@ -235,7 +255,7 @@ export function computeWallViewModel(
       ? ('同步源' as const)
       : hasPersonalContent
         ? ('个人配置' as const)
-        : ('示例占位' as const),
+        : ('日常摘录' as const),
     isExternalSynced: Boolean(externalSync?.content) || hasPersonalContent,
   };
 

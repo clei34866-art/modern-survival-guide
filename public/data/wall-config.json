@@ -1,10 +1,10 @@
 {
   "version": "1.0.0",
-  "note": "1080P 个人状态墙配置（六宫格默认主视图 + B1 二级切换视图；externalSyncUrl 可填入现有服务器 content/sync 只读 JSON 地址）",
+  "note": "1080P 个人状态墙配置（留白画报悬浮玻璃主视图 + B1 二级切换视图；externalSyncUrl 可选填入只读同步 JSON 地址）",
   "externalSyncUrl": "",
   "refreshIntervalSeconds": 60,
   "todayPlaceholder": {
-    "weather": "晴转多云 · 18°C（示例占位）",
+    "weather": "晴转多云 · 18°C",
     "todos": [
       "晚饭后：推进 AI L1 提示边界核查模板",
       "实验前：整理本周组会汇报 3 张核心图",
@@ -18,18 +18,18 @@
   ],
   "reservedBlocksSample": {
     "life": {
-      "running": "本周 2 / 3 次 · 累计 10.4 km（示例占位）",
-      "sleep": "近 7 日均长 7h 20m（示例占位）",
-      "water": "今日 5 / 8 杯（示例占位）"
+      "running": "10.4 km · 本周 2 次",
+      "sleep": "7h 20m · 近 7 日均长",
+      "water": "今日 0 / 8 杯"
     },
     "content": {
       "quote": "把每天当成一生的缩影来认真度过，做完该做的就安心去休息。",
-      "quoteSource": "日常摘录（示例占位）",
-      "movie": "《白日梦想家》· 周末待看（示例占位）"
+      "quoteSource": "日常摘录",
+      "movie": "《白日梦想家》· 周末待看"
     },
     "serviceStatus": {
-      "serverExpiry": "个人云服务器 · 剩余 142 天（示例占位）",
-      "cloudSync": "content/sync 未配置端点 · 当前使用本地 IndexedDB 实况"
+      "serverExpiry": "本机常亮模式",
+      "cloudSync": "数据静默保存于本机"
     }
   }
 }

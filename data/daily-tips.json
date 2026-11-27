@@ -1,0 +1,125 @@
+{
+  "version": "3.0.0",
+  "tips": [
+    {
+      "id": "tip-b1-git-reflog",
+      "branchId": "B1",
+      "title": "手滑 reset 丢了刚写半天的代码？先别关终端",
+      "tipBody": "只要之前 commit 过，执行 `git reflog` 就能看到本地每一次 HEAD 移动记录，找到误操作前的哈希值再 `git checkout` 或 `git reset` 即可找回。",
+      "actionHint": "记住口诀：commit 过就有后悔药，未 commit 慎敲 --hard。",
+      "readSeconds": 25,
+      "isPlaceholder": false,
+      "sourceOrg": "Pro Git 第二版（开源中文版）",
+      "sourceUrl": "https://git-scm.com/book/zh/v2",
+      "fetchedAt": "2026-11-24"
+    },
+    {
+      "id": "tip-b1-blender-tooltip",
+      "branchId": "B1",
+      "title": "Blender 忘掉 API 名字不用搜半天：打开悬停透视",
+      "tipBody": "在 Edit → Preferences → Interface 勾选 Python Tooltips 后，鼠标移到任何界面参数上都会直接显示对应的 `bpy` 数据路径，右键还能一键跳转官方文档。",
+      "actionHint": "写 bpy 脚本前先把这个开关设成永久默认开启。",
+      "readSeconds": 20,
+      "isPlaceholder": false,
+      "sourceOrg": "Blender Python API Official Quickstart",
+      "sourceUrl": "https://docs.blender.org/api/current/info_quickstart.html",
+      "fetchedAt": "2026-11-24"
+    },
+    {
+      "id": "tip-b2-cooling-off",
+      "branchId": "B2",
+      "title": "签长期保单后发现买错了？别忘 10～15 天犹豫期权利",
+      "tipBody": "长期人身险签收后通常设有 10～15 天合同犹豫期，在此期间发现不符合自身保障需求，可通过保险公司官方渠道申请无条件退保，仅扣工本费无息退还全部保费。",
+      "actionHint": "保单一下来第一件事不是锁进抽屉，而是先翻责任免除和犹豫期天数。",
+      "readSeconds": 25,
+      "isPlaceholder": false,
+      "sourceOrg": "国家金融监督管理总局 · 金融消保科普口径",
+      "sourceUrl": "https://www.nfra.gov.cn/",
+      "fetchedAt": "2026-11-25"
+    },
+    {
+      "id": "tip-b3-de-anchor",
+      "branchId": "B3",
+      "title": "被促销「划线原价」心动前：先遮住原价问真实使用频次",
+      "tipBody": "划线高价是商家利用「锚定偏误」给你设的心理参照点。捂住原价只看实付金额，再问自己未来 30 天会用它超过 3 次吗？不会就直接关页面。",
+      "actionHint": "省钱最快的方式不是凑满减，而是脱离对方的价格锚点。",
+      "readSeconds": 25,
+      "isPlaceholder": false,
+      "sourceOrg": "OpenStax Psychology 2e · 7.3 Decision Biases",
+      "sourceUrl": "https://openstax.org/books/psychology-2e/pages/7-3-problem-solving",
+      "fetchedAt": "2026-11-25"
+    },
+    {
+      "id": "tip-b4-sleep-bluelight",
+      "branchId": "B4",
+      "title": "实验再忙也守住入睡关：睡前 30 分钟把屏幕挪离枕边",
+      "tipBody": "手机与电脑屏幕的蓝光及高频信息刺激会延后入睡潜伏期；固定起床钟点、睡前把手机放到伸手够不着的书桌充电，是最零成本的精力恢复术。",
+      "actionHint": "今晚设好闹钟后直接把手机反扣在书桌上。",
+      "readSeconds": 20,
+      "isPlaceholder": false,
+      "sourceOrg": "NIMH · Caring for Your Mental Health",
+      "sourceUrl": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+      "fetchedAt": "2026-11-25"
+    },
+    {
+      "id": "tip-b4-sit-break",
+      "branchId": "B4",
+      "title": "写代码/写论文连坐超过 1 小时？用接水强制打断久坐",
+      "tipBody": "WHO 指南指出长时间连续久坐带来独立健康风险；把大水杯换成 300ml 小杯，每 50 分钟起身接水顺手伸个懒腰 2 分钟，护腰护颈零负担。",
+      "actionHint": "现在就站起来转 5 下肩膀、远眺窗外 20 秒。",
+      "readSeconds": 20,
+      "isPlaceholder": false,
+      "sourceOrg": "世界卫生组织 (WHO) · 身体活动和久坐行为指南",
+      "sourceUrl": "https://www.who.int/zh/publications/i/item/9789240015128",
+      "fetchedAt": "2026-11-25"
+    },
+    {
+      "id": "tip-b5-no-hello",
+      "branchId": "B5",
+      "title": "给导师或同事发消息，别只发「老师在吗？」",
+      "tipBody": "把「在吗」换成「事由 + 一句话结论 + 明确请求」，对方打开手机就能直接给你答复，省掉两三轮来回等待，专业感瞬间拉满。",
+      "actionHint": "下一次发工作消息前，把第一句「在吗」删掉直接说事。",
+      "readSeconds": 20,
+      "isPlaceholder": false,
+      "sourceOrg": "Purdue Online Writing Lab (OWL)",
+      "sourceUrl": "https://owl.purdue.edu/",
+      "fetchedAt": "2026-11-25"
+    },
+    {
+      "id": "tip-b6-close-book-30s",
+      "branchId": "B6",
+      "title": "刚看完一节专业课或长文？别急着关页面，闭眼复述 30 秒",
+      "tipBody": "刚读完时把屏幕扣上 30 秒、强迫自己默念出「刚才讲了哪两个核心机制」，这短短一次主动提取比顺着再重读两遍留存率高出一大截。",
+      "actionHint": "今天合上任何一个学习页面前，默念一句核心要点再走。",
+      "readSeconds": 20,
+      "isPlaceholder": false,
+      "sourceOrg": "American Educator / AFT · Strengthening the Student Toolbox",
+      "sourceUrl": "https://www.aft.org/ae/fall2013/dunlosky",
+      "fetchedAt": "2026-11-25"
+    },
+    {
+      "id": "tip-b7-id-watermark",
+      "branchId": "B7",
+      "title": "给别人发身份证或学生证照片前，顺手打上斜向用途水印",
+      "tipBody": "办理租房、入职或实习手续需提交证件电子照时，在图像正中加上半透明斜向水印「仅供 XXX 办理 YYY 使用，他用无效」，防证件照被二次冒用。",
+      "actionHint": "系统自带相册涂鸦文字工具 10 秒就能加上用途水印。",
+      "readSeconds": 20,
+      "isPlaceholder": false,
+      "sourceOrg": "全国人大常委会 · 国家法律法规数据库（个人信息保护常识）",
+      "sourceUrl": "https://flk.npc.gov.cn/",
+      "fetchedAt": "2026-11-25"
+    },
+    {
+      "id": "tip-b7-anti-screenshare",
+      "branchId": "B7",
+      "title": "自称客服要求「开屏幕共享」关闭扣费？100% 是诈骗",
+      "tipBody": "微信/支付宝百万保障本身免费且不会自动扣费；任何陌生来电引导下载会议软件开启屏幕共享或报短信验证码的，直接挂断绝不犹豫。",
+      "actionHint": "存一条铁律：谁让你开屏幕共享操作银行 App，立刻拉黑。",
+      "readSeconds": 20,
+      "isPlaceholder": false,
+      "sourceOrg": "全国人大常委会 · 《中华人民共和国反电信网络诈骗法》",
+      "sourceUrl": "https://flk.npc.gov.cn/",
+      "fetchedAt": "2026-11-25"
+    }
+  ]
+}

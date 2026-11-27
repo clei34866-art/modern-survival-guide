@@ -1,0 +1,104 @@
+{
+  "version": "3.0.0",
+  "packs": [
+    {
+      "id": "event-presentation",
+      "title": "要做课程汇报 / 组会展示",
+      "triggerScenario": "未来 3～7 天内要上台做文献组会汇报、大创答辩或课堂展示，需要快速理清逻辑、做好图页并稳住心态。",
+      "linkedToolboxId": "tool-slides-precheck",
+      "modules": [
+        {
+          "branchId": "B5",
+          "roleTitle": "表达结构：结论先行与三段式故事线",
+          "actionGuide": "先用一句话写清「听众听完这 10 分钟最该带走的一个结论」，每页标题直接写判断句而非名词短语。",
+          "unitId": "unit-b5-writing"
+        },
+        {
+          "branchId": "B1",
+          "roleTitle": "AI 与软件：资料提炼、引文核查与图表精简",
+          "actionGuide": "用锚定原文模式让 AI 协助压缩长段落，所有数据与文献 DOI 必须逐条回源核实，杜绝幽灵引用上屏。",
+          "unitId": "unit-b1-l1-verify"
+        },
+        {
+          "branchId": "B3",
+          "roleTitle": "心理抗压：上台前躯体降温与去灾难化",
+          "actionGuide": "把心跳加速重新标记为「身体正在供氧备战」而非「我要搞砸了」，上台前做 3 组生理叹息（两短吸一长呼）。",
+          "unitId": "unit-b3-emotion"
+        }
+      ],
+      "combinedActionChecklist": [
+        "写出汇报的一句话核心结论（不看屏幕也能脱口而出）",
+        "核对全部数据图表坐标轴单位与文献真实出处",
+        "计时开口完整顺讲 1 遍开场前 90 秒"
+      ]
+    },
+    {
+      "id": "event-short-trip",
+      "title": "周末 / 小长假短途出行准备",
+      "triggerScenario": "计划一次 2～4 天周边或异地短途旅行，不想攻略做到崩溃、不想花超预算、更不想回来累垮耽误下周实验。",
+      "linkedToolboxId": "tool-trip-packing",
+      "modules": [
+        {
+          "branchId": "B2",
+          "roleTitle": "财经预算：出行总额封顶与弹性机动金",
+          "actionGuide": "出发前先定死「大交通+住宿+餐饮门票」总封顶线，并单独留出 15% 应急机动金，回来不背消费贷账单。",
+          "unitId": "unit-b2-budget"
+        },
+        {
+          "branchId": "B4",
+          "roleTitle": "健康体能：日均步数上限与返程缓冲日",
+          "actionGuide": "单日暴走控制在平时跑量/步数的 1.5 倍以内；返程尽量留出半天休整洗衣补觉，避免周一直接低电量。",
+          "unitId": "unit-b4-running"
+        },
+        {
+          "branchId": "B1",
+          "roleTitle": "工具效率：一页式离线行程卡整理",
+          "actionGuide": "把车次、酒店地址、预约码汇总进单页离线 Markdown 笔记，避免在车站检票口翻十个 App 找截图。",
+          "unitId": "unit-b1-sw-notes-graph"
+        },
+        {
+          "branchId": "B7",
+          "roleTitle": "安全自保：住宿消防观察与证件备份",
+          "actionGuide": "入住先看门后疏散通道图与防盗链；身份证拍照加水印留存离线副本。",
+          "unitId": "unit-b7-digital-firstaid"
+        }
+      ],
+      "combinedActionChecklist": [
+        "划定本次出行总预算上限并完成大交通与住宿锁单",
+        "生成单页离线行程备忘（含预约时间窗与紧急联系电话）",
+        "按精简打包清单在 15 分钟内收好随身包"
+      ]
+    },
+    {
+      "id": "event-first-rent",
+      "title": "首次独立租房与实习入职准备",
+      "triggerScenario": "即将离校实习、异地联培或毕业首次独立租房，要在两周内搞定安全签约、押一付三现金流与入职表达。",
+      "linkedToolboxId": "tool-rental-inspect",
+      "modules": [
+        {
+          "branchId": "B7",
+          "roleTitle": "法律防坑：查产权授权、表底留痕与避开租房贷",
+          "actionGuide": "实地核验产权证与转租授权，所有水电单价和维修责任写进合同，入住当天录表底和设施视频。",
+          "unitId": "unit-b7-contract"
+        },
+        {
+          "branchId": "B2",
+          "roleTitle": "现金流测算：押一付三底数与三桶分流",
+          "actionGuide": "提前算清首月押金+中介+搬家一次性支出，确保不动用 3 个月应急底线，领到第一笔补贴即刻分桶。",
+          "unitId": "unit-b2-budget"
+        },
+        {
+          "branchId": "B5",
+          "roleTitle": "职业开局：STAR 作品集梳理与结论先行周报",
+          "actionGuide": "用 STAR 整理好个人核心项目证明，入职首周跟导师/Leader 同步进展坚持结论先行。",
+          "unitId": "unit-b5-resume"
+        }
+      ],
+      "combinedActionChecklist": [
+        "实地看房逐项完成《租房看房避坑清单》4 条核验",
+        "留存带水印证件提交记录、纸质合同原件与表底视频",
+        "设定首月生活费/实习补贴三桶分流比例与应急底线"
+      ]
+    }
+  ]
+}

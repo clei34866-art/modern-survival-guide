@@ -1,0 +1,35 @@
+{
+  "version": "1.0.0",
+  "note": "1080P 个人状态墙配置（留白画报悬浮玻璃主视图 + B1 二级切换视图；externalSyncUrl 可选填入只读同步 JSON 地址）",
+  "externalSyncUrl": "",
+  "refreshIntervalSeconds": 60,
+  "todayPlaceholder": {
+    "weather": "晴转多云 · 18°C",
+    "todos": [
+      "晚饭后：推进 AI L1 提示边界核查模板",
+      "实验前：整理本周组会汇报 3 张核心图",
+      "晚间：操场慢跑 5km 打卡"
+    ]
+  },
+  "countdowns": [
+    { "id": "cd-cet6", "label": "大学英语六级", "targetDate": "2026-12-12", "isSample": true },
+    { "id": "cd-final", "label": "本学期期末周", "targetDate": "2027-01-11", "isSample": true },
+    { "id": "cd-postgrad", "label": "考研初试节点", "targetDate": "2027-12-19", "isSample": true }
+  ],
+  "reservedBlocksSample": {
+    "life": {
+      "running": "10.4 km · 本周 2 次",
+      "sleep": "7h 20m · 近 7 日均长",
+      "water": "今日 0 / 8 杯"
+    },
+    "content": {
+      "quote": "把每天当成一生的缩影来认真度过，做完该做的就安心去休息。",
+      "quoteSource": "日常摘录",
+      "movie": "《白日梦想家》· 周末待看"
+    },
+    "serviceStatus": {
+      "serverExpiry": "本机常亮模式",
+      "cloudSync": "数据静默保存于本机"
+    }
+  }
+}

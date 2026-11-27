@@ -160,6 +160,7 @@ export function App() {
   useEffect(() => {
     const root = document.documentElement;
     root.dataset.theme = theme;
+    root.dataset.clarity = telemetry?.wallPersonal?.glassClarity ?? 'clear';
     root.classList.toggle('dark', theme === 'dark');
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) {
@@ -170,7 +171,7 @@ export function App() {
     } catch {
       // ignore storage errors
     }
-  }, [theme]);
+  }, [theme, telemetry?.wallPersonal?.glassClarity]);
 
   useEffect(() => {
     const onHashChange = () => {
@@ -420,12 +421,19 @@ export function App() {
     return (
       <div className="relative min-h-screen">
         <WaveBackdrop mode="wall" pureView={pureView} />
+        <Toaster
+          theme="dark"
+          position="bottom-right"
+          duration={2600}
+          toastOptions={{ className: 'glass-popover !text-[var(--ink-1)]' }}
+        />
         <StatusWallView
           content={content}
           telemetry={telemetry}
           initialSubView={route.wallSub ?? 'main'}
           pureView={pureView}
           onTogglePureView={() => setPureView((v) => !v)}
+          onTelemetryChange={setTelemetry}
         />
       </div>
     );
@@ -716,6 +724,7 @@ export function App() {
               onToggleTipAck={handleToggleTipAck}
               onToggleTask={handleToggleTask}
               onPreviewUnit={handlePreviewUnit}
+              onTelemetryChange={setTelemetry}
             />
           )}
 

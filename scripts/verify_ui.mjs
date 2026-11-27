@@ -375,6 +375,21 @@ async function main() {
     const drawerClosedAudit = await cdp.evalJs(`!document.querySelector('[data-overlay-type="drawer"]')`);
     check(drawerOpenAudit && drawerClosedAudit, 'L5', `首页「抽屉速览」右侧 Drawer 滑出与 Esc 关闭正常`);
 
+    // Gen-2 R1 验证：首页「换一题」+「节律偏好」Drawer
+    const swapBefore = await cdp.evalJs(`document.querySelector('[data-testid="today-focal-title"]')?.textContent?.trim() || ''`);
+    await cdp.evalJs(`document.querySelector('[data-testid="today-swap-task-btn"]')?.click()`);
+    await new Promise((r) => setTimeout(r, 200));
+    const swapAfter = await cdp.evalJs(`document.querySelector('[data-testid="today-focal-title"]')?.textContent?.trim() || ''`);
+    check(Boolean(swapBefore && swapAfter && swapBefore !== swapAfter), 'L5', `Gen-2 R1 首页「换一题」即时轮换今日主线单元 (${swapBefore.slice(0, 10)} -> ${swapAfter.slice(0, 10)})`);
+
+    await cdp.evalJs(`document.querySelector('[data-testid="today-rhythm-drawer-trigger"]')?.click()`);
+    await new Promise((r) => setTimeout(r, 220));
+    const rhythmDrawerOpen = await cdp.evalJs(`Boolean(document.querySelector('[data-overlay-type="drawer"]'))`);
+    await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await new Promise((r) => setTimeout(r, 180));
+    check(rhythmDrawerOpen, 'L5', `Gen-2 R1 首页「节律偏好」Drawer 正常滑出（作息/分支/打卡/通透度）`);
+
     // 验证实验室：任务移除走 Popconfirm 气泡确认，重置全部留痕走 Modal 模态确认
     await cdp.goto(`${baseUrl}/#/lab`);
     await cdp.evalJs(`(() => {
@@ -496,6 +511,28 @@ async function main() {
     check(wallMainAudit.scrollH <= 1080 && wallMainAudit.scrollW <= 1920, 'L4', `1080P 状态墙主视图严格一屏零滚动 (${wallMainAudit.scrollW}×${wallMainAudit.scrollH})`);
     check(wallMainAudit.panelCount === 6 && wallMainAudit.minPanelH >= 180, 'L4', `状态墙六宫格全部铺展无塌陷 (minH=${wallMainAudit.minPanelH}px)`);
     check(wallMainAudit.footerBottom <= 1080, 'L4', `状态墙 36px 细底栏完整落入 1080px 视口 (bottom=${wallMainAudit.footerBottom}px)`);
+
+    // Gen-2 R1 验证：1080P 状态墙一键 +1 喝水打卡（去示例占位 -> 个人打卡 & 自动 LIVE）+ 配置 Drawer
+    await cdp.evalJs(`document.querySelector('[data-testid="wall-water-plus-btn"]')?.click()`);
+    await new Promise((r) => setTimeout(r, 240));
+    const wallWaterAudit = await cdp.evalJs(`({
+      sourceTag: document.querySelector('[data-testid="wall-life-source-tag"]')?.textContent?.trim() || '',
+      waterVal: document.querySelector('[data-testid="wall-water-val"]')?.textContent?.trim() || '',
+      scrollH: document.documentElement.scrollHeight,
+    })`);
+    check(
+      wallWaterAudit.sourceTag === '个人打卡' && wallWaterAudit.waterVal.includes('1 / 8') && wallWaterAudit.scrollH <= 1080,
+      'L5',
+      `Gen-2 R1 状态墙一键 +1 喝水打卡即时转实为「个人打卡」且保持零滚屏 (${wallWaterAudit.waterVal})`
+    );
+    await cdp.evalJs(`document.querySelector('[data-testid="wall-config-drawer-trigger"]')?.click()`);
+    await new Promise((r) => setTimeout(r, 220));
+    const wallCfgOpen = await cdp.evalJs(`Boolean(document.querySelector('[data-overlay-type="drawer"]'))`);
+    await cdp.screenshot('07b-wall-config-drawer-1920.png', false);
+    await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await new Promise((r) => setTimeout(r, 160));
+    check(wallCfgOpen, 'L5', `Gen-2 R1 状态墙右侧「配置 Drawer」正常滑出（真实倒计时/打卡/轮播/通透度）`);
 
     await cdp.goto(`${baseUrl}/#/wall?sub=b1`);
     await cdp.screenshot('08-wall-b1-1920.png', false);

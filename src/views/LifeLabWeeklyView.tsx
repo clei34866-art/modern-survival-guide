@@ -142,6 +142,31 @@ export function LifeLabWeeklyView({
           </div>
         </div>
 
+        {weekly.lifeHabitsSummary && (
+          <div className="glass-plate grid grid-cols-3 gap-3 p-4">
+            <div>
+              <div className="text-[12px] text-[var(--ink-3)]">近 7 日跑步累计</div>
+              <strong className="font-mono-num mt-0.5 block text-[17px] font-semibold text-[var(--ink-1)]">
+                {weekly.lifeHabitsSummary.totalRunKm} km
+              </strong>
+            </div>
+            <div>
+              <div className="text-[12px] text-[var(--ink-3)]">近 7 日平均睡眠</div>
+              <strong className="font-mono-num mt-0.5 block text-[17px] font-semibold text-[var(--ink-1)]">
+                {weekly.lifeHabitsSummary.avgSleepHours !== null
+                  ? `${weekly.lifeHabitsSummary.avgSleepHours} h`
+                  : '未记录'}
+              </strong>
+            </div>
+            <div>
+              <div className="text-[12px] text-[var(--ink-3)]">饮水达标天数</div>
+              <strong className="font-mono-num mt-0.5 block text-[17px] font-semibold text-[var(--ink-1)]">
+                {weekly.lifeHabitsSummary.waterGoalDays} / {weekly.lifeHabitsSummary.loggedDays} 天
+              </strong>
+            </div>
+          </div>
+        )}
+
         {weekly.activeExperimentBrief && (
           <div className="rounded-[10px] border border-[var(--accent-border)] bg-[var(--accent-soft)] p-4">
             <div className="mb-1 text-[12px] font-semibold text-[var(--accent)]">

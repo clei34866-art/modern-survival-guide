@@ -140,6 +140,31 @@
   --veil-wall: linear-gradient(180deg, rgba(5, 14, 32, 0.18) 0%, rgba(6, 15, 34, 0.08) 52%, rgba(4, 12, 28, 0.24) 100%);
 }
 
+/* Gen-2 R1：三档玻璃通透度调节（清透 clear 默认 / 标准 regular / 深读 frosted） */
+[data-theme='dark'][data-clarity='regular'] {
+  --surface: rgba(11, 24, 52, 0.42);
+  --surface-study: rgba(9, 20, 44, 0.50);
+  --surface-glass: rgba(11, 24, 52, 0.42);
+}
+
+[data-theme='dark'][data-clarity='frosted'] {
+  --surface: rgba(10, 22, 48, 0.62);
+  --surface-study: rgba(8, 18, 40, 0.72);
+  --surface-glass: rgba(10, 22, 48, 0.64);
+}
+
+[data-theme='light'][data-clarity='regular'] {
+  --surface: rgba(246, 250, 255, 0.66);
+  --surface-study: rgba(248, 252, 255, 0.76);
+  --surface-glass: rgba(248, 252, 255, 0.68);
+}
+
+[data-theme='light'][data-clarity='frosted'] {
+  --surface: rgba(248, 252, 255, 0.84);
+  --surface-study: rgba(250, 253, 255, 0.90);
+  --surface-glass: rgba(248, 252, 255, 0.86);
+}
+
 :root {
   --font-sans: 'Inter', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei UI', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'Cascadia Code', ui-monospace, Consolas, monospace;

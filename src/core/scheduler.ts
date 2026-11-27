@@ -1,12 +1,14 @@
 import type { PlatformContentBundle } from './contentLoader';
-import { addDaysToDateKey, getLocalDateKey } from './db';
+import { addDaysToDateKey, DEFAULT_SCHEDULE_PREFS, getLocalDateKey } from './db';
 import type {
+  BranchId,
   DailyLifeTip,
   DailyPlanSnapshot,
   EnergyBand,
   LearningUnit,
   ScheduledTaskItem,
   TelemetrySnapshot,
+  UserSchedulePreferences,
 } from '../types/schema';
 
 export interface EnergySlotMeta {
@@ -37,12 +39,96 @@ export const ENERGY_SLOTS: EnergySlotMeta[] = [
   },
 ];
 
-/** 按本地小时推断当前所处生活精力时段 */
-export function detectCurrentEnergyBand(date = new Date()): EnergyBand {
+function fmtHour(h: number): string {
+  return `${String(h).padStart(2, '0')}:00`;
+}
+
+/** 按用户自定义作息返回三时段说明（无自定义时沿用默认 05:00 / 17:00 / 21:00） */
+export function getEnergySlotsWithPrefs(prefs?: UserSchedulePreferences): EnergySlotMeta[] {
+  const p = prefs ?? DEFAULT_SCHEDULE_PREFS;
+  return [
+    {
+      ...ENERGY_SLOTS[0],
+      timeHint: `${fmtHour(p.fragmentStartHour)}–${fmtHour(p.peakStartHour)}`,
+    },
+    {
+      ...ENERGY_SLOTS[1],
+      timeHint: `${fmtHour(p.peakStartHour)}–${fmtHour(p.lowStartHour)}`,
+    },
+    {
+      ...ENERGY_SLOTS[2],
+      timeHint: `${fmtHour(p.lowStartHour)}–次日`,
+    },
+  ];
+}
+
+/** 按本地小时及用户自定义作息推断当前所处生活精力时段 */
+export function detectCurrentEnergyBand(
+  date = new Date(),
+  prefs?: UserSchedulePreferences
+): EnergyBand {
+  const p = prefs ?? DEFAULT_SCHEDULE_PREFS;
   const hour = date.getHours();
-  if (hour >= 5 && hour < 17) return 'fragment';
-  if (hour >= 17 && hour < 21) return 'peak';
+  if (hour >= p.fragmentStartHour && hour < p.peakStartHour) return 'fragment';
+  if (hour >= p.peakStartHour && hour < p.lowStartHour) return 'peak';
   return 'low';
+}
+
+/** Gen-2 R1：首页「换一题」——在不重复当前单元的前提下按偏好分支轮换同槽位候选单元 */
+export function pickAlternativeUnitTask(
+  content: PlatformContentBundle,
+  telemetry: TelemetrySnapshot,
+  currentTask: ScheduledTaskItem,
+  dateKey = getLocalDateKey(),
+  preferredBranchId?: BranchId | 'ALL'
+): ScheduledTaskItem | null {
+  const branchPref = preferredBranchId ?? telemetry.schedulePrefs?.preferredBranchId ?? 'ALL';
+  const branchFiltered =
+    branchPref && branchPref !== 'ALL'
+      ? content.units.filter((u) => u.branchId === branchPref)
+      : content.units;
+  const basePool = branchFiltered.length > 0 ? branchFiltered : content.units;
+
+  const uncleared = basePool.filter(
+    (u) => !telemetry.unitSubmissions[u.id]?.isCleared && u.id !== currentTask.unitId
+  );
+  const fallback = basePool.filter((u) => u.id !== currentTask.unitId);
+  const candidates = uncleared.length > 0 ? uncleared : fallback;
+  if (candidates.length === 0) return null;
+
+  const currentIdx = basePool.findIndex((u) => u.id === currentTask.unitId);
+  const nextUnit =
+    candidates.find((u) => basePool.findIndex((x) => x.id === u.id) > currentIdx) ?? candidates[0];
+
+  if (currentTask.slot === 'fragment') {
+    return {
+      id: `task-frag-preview-${dateKey}-${nextUnit.id}`,
+      slot: 'fragment',
+      kind: 'scenario_preview',
+      branchId: nextUnit.branchId,
+      trackId: nextUnit.trackId,
+      unitId: nextUnit.id,
+      title: `轻导读：${nextUnit.scenarioHook.sceneTitle}`,
+      humanHint: `先看生活案例并猜一道反直觉预测题（来自 ${nextUnit.branchId} 分支）。`,
+      estimatedMinutes: Math.min(10, Math.max(5, Math.round(nextUnit.estimatedMinutes / 3))),
+      keepInLowBattery: true,
+      isPlaceholder: nextUnit.isPlaceholder,
+    };
+  }
+
+  return {
+    id: `task-peak-core-${dateKey}-${nextUnit.id}`,
+    slot: currentTask.slot,
+    kind: 'core_unit',
+    branchId: nextUnit.branchId,
+    trackId: nextUnit.trackId,
+    unitId: nextUnit.id,
+    title: nextUnit.title.replace(/^【示例占位】/, ''),
+    humanHint: `完成图文导学 + 自测，顺手推进「${nextUnit.actionTask.title}」。`,
+    estimatedMinutes: nextUnit.estimatedMinutes,
+    keepInLowBattery: currentTask.keepInLowBattery,
+    isPlaceholder: nextUnit.isPlaceholder,
+  };
 }
 
 export function getGreetingByHour(date = new Date()): string {
@@ -347,6 +433,12 @@ export interface WeeklyReviewSummary {
   practicedConceptCount: number;
   completedActions: string[];
   activeExperimentBrief?: string;
+  lifeHabitsSummary?: {
+    loggedDays: number;
+    totalRunKm: number;
+    avgSleepHours: number | null;
+    waterGoalDays: number;
+  };
   nextWeekSuggestion: string;
 }
 
@@ -425,6 +517,29 @@ export function computeWeeklyReviewSummary(
     }
   }
 
+  const weekLifeLogs = Object.values(telemetry.dailyLifeLogs ?? {}).filter(
+    (log) => log.dateKey >= windowStart && log.dateKey <= todayKey
+  );
+  const sleepLogs = weekLifeLogs.filter((l) => typeof l.sleepHours === 'number' && l.sleepHours > 0);
+  const totalRunKm =
+    Math.round(weekLifeLogs.reduce((acc, l) => acc + (l.runningKm ?? 0), 0) * 10) / 10;
+  const avgSleepHours =
+    sleepLogs.length > 0
+      ? Math.round(
+          (sleepLogs.reduce((acc, l) => acc + (l.sleepHours ?? 0), 0) / sleepLogs.length) * 10
+        ) / 10
+      : null;
+  const waterGoalDays = weekLifeLogs.filter((l) => l.waterCups >= (l.waterGoal || 8)).length;
+  const lifeHabitsSummary =
+    weekLifeLogs.length > 0
+      ? {
+          loggedDays: weekLifeLogs.length,
+          totalRunKm,
+          avgSleepHours,
+          waterGoalDays,
+        }
+      : undefined;
+
   return {
     windowStart,
     windowEnd: todayKey,
@@ -434,6 +549,7 @@ export function computeWeeklyReviewSummary(
     practicedConceptCount,
     completedActions,
     activeExperimentBrief,
+    lifeHabitsSummary,
     nextWeekSuggestion,
   };
 }

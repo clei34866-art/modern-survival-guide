@@ -2,7 +2,9 @@ import type {
   BranchId,
   CardRating,
   ConceptCardStat,
+  DailyLifeLog,
   DailyPlanSnapshot,
+  EnergyBand,
   LifeLabEntry,
   LifeLabExperiment,
   MilestoneDeliverableRecord,
@@ -15,7 +17,9 @@ import type {
   StudyLineKind,
   TelemetrySnapshot,
   UnitActionSubmission,
+  UserSchedulePreferences,
   WallExternalSyncPayload,
+  WallPersonalConfig,
 } from '../types/schema';
 
 const DB_NAME = 'modern_survival_guide_db';
@@ -66,7 +70,10 @@ export function hasLiveTelemetry(snapshot: TelemetrySnapshot): boolean {
     Object.keys(snapshot.milestoneSubmissions).length > 0 ||
     (snapshot.currentDailyPlan?.completedTaskIds.length ?? 0) > 0 ||
     (snapshot.realTasks?.some((t) => t.status === 'completed') ?? false) ||
-    (snapshot.lifeLabExperiments?.some((e) => e.entries.length > 0) ?? false)
+    (snapshot.lifeLabExperiments?.some((e) => e.entries.length > 0) ?? false) ||
+    Object.values(snapshot.dailyLifeLogs ?? {}).some(
+      (log) => log.waterCups > 0 || (log.runningKm ?? 0) > 0 || (log.sleepHours ?? 0) > 0
+    )
   );
 }
 
@@ -410,8 +417,145 @@ export async function importTelemetryJson(rawJson: string): Promise<TelemetrySna
     activeEventPackId: parsed.activeEventPackId,
     toolboxChecked: parsed.toolboxChecked ?? {},
     lifeLabExperiments: parsed.lifeLabExperiments ?? [],
+    schedulePrefs: parsed.schedulePrefs,
+    dailyLifeLogs: parsed.dailyLifeLogs ?? {},
+    wallPersonal: parsed.wallPersonal,
   };
   return saveTelemetry(normalized);
+}
+
+export const DEFAULT_SCHEDULE_PREFS: UserSchedulePreferences = {
+  fragmentStartHour: 5,
+  peakStartHour: 17,
+  lowStartHour: 21,
+  preferredBranchId: 'ALL',
+};
+
+/** Gen-2 R1：保存用户自定义三时段作息与偏好分支 */
+export async function updateSchedulePrefs(
+  patch: Partial<UserSchedulePreferences>
+): Promise<TelemetrySnapshot> {
+  const snap = await loadTelemetry();
+  const prev = snap.schedulePrefs ?? DEFAULT_SCHEDULE_PREFS;
+  const fragmentStartHour = Math.max(4, Math.min(14, Math.round(patch.fragmentStartHour ?? prev.fragmentStartHour)));
+  const peakStartHour = Math.max(
+    fragmentStartHour + 2,
+    Math.min(21, Math.round(patch.peakStartHour ?? prev.peakStartHour))
+  );
+  const lowStartHour = Math.max(
+    peakStartHour + 1,
+    Math.min(23, Math.round(patch.lowStartHour ?? prev.lowStartHour))
+  );
+  return saveTelemetry({
+    ...snap,
+    schedulePrefs: {
+      fragmentStartHour,
+      peakStartHour,
+      lowStartHour,
+      preferredBranchId: patch.preferredBranchId ?? prev.preferredBranchId ?? 'ALL',
+    },
+  });
+}
+
+/** Gen-2 R1：替换「今天」指定精力时段的任务（支持首页「换一题」，保留其余完成状态） */
+export async function swapDailyPlanTask(
+  oldTaskId: string,
+  replacement: ScheduledTaskItem
+): Promise<TelemetrySnapshot> {
+  const snap = await loadTelemetry();
+  const plan = snap.currentDailyPlan;
+  if (!plan) return snap;
+
+  const nextTasks = plan.tasks.map((t) => (t.id === oldTaskId ? replacement : t));
+  const nextCompleted = plan.completedTaskIds.filter((id) => id !== oldTaskId);
+  return saveTelemetry({
+    ...snap,
+    currentDailyPlan: {
+      ...plan,
+      tasks: nextTasks,
+      completedTaskIds: nextCompleted,
+    },
+  });
+}
+
+/** Gen-2 R1：记录或微调当日生活轻打卡（喝水 / 睡眠 / 跑步），跨标签实时同步状态墙与周报 */
+export async function logDailyLifeHabit(
+  patch: {
+    waterDelta?: number;
+    waterCups?: number;
+    waterGoal?: number;
+    sleepHours?: number | null;
+    runningKm?: number | null;
+  },
+  dateKey = getLocalDateKey()
+): Promise<TelemetrySnapshot> {
+  const snap = await loadTelemetry();
+  const prevMap = snap.dailyLifeLogs ?? {};
+  const existing: DailyLifeLog = prevMap[dateKey] ?? {
+    dateKey,
+    waterCups: 0,
+    waterGoal: 8,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const nextWater =
+    patch.waterCups !== undefined
+      ? Math.max(0, Math.min(30, Math.round(patch.waterCups)))
+      : Math.max(0, Math.min(30, existing.waterCups + (patch.waterDelta ?? 0)));
+  const nextGoal = Math.max(1, Math.min(20, Math.round(patch.waterGoal ?? existing.waterGoal ?? 8)));
+  const nextSleep =
+    patch.sleepHours === null
+      ? undefined
+      : patch.sleepHours !== undefined
+        ? Math.max(0, Math.min(18, Math.round(patch.sleepHours * 10) / 10))
+        : existing.sleepHours;
+  const nextRun =
+    patch.runningKm === null
+      ? undefined
+      : patch.runningKm !== undefined
+        ? Math.max(0, Math.min(100, Math.round(patch.runningKm * 10) / 10))
+        : existing.runningKm;
+
+  const updated: DailyLifeLog = {
+    dateKey,
+    waterCups: nextWater,
+    waterGoal: nextGoal,
+    sleepHours: nextSleep,
+    runningKm: nextRun,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const hasProgress =
+    updated.waterCups > 0 || (updated.runningKm ?? 0) > 0 || (updated.sleepHours ?? 0) > 0;
+
+  return saveTelemetry({
+    ...snap,
+    activeDates: hasProgress ? touchActiveDate(snap.activeDates, dateKey) : snap.activeDates,
+    dailyLifeLogs: {
+      ...prevMap,
+      [dateKey]: updated,
+    },
+  });
+}
+
+/** Gen-2 R1：保存个人状态墙配置（真实倒计时、吉光摘录、轮播周期、玻璃通透度） */
+export async function saveWallPersonalConfig(
+  patch: Partial<WallPersonalConfig>
+): Promise<TelemetrySnapshot> {
+  const snap = await loadTelemetry();
+  const prev = snap.wallPersonal ?? {};
+  return saveTelemetry({
+    ...snap,
+    wallPersonal: {
+      ...prev,
+      ...patch,
+    },
+  });
+}
+
+/** 根据时段直接查找今日快照中该时段任务 */
+export function getTasksBySlot(plan: DailyPlanSnapshot | undefined, slot: EnergyBand): ScheduledTaskItem[] {
+  return (plan?.tasks ?? []).filter((t) => t.slot === slot);
 }
 
 /** M6 真实任务池：新增一条真实生活/科研/学习待办 */

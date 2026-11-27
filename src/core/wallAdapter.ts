@@ -67,13 +67,17 @@ export interface WallViewModel {
     running: string;
     sleep: string;
     water: string;
+    waterCupsToday: number;
+    waterGoalToday: number;
     experimentLine: string;
+    sourceLabel: '同步源' | '个人打卡' | '示例占位';
     isExternalSynced: boolean;
   };
   contentBlock: {
     quote: string;
     quoteSource: string;
     movie: string;
+    sourceLabel: '同步源' | '个人配置' | '示例占位';
     isExternalSynced: boolean;
   };
   statusBlock: {
@@ -121,7 +125,11 @@ export function computeWallViewModel(
   const dataMode: 'LIVE' | 'DEMO' = forceMode ?? (liveDetected ? 'LIVE' : 'DEMO');
 
   const cfg = content.wallConfig;
-  const countdowns = cfg.countdowns.map((c) => {
+  const personal = telemetry.wallPersonal;
+  const effectiveCountdowns =
+    personal?.countdowns && personal.countdowns.length > 0 ? personal.countdowns : cfg.countdowns;
+
+  const countdowns = effectiveCountdowns.map((c) => {
     const daysLeft = diffDays(todayKey, c.targetDate);
     return {
       id: c.id,
@@ -137,7 +145,9 @@ export function computeWallViewModel(
   const { plan } = ensureTodayPlanSnapshot(content, telemetry, todayKey);
   const todayProg = getEffectiveDailyProgress(plan);
 
-  const weather = externalSync?.weather ?? cfg.todayPlaceholder.weather;
+  const weather =
+    externalSync?.weather ??
+    (personal?.weatherNote?.trim() || cfg.todayPlaceholder.weather);
   const todos =
     externalSync?.todos && externalSync.todos.length > 0
       ? externalSync.todos.slice(0, 4)
@@ -157,20 +167,74 @@ export function computeWallViewModel(
     }
   }
 
+  // 聚合近 7 日个人生活轻打卡（喝水 / 睡眠 / 跑步），优先于示例占位
+  const windowStart = addDaysToDateKey(todayKey, -6);
+  const lifeLogsMap = telemetry.dailyLifeLogs ?? {};
+  const todayLife = lifeLogsMap[todayKey];
+  const recentLogs = Object.values(lifeLogsMap).filter(
+    (l) => l.dateKey >= windowStart && l.dateKey <= todayKey
+  );
+  const runLogs = recentLogs.filter((l) => typeof l.runningKm === 'number' && l.runningKm > 0);
+  const totalRunKm = Math.round(runLogs.reduce((s, l) => s + (l.runningKm ?? 0), 0) * 10) / 10;
+  const sleepLogs = recentLogs.filter((l) => typeof l.sleepHours === 'number' && l.sleepHours > 0);
+  const avgSleep =
+    sleepLogs.length > 0
+      ? Math.round((sleepLogs.reduce((s, l) => s + (l.sleepHours ?? 0), 0) / sleepLogs.length) * 10) /
+        10
+      : null;
+
+  const hasPersonalLife = recentLogs.length > 0 || Boolean(activeExp);
+  const waterCupsToday = todayLife?.waterCups ?? 0;
+  const waterGoalToday = todayLife?.waterGoal ?? 8;
+
   const lifeBlock = {
-    running: externalSync?.life?.running ?? cfg.reservedBlocksSample.life.running,
-    sleep: externalSync?.life?.sleep ?? cfg.reservedBlocksSample.life.sleep,
-    water: externalSync?.life?.water ?? cfg.reservedBlocksSample.life.water,
+    running:
+      externalSync?.life?.running ??
+      (runLogs.length > 0
+        ? `本周 ${runLogs.length} 次 · 累计 ${totalRunKm} km`
+        : todayLife
+          ? '本周尚未记录跑步（可在配置抽屉补录）'
+          : cfg.reservedBlocksSample.life.running),
+    sleep:
+      externalSync?.life?.sleep ??
+      (avgSleep !== null
+        ? `近 7 日均睡 ${avgSleep} h${todayLife?.sleepHours ? `（昨夜 ${todayLife.sleepHours}h）` : ''}`
+        : todayLife
+          ? '尚未记录睡眠时长'
+          : cfg.reservedBlocksSample.life.sleep),
+    water:
+      externalSync?.life?.water ??
+      (todayLife
+        ? `今日 ${waterCupsToday} / ${waterGoalToday} 杯${waterCupsToday >= waterGoalToday ? ' · 已达标' : ''}`
+        : cfg.reservedBlocksSample.life.water),
+    waterCupsToday,
+    waterGoalToday,
     experimentLine,
-    isExternalSynced: Boolean(externalSync?.life) || Boolean(activeExp),
+    sourceLabel: externalSync?.life
+      ? ('同步源' as const)
+      : hasPersonalLife
+        ? ('个人打卡' as const)
+        : ('示例占位' as const),
+    isExternalSynced: Boolean(externalSync?.life) || hasPersonalLife,
   };
 
+  const hasPersonalContent = Boolean(personal?.quote?.trim() || personal?.movie?.trim());
   const contentBlock = {
-    quote: externalSync?.content?.quote ?? cfg.reservedBlocksSample.content.quote,
+    quote:
+      externalSync?.content?.quote ??
+      (personal?.quote?.trim() || cfg.reservedBlocksSample.content.quote),
     quoteSource:
-      externalSync?.content?.quoteSource ?? cfg.reservedBlocksSample.content.quoteSource,
-    movie: externalSync?.content?.movie ?? cfg.reservedBlocksSample.content.movie,
-    isExternalSynced: Boolean(externalSync?.content),
+      externalSync?.content?.quoteSource ??
+      (personal?.quoteSource?.trim() || cfg.reservedBlocksSample.content.quoteSource),
+    movie:
+      externalSync?.content?.movie ??
+      (personal?.movie?.trim() || cfg.reservedBlocksSample.content.movie),
+    sourceLabel: externalSync?.content
+      ? ('同步源' as const)
+      : hasPersonalContent
+        ? ('个人配置' as const)
+        : ('示例占位' as const),
+    isExternalSynced: Boolean(externalSync?.content) || hasPersonalContent,
   };
 
   const statusBlock = {

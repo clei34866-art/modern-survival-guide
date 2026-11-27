@@ -21,6 +21,41 @@
   --wall-coral: #fb8585;
 }
 
+[data-clarity='regular'] {
+  --wall-surface: rgba(10, 22, 48, 0.48);
+  --wall-surface-2: rgba(7, 17, 38, 0.56);
+}
+
+[data-clarity='frosted'] {
+  --wall-surface: rgba(9, 20, 44, 0.68);
+  --wall-surface-2: rgba(7, 16, 36, 0.72);
+}
+
+.wall-water-plus-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(94, 234, 212, 0.42);
+  background: rgba(94, 234, 212, 0.16);
+  color: var(--wall-green);
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: background-color 140ms var(--ease-ui), transform 120ms var(--ease-ui);
+}
+
+.wall-water-plus-btn:hover {
+  background: rgba(94, 234, 212, 0.28);
+}
+
+.wall-water-plus-btn:active {
+  transform: scale(0.95);
+}
+
 .wall-viewport {
   position: relative;
   width: 100vw;

@@ -346,6 +346,34 @@ export interface LifeLabExperiment {
   createdAt: string;
 }
 
+export type GlassClarityMode = 'clear' | 'regular' | 'frosted';
+
+export interface UserSchedulePreferences {
+  fragmentStartHour: number; // 默认 5（05:00 起早间碎片）
+  peakStartHour: number; // 默认 17（17:00 起晚饭后高精力）
+  lowStartHour: number; // 默认 21（21:00 起实验后/睡前低精力）
+  preferredBranchId?: BranchId | 'ALL';
+}
+
+export interface DailyLifeLog {
+  dateKey: string;
+  waterCups: number;
+  waterGoal: number;
+  sleepHours?: number;
+  runningKm?: number;
+  updatedAt: string;
+}
+
+export interface WallPersonalConfig {
+  countdowns?: WallCountdownItem[];
+  quote?: string;
+  quoteSource?: string;
+  movie?: string;
+  weatherNote?: string;
+  autoRotateSeconds?: 0 | 30 | 60;
+  glassClarity?: GlassClarityMode;
+}
+
 export interface TelemetrySnapshot {
   schemaVersion: 1;
   updatedAt: string;
@@ -360,6 +388,9 @@ export interface TelemetrySnapshot {
   activeEventPackId?: string; // M7 当前激活的跨分支生活事件包
   toolboxChecked?: Record<string, string[]>; // M7 生活工具箱已勾选条目
   lifeLabExperiments?: LifeLabExperiment[]; // M7 生活实验室月度个人实验记录
+  schedulePrefs?: UserSchedulePreferences; // Gen-2 R1 自定义三时段作息与偏好分支
+  dailyLifeLogs?: Record<string, DailyLifeLog>; // Gen-2 R1 每日饮水/睡眠/跑步轻打卡
+  wallPersonal?: WallPersonalConfig; // Gen-2 R1 状态墙个人倒计时、吉光与轮播配置
 }
 
 export interface WallCountdownItem {

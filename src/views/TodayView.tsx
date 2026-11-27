@@ -1,11 +1,14 @@
 import {
   ArrowRight,
   BookOpen,
+  CalendarClock,
   Check,
   CheckCircle2,
   Droplets,
   Layers,
   Lightbulb,
+  MessageCircle,
+  Plus,
   Shuffle,
   SlidersHorizontal,
 } from 'lucide-react';
@@ -26,18 +29,22 @@ import {
   computeContinuityFootprint,
   detectCurrentEnergyBand,
   getEnergySlotsWithPrefs,
+  getGreetingByHour,
   pickAlternativeUnitTask,
 } from '@/core/scheduler';
 import { getRetestQueue } from '@/core/srs';
+import { useLiquidGlass } from '@/lib/liquidGlass';
 import { cn } from '@/lib/utils';
 import type {
   BranchCatalog,
   BranchId,
+  DailyMood,
   DailyPlanSnapshot,
   EnergyBand,
   GlassClarityMode,
   ScheduledTaskItem,
   TelemetrySnapshot,
+  WallCountdownItem,
 } from '@/types/schema';
 
 interface TodayViewProps {
@@ -51,10 +58,16 @@ interface TodayViewProps {
 }
 
 const BAND_SHORT: Record<EnergyBand, string> = {
-  fragment: '早间',
-  peak: '高精力',
+  fragment: '上午',
+  peak: '傍晚',
   low: '睡前',
 };
+
+const MOOD_OPTIONS: Array<{ value: DailyMood; label: string; reply: string }> = [
+  { value: 'relaxed', label: '松弛', reply: '慢慢来最舒服，挑件顺手的小事就行' },
+  { value: 'focused', label: '充实', reply: '状态不错，顺手把今天最值的一件事搞定' },
+  { value: 'tired', label: '有点累', reply: '辛苦啦，今天喝杯温水早点歇着也很好' },
+];
 
 const CLARITY_OPTIONS: Array<{ value: GlassClarityMode; label: string; desc: string }> = [
   { value: 'clear', label: '清透', desc: '星海通透感最高' },
@@ -69,10 +82,16 @@ function formatReadableDate(dateKey: string): string {
   return `${m} 月 ${d} 日 · ${weekdays[dt.getDay()]}`;
 }
 
+function diffDaysSimple(fromDateKey: string, toDateKey: string): number {
+  const [y1, m1, d1] = fromDateKey.split('-').map(Number);
+  const [y2, m2, d2] = toDateKey.split('-').map(Number);
+  return Math.max(0, Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000));
+}
+
 function getBranchMeta(branches: BranchCatalog[], id: string) {
   return (
     branches.find((b) => b.id === id) ?? {
-      id: 'B1',
+      id: 'B7',
       name: id,
       accentToken: '#4c9aff',
     }
@@ -96,11 +115,33 @@ export function TodayView({
   const [rhythmDrawerOpen, setRhythmDrawerOpen] = useState(false);
   const [tipDrawerOpen, setTipDrawerOpen] = useState(false);
 
-  // 节律偏好 Drawer 表单态
+  // 真 SDF 折射色散玻璃透镜（仅用于左右两块悬浮玻璃卡片，中轴完全留白给 Wave）
+  const focalGlassRef = useLiquidGlass<HTMLDivElement>({
+    sdfMode: 'single',
+    scale: -22,
+    chroma: 4.2,
+    border: 0.13,
+    blur: 14,
+    saturate: 1.76,
+    maxWidth: 540,
+  });
+  const lifeCardGlassRef = useLiquidGlass<HTMLDivElement>({
+    sdfMode: 'compound',
+    scale: -20,
+    chroma: 4.5,
+    border: 0.15,
+    blur: 14,
+    saturate: 1.78,
+    maxWidth: 420,
+  });
+
+  // 节律与生活打卡 Drawer 表单态
   const [fragHour, setFragHour] = useState<number>(prefs.fragmentStartHour);
   const [peakHour, setPeakHour] = useState<number>(prefs.peakStartHour);
   const [lowHour, setLowHour] = useState<number>(prefs.lowStartHour);
   const [prefBranch, setPrefBranch] = useState<BranchId | 'ALL'>(prefs.preferredBranchId ?? 'ALL');
+  const [newCdLabel, setNewCdLabel] = useState<string>('');
+  const [newCdDate, setNewCdDate] = useState<string>('');
 
   const todayLife = telemetry.dailyLifeLogs?.[plan.dateKey];
   const [sleepInput, setSleepInput] = useState<string>(
@@ -139,10 +180,7 @@ export function TodayView({
     content.dailyTips.find((t) => t.id === plan.dailyTipId) ?? content.dailyTips[0];
   const tipBranch = getBranchMeta(content.catalog.branches, dailyTip.branchId);
 
-  const selectedSlotMeta =
-    energySlots.find((s) => s.band === selectedBand) ?? energySlots[1];
   const selectedSlotTasks = allTasks.filter((t) => t.slot === selectedBand);
-
   const focalTask: ScheduledTaskItem | undefined =
     selectedSlotTasks.find((t) => Boolean(t.unitId) && !plan.completedTaskIds.includes(t.id)) ??
     selectedSlotTasks.find((t) => !plan.completedTaskIds.includes(t.id)) ??
@@ -154,6 +192,16 @@ export function TodayView({
   const focalBranch = focalTask
     ? getBranchMeta(content.catalog.branches, focalTask.branchId)
     : undefined;
+  const focalUnit = focalTask?.unitId
+    ? content.units.find((u) => u.id === focalTask.unitId)
+    : undefined;
+  const focalDisplayTitle = focalUnit
+    ? focalUnit.title.replace(/^【示例占位】/, '')
+    : focalTask?.title ?? '';
+  const focalDisplayHint = focalUnit
+    ? focalUnit.scenarioHook.sceneTitle
+    : focalTask?.humanHint ?? '';
+
   const focalDone = focalTask ? plan.completedTaskIds.includes(focalTask.id) : false;
   const focalHref = focalTask
     ? focalTask.unitId
@@ -165,16 +213,30 @@ export function TodayView({
 
   const currentClarity: GlassClarityMode = telemetry.wallPersonal?.glassClarity ?? 'clear';
 
+  // 最近的一个倒数日（优先用户自己的，其次默认示例）
+  const activeCountdowns: WallCountdownItem[] =
+    telemetry.wallPersonal?.countdowns && telemetry.wallPersonal.countdowns.length > 0
+      ? telemetry.wallPersonal.countdowns
+      : content.wallConfig.countdowns;
+  const nearestCountdown = activeCountdowns
+    .map((cd) => ({ ...cd, daysLeft: diffDaysSimple(plan.dateKey, cd.targetDate) }))
+    .sort((a, b) => a.daysLeft - b.daysLeft)[0];
+
+  const weatherLine = telemetry.wallPersonal?.weatherNote?.trim();
+  const todayMood = todayLife?.mood;
+  const waterCups = todayLife?.waterCups ?? 0;
+  const waterGoal = todayLife?.waterGoal ?? 8;
+
   const handleSwapFocalTask = async () => {
     if (!focalTask || !focalTask.unitId) return;
     const alt = pickAlternativeUnitTask(content, telemetry, focalTask, plan.dateKey, prefBranch);
     if (!alt) {
-      toast('当前偏好分支暂无更多可替换单元');
+      toast('当前偏好主题暂无更多可替换内容');
       return;
     }
     const next = await swapDailyPlanTask(focalTask.id, alt);
     onTelemetryChange(next);
-    toast.success(`已切换今日学习题：${alt.branchId} · ${alt.title.slice(0, 18)}`);
+    toast.success(`换了一篇：${alt.title.slice(0, 18)}`);
   };
 
   const handleSaveRhythmPrefs = async () => {
@@ -187,14 +249,23 @@ export function TodayView({
     onTelemetryChange(next);
     const updatedBand = detectCurrentEnergyBand(new Date(), next.schedulePrefs);
     setSelectedBand(updatedBand);
-    toast.success('已保存个人作息节律与偏好分支');
+    toast.success('已保存你的日常作息与内容偏好');
   };
 
   const handleQuickWater = async (delta: number) => {
     const next = await logDailyLifeHabit({ waterDelta: delta }, plan.dateKey);
     onTelemetryChange(next);
     const cups = next.dailyLifeLogs?.[plan.dateKey]?.waterCups ?? 0;
-    toast(`今日饮水：${cups} / ${todayLife?.waterGoal ?? 8} 杯`);
+    toast.success(
+      cups >= waterGoal ? `太棒了，今天喝够 ${cups} 杯水啦` : `喝水 +1 · 今日已喝 ${cups} / ${waterGoal} 杯`
+    );
+  };
+
+  const handleSelectMood = async (mood: DailyMood) => {
+    const next = await logDailyLifeHabit({ mood }, plan.dateKey);
+    onTelemetryChange(next);
+    const meta = MOOD_OPTIONS.find((m) => m.value === mood);
+    if (meta) toast(meta.reply);
   };
 
   const handleSaveLifeInputs = async () => {
@@ -208,7 +279,21 @@ export function TodayView({
       plan.dateKey
     );
     onTelemetryChange(next);
-    toast.success('已同步今日生活打卡至状态墙与周报');
+    toast.success('已记下今天的睡眠与运动，状态墙同步更新啦');
+  };
+
+  const handleQuickAddCountdown = async () => {
+    if (!newCdLabel.trim() || !newCdDate) return;
+    const base = telemetry.wallPersonal?.countdowns ? [...telemetry.wallPersonal.countdowns] : [];
+    const nextList: WallCountdownItem[] = [
+      ...base,
+      { id: `cd_${Date.now()}`, label: newCdLabel.trim(), targetDate: newCdDate, isSample: false },
+    ];
+    const next = await saveWallPersonalConfig({ countdowns: nextList });
+    onTelemetryChange(next);
+    setNewCdLabel('');
+    setNewCdDate('');
+    toast.success('已记下这个重要日子，首页与状态墙同步展示');
   };
 
   const handleSetClarity = async (mode: GlassClarityMode) => {
@@ -218,13 +303,13 @@ export function TodayView({
   };
 
   return (
-    <div className="flex flex-col justify-between gap-7 py-2 sm:py-5 lg:min-h-[calc(100vh-132px)] lg:gap-10">
-      {/* 右侧 Drawer 1：每日生活一招详情（不把首页撑成大卡片） */}
+    <div className="flex flex-col justify-between gap-7 py-2 sm:py-5 lg:min-h-[calc(100vh-132px)] lg:gap-9">
+      {/* 右侧 Drawer 1：每日生活一招详情 */}
       <Drawer
         open={tipDrawerOpen}
         onOpenChange={setTipDrawerOpen}
         title={dailyTip.title}
-        description={`${dailyTip.branchId} ${tipBranch.name} · 约 ${dailyTip.readSeconds} 秒阅读`}
+        description={`${tipBranch.name} · 约 ${dailyTip.readSeconds} 秒阅读`}
         footer={
           <Button
             size="sm"
@@ -234,7 +319,7 @@ export function TodayView({
               if (!plan.tipAcknowledged) setTipDrawerOpen(false);
             }}
           >
-            {plan.tipAcknowledged ? '取消已读标记' : '记下了'}
+            {plan.tipAcknowledged ? '取消记下' : '记下这一招'}
           </Button>
         }
       >
@@ -254,12 +339,12 @@ export function TodayView({
         </div>
       </Drawer>
 
-      {/* 右侧 Drawer 2：个人节律、14 日点亮足迹、生活轻打卡与玻璃通透度 */}
+      {/* 右侧 Drawer 2：生活偏好、14 日足迹、睡眠运动、倒数日与玻璃通透度 */}
       <Drawer
         open={rhythmDrawerOpen}
         onOpenChange={setRhythmDrawerOpen}
-        title="节律偏好与今日打卡"
-        description="自定义三时段作息与偏好分支，所有记录本地保存并联动 1080P 状态墙"
+        title="日常节律与生活小记"
+        description="按自己的节奏来，所有记录仅存本机浏览器并联动书桌状态墙"
         footer={
           <Button size="sm" variant="primary" onClick={handleSaveRhythmPrefs}>
             保存作息与偏好
@@ -267,19 +352,19 @@ export function TodayView({
         }
       >
         <div className="space-y-5">
-          {/* 14 日点亮矩阵 */}
+          {/* 近 14 天温柔足迹 */}
           <section className="glass-plate space-y-3 p-4">
             <div className="flex items-center justify-between">
               <span className="text-[13px] font-semibold text-[var(--ink-1)]">
-                近 14 天成长足迹（累计 {continuity.totalActiveDays} 天）
+                近 14 天生活足迹（累计 {continuity.totalActiveDays} 天）
               </span>
-              <Badge tone="neutral">连学 {consecutiveDays} 天</Badge>
+              <Badge tone="neutral">连着 {consecutiveDays} 天</Badge>
             </div>
             <div className="grid grid-cols-7 gap-1.5" aria-label="近 14 天活跃足迹">
               {continuity.recent14Days.map((day) => (
                 <Tooltip
                   key={day.dateKey}
-                  content={`${day.dateKey}${day.isActive ? ' · 已留痕' : ' · 休息'}`}
+                  content={`${day.dateKey}${day.isActive ? ' · 有记录' : ' · 好好休息'}`}
                   side="top"
                   className="w-full"
                 >
@@ -296,15 +381,109 @@ export function TodayView({
                 </Tooltip>
               ))}
             </div>
-            <div className="text-[12px] text-[var(--ink-3)]">正向累积，断更不清零、不掉级</div>
+            <div className="text-[12px] text-[var(--ink-3)]">轻松累积，哪天忙没打开也不清零、不扣分</div>
           </section>
 
-          {/* 三时段作息 */}
+          {/* 今日饮水、睡眠、跑步 */}
           <section className="glass-plate space-y-3 p-4">
-            <div className="text-[13px] font-semibold text-[var(--ink-1)]">三时段作息起止</div>
+            <div className="flex items-center justify-between">
+              <div className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--ink-1)]">
+                <Droplets size={14} strokeWidth={1.7} className="text-[var(--growth)]" />
+                <span>今天身体照顾得怎么样</span>
+              </div>
+              <span className="font-mono-num text-[12px] text-[var(--ink-3)]">{plan.dateKey}</span>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 rounded-[10px] border border-[var(--line)] px-3 py-2">
+              <span className="text-[13px] text-[var(--ink-2)]">
+                喝水：
+                <strong className="font-mono-num text-[var(--ink-1)]">
+                  {waterCups} / {waterGoal} 杯
+                </strong>
+              </span>
+              <div className="flex items-center gap-1.5">
+                <Button size="sm" variant="subtle" onClick={() => handleQuickWater(-1)}>
+                  -1
+                </Button>
+                <Button size="sm" variant="growth" onClick={() => handleQuickWater(1)}>
+                  +1 杯
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <label className="space-y-1 text-[12px] text-[var(--ink-2)]">
+                <span>昨晚睡了（小时）</span>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  max="16"
+                  className="v3-input font-mono-num text-[13.5px]"
+                  placeholder="如 7.5"
+                  value={sleepInput}
+                  onChange={(e) => setSleepInput(e.target.value)}
+                />
+              </label>
+              <label className="space-y-1 text-[12px] text-[var(--ink-2)]">
+                <span>今天跑步（km）</span>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  max="50"
+                  className="v3-input font-mono-num text-[13.5px]"
+                  placeholder="如 5.0"
+                  value={runInput}
+                  onChange={(e) => setRunInput(e.target.value)}
+                />
+              </label>
+            </div>
+            <div className="flex justify-end">
+              <Button size="sm" variant="outline" onClick={handleSaveLifeInputs}>
+                记下睡眠与跑步
+              </Button>
+            </div>
+          </section>
+
+          {/* 添一个重要日子倒数 */}
+          <section className="glass-plate space-y-2.5 p-4">
+            <div className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--ink-1)]">
+              <CalendarClock size={14} strokeWidth={1.7} className="text-[var(--dawn)]" />
+              <span>添一个值得期待的日子</span>
+            </div>
+            <input
+              type="text"
+              className="v3-input text-[13.5px]"
+              placeholder="如：短途旅行 / 体检复查 / 朋友婚礼"
+              value={newCdLabel}
+              onChange={(e) => setNewCdLabel(e.target.value)}
+            />
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                className="v3-input font-mono-num flex-1 text-[13px]"
+                value={newCdDate}
+                onChange={(e) => setNewCdDate(e.target.value)}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!newCdLabel.trim() || !newCdDate}
+                onClick={handleQuickAddCountdown}
+              >
+                <Plus size={13} strokeWidth={1.7} />
+                <span>添加</span>
+              </Button>
+            </div>
+          </section>
+
+          {/* 每日作息与内容偏好 */}
+          <section className="glass-plate space-y-3 p-4">
+            <div className="text-[13px] font-semibold text-[var(--ink-1)]">每日作息与内容偏好</div>
             <div className="grid grid-cols-3 gap-2.5">
               <label className="space-y-1 text-[12px] text-[var(--ink-2)]">
-                <span>早间起</span>
+                <span>上午起</span>
                 <select
                   className="v3-select font-mono-num text-[13px]"
                   value={fragHour}
@@ -318,7 +497,7 @@ export function TodayView({
                 </select>
               </label>
               <label className="space-y-1 text-[12px] text-[var(--ink-2)]">
-                <span>高精力起</span>
+                <span>傍晚起</span>
                 <select
                   className="v3-select font-mono-num text-[13px]"
                   value={peakHour}
@@ -348,82 +527,20 @@ export function TodayView({
             </div>
 
             <label className="block space-y-1 text-[12px] text-[var(--ink-2)]">
-              <span>「换一题」优先分支</span>
+              <span>首页优先推荐主题</span>
               <select
                 className="v3-select text-[13.5px]"
                 value={prefBranch}
                 onChange={(e) => setPrefBranch(e.target.value as BranchId | 'ALL')}
               >
-                <option value="ALL">全部分支智能混排</option>
+                <option value="ALL">日常实用优先（理财 / 心理 / 健康 / 防坑）</option>
                 {content.catalog.branches.map((b) => (
                   <option key={b.id} value={b.id}>
-                    {b.id} · {b.name}
+                    专注：{b.name}
                   </option>
                 ))}
               </select>
             </label>
-          </section>
-
-          {/* 今日生活轻打卡 */}
-          <section className="glass-plate space-y-3 p-4">
-            <div className="flex items-center justify-between">
-              <div className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--ink-1)]">
-                <Droplets size={14} strokeWidth={1.7} className="text-[var(--growth)]" />
-                <span>今日生活轻打卡</span>
-              </div>
-              <span className="font-mono-num text-[12px] text-[var(--ink-3)]">{plan.dateKey}</span>
-            </div>
-
-            <div className="flex items-center justify-between gap-2 rounded-[10px] border border-[var(--line)] px-3 py-2">
-              <span className="text-[13px] text-[var(--ink-2)]">
-                饮水：
-                <strong className="font-mono-num text-[var(--ink-1)]">
-                  {todayLife?.waterCups ?? 0} / {todayLife?.waterGoal ?? 8} 杯
-                </strong>
-              </span>
-              <div className="flex items-center gap-1.5">
-                <Button size="sm" variant="subtle" onClick={() => handleQuickWater(-1)}>
-                  -1
-                </Button>
-                <Button size="sm" variant="growth" onClick={() => handleQuickWater(1)}>
-                  +1 杯
-                </Button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2.5">
-              <label className="space-y-1 text-[12px] text-[var(--ink-2)]">
-                <span>昨夜睡眠（小时）</span>
-                <input
-                  type="number"
-                  step="0.5"
-                  min="0"
-                  max="16"
-                  className="v3-input font-mono-num text-[13.5px]"
-                  placeholder="如 7.5"
-                  value={sleepInput}
-                  onChange={(e) => setSleepInput(e.target.value)}
-                />
-              </label>
-              <label className="space-y-1 text-[12px] text-[var(--ink-2)]">
-                <span>今日跑步（km）</span>
-                <input
-                  type="number"
-                  step="0.5"
-                  min="0"
-                  max="50"
-                  className="v3-input font-mono-num text-[13.5px]"
-                  placeholder="如 5.0"
-                  value={runInput}
-                  onChange={(e) => setRunInput(e.target.value)}
-                />
-              </label>
-            </div>
-            <div className="flex justify-end">
-              <Button size="sm" variant="outline" onClick={handleSaveLifeInputs}>
-                保存睡眠与跑步
-              </Button>
-            </div>
           </section>
 
           {/* 玻璃通透度三档 */}
@@ -451,21 +568,22 @@ export function TodayView({
         </div>
       </Drawer>
 
-      {/* 1. 极简留白页头（不加分割线，不堆按钮） */}
-      <header className="flex flex-wrap items-end justify-between gap-4" aria-label="今日节律简报">
+      {/* 1. 温柔自然的生活桌面页头（不堆指标，留出大块海天） */}
+      <header className="flex flex-wrap items-end justify-between gap-4" aria-label="今日生活桌面">
         <div className="space-y-1">
           <div className="sky-heading font-mono-num text-[13px] text-[var(--ink-2)]">
-            {formatReadableDate(plan.dateKey)} · {selectedSlotMeta.timeHint}
+            {formatReadableDate(plan.dateKey)}
+            {weatherLine ? ` · ${weatherLine}` : ''}
           </div>
-          <h1 className="sky-heading m-0 text-[28px] font-semibold leading-[1.2] tracking-[-0.025em] text-[var(--ink-1)] sm:text-[32px]">
-            今日学习主线
+          <h1 className="sky-heading m-0 text-[26px] font-semibold leading-[1.24] tracking-[-0.02em] text-[var(--ink-1)] sm:text-[31px]">
+            {getGreetingByHour()}
           </h1>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="w-[150px] space-y-1.5" aria-label={`今日完成度 ${progressPct}%`}>
+        <div className="flex items-center gap-3.5">
+          <div className="w-[136px] space-y-1.5" aria-label={`今日小事完成 ${progressPct}%`}>
             <div className="sky-heading flex items-center justify-between text-[12.5px]">
-              <span className="text-[var(--ink-2)]">进度</span>
+              <span className="text-[var(--ink-2)]">今日小事</span>
               <strong className="font-mono-num text-[var(--ink-1)]">
                 {completedCount}/{totalCount}
               </strong>
@@ -473,7 +591,7 @@ export function TodayView({
             <ProgressBar percent={progressPct} color="var(--growth)" />
           </div>
 
-          <Tooltip content="自定义作息、偏好分支、今日打卡与玻璃通透度">
+          <Tooltip content="调整作息、补录睡眠跑步、添加倒数日与玻璃通透度">
             <Button
               size="sm"
               variant="outline"
@@ -482,61 +600,60 @@ export function TodayView({
               onClick={() => setRhythmDrawerOpen(true)}
             >
               <SlidersHorizontal size={13} strokeWidth={1.7} />
-              <span>节律</span>
+              <span>小记与偏好</span>
             </Button>
           </Tooltip>
         </div>
       </header>
 
-      {/* 全部完成收工态 */}
+      {/* 全部完成温柔收工态 */}
       {isAllDone && (
         <section
-          className="glass-alert flex items-center gap-3 rounded-full border border-[var(--growth-border)] bg-[var(--growth-soft)] px-5 py-3 self-start"
+          className="glass-alert flex items-center gap-3 self-start rounded-full border border-[var(--growth-border)] bg-[var(--growth-soft)] px-5 py-3"
           aria-live="polite"
         >
           <CheckCircle2 size={18} strokeWidth={1.8} className="shrink-0 text-[var(--growth)]" />
           <span className="text-[14px] text-[var(--ink-1)]">
-            <strong>今日定额已收工</strong> · 明天自动翻篇，去休息吧
+            <strong>今天的小事都顺手办完啦</strong> · 好好放松，明天再聊
           </span>
         </section>
       )}
 
-      {/* 2. 主舞台：左侧单焦清透玻璃卡 + 中轴完全留白给 Wave 银河与少女 + 右下轻量时段索引 */}
+      {/* 2. 主舞台：左清透生活聚焦卡 + 中轴完整留白给 Wave 星海少女 + 右生活小记陪伴卡 */}
       <section
-        className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[minmax(0,480px)_1fr_minmax(0,300px)]"
-        aria-label="今日主线与三时段"
+        className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[minmax(0,460px)_1fr_minmax(0,318px)]"
+        aria-label="今日顺手看看与生活小记"
       >
-        {/* 左：唯一焦点大卡（零内嵌黑框、大呼吸留白、单一主按钮） */}
+        {/* 左：单焦清透光学玻璃卡（真 SDF 边缘折射 + 色散） */}
         {focalTask && focalBranch && (
           <div
-            className="v3-card flex flex-col justify-between gap-7 p-6 sm:p-8"
-            aria-label="此刻焦点任务"
+            ref={focalGlassRef}
+            className="v3-card flex flex-col justify-between gap-6 p-6 sm:p-8"
+            aria-label="今日顺手一读"
           >
-            <div className="space-y-4">
+            <div className="space-y-3.5">
               <div className="flex items-center justify-between gap-2 text-[12.5px] text-[var(--ink-2)]">
                 <span className="inline-flex items-center gap-2">
                   <span
                     className="h-2 w-2 rounded-full"
                     style={{ backgroundColor: focalBranch.accentToken }}
                   />
-                  <span>
-                    {BAND_SHORT[focalTask.slot]} · {focalTask.branchId} {focalBranch.name}
-                  </span>
+                  <span>{focalBranch.name}</span>
                 </span>
                 <span className="font-mono-num text-[var(--ink-3)]">
-                  {focalDone ? '已完成' : `${focalTask.estimatedMinutes}m`}
+                  {focalDone ? '已看过' : `约 ${focalTask.estimatedMinutes} 分钟`}
                 </span>
               </div>
 
               <h2
                 data-testid="today-focal-title"
-                className="m-0 text-[22px] font-semibold leading-[1.36] tracking-[-0.02em] text-[var(--ink-1)] sm:text-[25px]"
+                className="m-0 text-[21px] font-semibold leading-[1.38] tracking-[-0.02em] text-[var(--ink-1)] sm:text-[24px]"
               >
-                {focalTask.title}
+                {focalDisplayTitle}
               </h2>
 
-              <p className="m-0 text-[15px] leading-[1.75] text-[var(--ink-2)]">
-                <RichText text={focalTask.humanHint} concepts={content.knowledgeGraph.nodes} />
+              <p className="m-0 text-[14.5px] leading-[1.75] text-[var(--ink-2)]">
+                <RichText text={focalDisplayHint} concepts={content.knowledgeGraph.nodes} />
               </p>
             </div>
 
@@ -544,20 +661,20 @@ export function TodayView({
               <div className="flex flex-wrap items-center gap-2.5">
                 <a
                   href={focalHref}
-                  className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-[var(--btn-solid-bg)] px-6 py-2.5 text-[14.5px] font-semibold text-[var(--btn-solid-fg)] no-underline shadow-[0_8px_22px_rgba(245,184,154,0.3)] transition-colors hover:bg-[var(--btn-solid-hover)]"
+                  className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-[var(--btn-solid-bg)] px-6 py-2.5 text-[14.5px] font-semibold text-[var(--btn-solid-fg)] no-underline shadow-[0_8px_22px_rgba(245,184,154,0.28)] transition-colors hover:bg-[var(--btn-solid-hover)]"
                 >
                   <span>
                     {focalTask.unitId
-                      ? '开始学习'
+                      ? '进去看看'
                       : focalTask.kind === 'retest_review'
-                        ? '开始重测'
-                        : '打开闪卡'}
+                        ? '去温习一下'
+                        : '顺手翻几张卡'}
                   </span>
                   <ArrowRight size={15} strokeWidth={1.8} />
                 </a>
 
                 {focalTask.unitId && (
-                  <Tooltip content="右侧抽屉速览本节要点，不离开首页">
+                  <Tooltip content="在右侧抽屉快速扫一眼要点，不用跳转页面">
                     <Button
                       variant="outline"
                       size="lg"
@@ -574,7 +691,7 @@ export function TodayView({
 
               <div className="flex items-center gap-4 pt-1 text-[13px] text-[var(--ink-3)]">
                 {focalTask.unitId && (
-                  <Tooltip content="按偏好分支换一个今日学习单元">
+                  <Tooltip content="换一篇今天想看的生活内容">
                     <button
                       type="button"
                       data-testid="today-swap-task-btn"
@@ -582,7 +699,7 @@ export function TodayView({
                       className="inline-flex cursor-pointer items-center gap-1.5 border-0 bg-transparent p-0 text-[13px] text-[var(--ink-2)] transition-colors hover:text-[var(--ink-1)]"
                     >
                       <Shuffle size={13} strokeWidth={1.7} />
-                      <span>换一题</span>
+                      <span>换一篇</span>
                     </button>
                   </Tooltip>
                 )}
@@ -593,149 +710,231 @@ export function TodayView({
                   className="inline-flex cursor-pointer items-center gap-1.5 border-0 bg-transparent p-0 text-[13px] text-[var(--ink-2)] transition-colors hover:text-[var(--growth)]"
                 >
                   <Check size={13} strokeWidth={2} />
-                  <span>{focalDone ? '取消完成' : '直接标为完成'}</span>
+                  <span>{focalDone ? '取消标记' : '顺手标为看过'}</span>
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* 中轴视觉呼吸走廊：在桌面端完全让给 Wave 银河、少女剪影与落日海面 */}
+        {/* 中轴视觉呼吸走廊：桌面端完全让位给 Wave 银河、少女剪影与落日海面 */}
         <div className="hidden lg:block" aria-hidden="true" />
 
-        {/* 右：克制的轻量化三时段排期（紧凑停靠，绝不抢占视野） */}
+        {/* 右：今日生活小记陪伴卡（一键喝水 + 今日状态贴纸 + 最近倒数日 + 轻时段清单） */}
         <div
+          ref={lifeCardGlassRef}
           className="v3-card flex flex-col gap-3.5 p-4 sm:p-5 lg:self-end"
-          aria-label="今日三时段任务排期"
+          aria-label="今日生活小记与时段清单"
         >
-          <div
-            className="grid grid-cols-3 gap-1 rounded-full border border-[var(--line)] bg-[var(--surface-plate)] p-1"
-            role="tablist"
-            aria-label="精力时段切换"
-          >
-            {energySlots.map((slot) => {
-              const slotItems = allTasks.filter((t) => t.slot === slot.band);
-              const doneItems = slotItems.filter((t) => plan.completedTaskIds.includes(t.id));
-              const isSelected = selectedBand === slot.band;
-              return (
-                <button
-                  key={slot.band}
-                  type="button"
-                  role="tab"
-                  aria-selected={isSelected}
-                  onClick={() => setSelectedBand(slot.band)}
-                  className={cn(
-                    'flex min-h-[34px] cursor-pointer items-center justify-center gap-1 rounded-full px-2 text-[12.5px] font-medium transition-colors',
-                    isSelected
-                      ? 'bg-[var(--accent-soft)] text-[var(--ink-1)]'
-                      : 'text-[var(--ink-3)] hover:text-[var(--ink-1)]'
-                  )}
-                >
-                  <span>{BAND_SHORT[slot.band]}</span>
-                  <span className="font-mono-num text-[11px] opacity-75">
-                    {doneItems.length}/{slotItems.length}
-                  </span>
-                </button>
-              );
-            })}
+          {/* 1. 一键喝水 + 今日心情 */}
+          <div className="space-y-2.5 border-b border-[var(--line)] pb-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="inline-flex items-center gap-1.5 text-[13px] text-[var(--ink-2)]">
+                <Droplets size={14} strokeWidth={1.8} className="text-[var(--growth)]" />
+                <span>
+                  喝水{' '}
+                  <strong
+                    data-testid="today-water-count"
+                    className="font-mono-num text-[var(--ink-1)]"
+                  >
+                    {waterCups}/{waterGoal}
+                  </strong>{' '}
+                  杯
+                </span>
+              </div>
+              <button
+                type="button"
+                data-sdf-pill=""
+                data-testid="today-water-plus-btn"
+                onClick={() => handleQuickWater(1)}
+                className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-[var(--growth-border)] bg-[var(--growth-soft)] px-2.5 py-1 text-[12px] font-semibold text-[var(--growth)] transition-transform active:scale-95"
+              >
+                +1 杯
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-1.5" role="group" aria-label="今日状态贴纸">
+              {MOOD_OPTIONS.map((m) => {
+                const active = todayMood === m.value;
+                return (
+                  <button
+                    key={m.value}
+                    type="button"
+                    data-sdf-pill=""
+                    data-testid={`today-mood-${m.value}`}
+                    aria-pressed={active}
+                    onClick={() => handleSelectMood(m.value)}
+                    className={cn(
+                      'min-h-[30px] cursor-pointer rounded-full border text-[12px] font-medium transition-colors',
+                      active
+                        ? 'border-[var(--dawn-border)] bg-[var(--dawn-soft)] text-[var(--ink-1)]'
+                        : 'border-[var(--line)] bg-[var(--surface-plate)] text-[var(--ink-3)] hover:text-[var(--ink-1)]'
+                    )}
+                  >
+                    {m.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="divide-y divide-[var(--line)]">
-            {selectedSlotTasks.map((task) => {
-              const isChecked = plan.completedTaskIds.includes(task.id);
-              const href = task.unitId
-                ? `#/unit/${encodeURIComponent(task.unitId)}`
-                : task.kind === 'retest_review'
-                  ? '#/review?tab=retest'
-                  : '#/review?tab=cards';
-              return (
-                <div
-                  key={task.id}
-                  className={cn(
-                    'flex items-center gap-2.5 py-2.5 first:pt-1 last:pb-0.5',
-                    isChecked && 'opacity-55'
-                  )}
-                >
+          {/* 2. 最近值得期待的日子 */}
+          {nearestCountdown && (
+            <button
+              type="button"
+              onClick={() => setRhythmDrawerOpen(true)}
+              className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-[11px] border border-[var(--line)] bg-[var(--surface-plate)] px-3 py-2 text-left transition-colors hover:border-[var(--dawn-border)]"
+            >
+              <span className="inline-flex min-w-0 items-center gap-1.5 text-[12.5px] text-[var(--ink-2)]">
+                <CalendarClock size={13} strokeWidth={1.7} className="shrink-0 text-[var(--dawn)]" />
+                <span className="truncate">{nearestCountdown.label}</span>
+              </span>
+              <span className="font-mono-num shrink-0 text-[12.5px] font-semibold text-[var(--dawn)]">
+                还有 {nearestCountdown.daysLeft} 天
+              </span>
+            </button>
+          )}
+
+          {/* 3. 轻量三时段小清单 */}
+          <div className="space-y-2.5">
+            <div
+              className="grid grid-cols-3 gap-1 rounded-full border border-[var(--line)] bg-[var(--surface-plate)] p-1"
+              role="tablist"
+              aria-label="时段切换"
+            >
+              {energySlots.map((slot) => {
+                const slotItems = allTasks.filter((t) => t.slot === slot.band);
+                const doneItems = slotItems.filter((t) => plan.completedTaskIds.includes(t.id));
+                const isSelected = selectedBand === slot.band;
+                return (
                   <button
+                    key={slot.band}
                     type="button"
-                    role="checkbox"
-                    aria-checked={isChecked}
-                    aria-label={`标记完成：${task.title}`}
-                    onClick={() => onToggleTask(task)}
+                    role="tab"
+                    data-sdf-pill=""
+                    aria-selected={isSelected}
+                    onClick={() => setSelectedBand(slot.band)}
                     className={cn(
-                      'flex h-[18px] w-[18px] shrink-0 cursor-pointer items-center justify-center rounded-[5px] border transition-colors',
-                      isChecked
-                        ? 'border-[var(--growth)] bg-[var(--growth)] text-[#081510]'
-                        : 'border-[var(--line-strong)] bg-transparent hover:border-[var(--accent)]'
+                      'flex min-h-[30px] cursor-pointer items-center justify-center gap-1 rounded-full px-1.5 text-[12px] font-medium transition-colors',
+                      isSelected
+                        ? 'bg-[var(--accent-soft)] text-[var(--ink-1)]'
+                        : 'text-[var(--ink-3)] hover:text-[var(--ink-1)]'
                     )}
                   >
-                    {isChecked && <Check size={11} strokeWidth={2.5} />}
+                    <span>{BAND_SHORT[slot.band]}</span>
+                    <span className="font-mono-num text-[10.5px] opacity-75">
+                      {doneItems.length}/{slotItems.length}
+                    </span>
                   </button>
+                );
+              })}
+            </div>
 
-                  <a
-                    href={href}
+            <div className="divide-y divide-[var(--line)]">
+              {selectedSlotTasks.map((task) => {
+                const isChecked = plan.completedTaskIds.includes(task.id);
+                const href = task.unitId
+                  ? `#/unit/${encodeURIComponent(task.unitId)}`
+                  : task.kind === 'retest_review'
+                    ? '#/review?tab=retest'
+                    : '#/review?tab=cards';
+                return (
+                  <div
+                    key={task.id}
                     className={cn(
-                      'min-w-0 flex-1 truncate text-[13.5px] font-medium text-[var(--ink-1)] no-underline hover:text-[var(--accent)]',
-                      isChecked && 'line-through'
+                      'flex items-center gap-2.5 py-2 first:pt-0.5 last:pb-0',
+                      isChecked && 'opacity-55'
                     )}
                   >
-                    {task.title}
-                  </a>
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={isChecked}
+                      aria-label={`标记完成：${task.title}`}
+                      onClick={() => onToggleTask(task)}
+                      className={cn(
+                        'flex h-[17px] w-[17px] shrink-0 cursor-pointer items-center justify-center rounded-[5px] border transition-colors',
+                        isChecked
+                          ? 'border-[var(--growth)] bg-[var(--growth)] text-[#081510]'
+                          : 'border-[var(--line-strong)] bg-transparent hover:border-[var(--accent)]'
+                      )}
+                    >
+                      {isChecked && <Check size={11} strokeWidth={2.5} />}
+                    </button>
 
-                  <span className="font-mono-num shrink-0 text-[11.5px] text-[var(--ink-3)]">
-                    {task.estimatedMinutes}m
-                  </span>
-                </div>
-              );
-            })}
+                    <a
+                      href={href}
+                      className={cn(
+                        'min-w-0 flex-1 truncate text-[13px] font-medium text-[var(--ink-1)] no-underline hover:text-[var(--accent)]',
+                        isChecked && 'line-through'
+                      )}
+                    >
+                      {task.title}
+                    </a>
+
+                    <span className="font-mono-num shrink-0 text-[11px] text-[var(--ink-3)]">
+                      {task.estimatedMinutes}m
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* 3. 底部单行清透信息丝带（把原本 3 张厚重大卡片收束成一条轻盈玻璃胶囊带） */}
+      {/* 3. 底部单行清透信息丝带 */}
       <footer
         className="v3-card flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-[20px] px-5 py-3.5"
         aria-label="今日轻量辅助条"
       >
-        {/* 每日一招：单行胶囊，点击在右侧抽屉细读 */}
-        <Tooltip content="点击在右侧抽屉阅读完整今日一招" side="top">
+        <Tooltip content="点击在右侧抽屉细看今日实用一招" side="top">
           <button
             type="button"
             onClick={() => setTipDrawerOpen(true)}
             className="flex min-w-0 max-w-full cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-left text-[13.5px] text-[var(--ink-1)] transition-colors hover:text-[var(--dawn)]"
           >
             <Lightbulb size={15} strokeWidth={1.7} className="shrink-0 text-[var(--dawn)]" />
-            <span className="shrink-0 text-[12px] text-[var(--ink-3)]">每日一招</span>
+            <span className="shrink-0 text-[12px] text-[var(--ink-3)]">生活一招</span>
             <span className="truncate font-medium">{dailyTip.title}</span>
           </button>
         </Tooltip>
 
-        {/* 右侧极简状态组：重测计数 + 7日点亮微光点 */}
         <div className="flex flex-wrap items-center gap-4 text-[13px]">
+          <a
+            href="#/events"
+            className="inline-flex items-center gap-1.5 text-[var(--ink-2)] no-underline transition-colors hover:text-[var(--dawn)]"
+          >
+            <MessageCircle size={14} strokeWidth={1.6} className="text-[var(--dawn)]" />
+            <span>遇事演练</span>
+          </a>
+
+          <span className="h-3.5 w-px bg-[var(--line)]" aria-hidden="true" />
+
           <a
             href="#/review?tab=retest"
             className="inline-flex items-center gap-1.5 text-[var(--ink-2)] no-underline transition-colors hover:text-[var(--ink-1)]"
           >
             <Layers size={14} strokeWidth={1.6} className="text-[var(--accent)]" />
             <span>
-              重测{' '}
+              温习{' '}
               <strong className="font-mono-num text-[var(--ink-1)]">
                 {retestQueue.dueItems.length}
               </strong>{' '}
-              到期
+              待看
             </span>
           </a>
 
           <span className="h-3.5 w-px bg-[var(--line)]" aria-hidden="true" />
 
-          <Tooltip content="点击打开 14 日足迹与生活打卡抽屉" side="top">
+          <Tooltip content="点击打开 14 日足迹与生活小记抽屉" side="top">
             <button
               type="button"
               onClick={() => setRhythmDrawerOpen(true)}
               className="inline-flex cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-[13px] text-[var(--ink-2)] hover:text-[var(--ink-1)]"
             >
               <span>
-                点亮{' '}
+                足迹{' '}
                 <strong className="font-mono-num text-[var(--ink-1)]">
                   {continuity.totalActiveDays}
                 </strong>{' '}

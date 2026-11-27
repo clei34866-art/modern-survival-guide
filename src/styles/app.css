@@ -252,8 +252,104 @@ input[type='range'] {
   background: var(--veil-wall);
 }
 
-.wave-backdrop-root.is-pure-view .wave-veil {
+.wave-backdrop-root.is-pure-view .wave-veil,
+.wave-backdrop-root.is-pure-view .wave-diffuse-mesh {
   opacity: 0;
+}
+
+/* 有机多极弥散渐变层（Ambient Diffuse Mesh Gradient）：为玻璃折射与边缘色散提供柔和色彩漫射 */
+.wave-diffuse-mesh {
+  overflow: hidden;
+  transition: opacity 500ms var(--ease-ui);
+  mix-blend-mode: screen;
+  opacity: 0.68;
+}
+
+[data-theme='light'] .wave-diffuse-mesh {
+  mix-blend-mode: soft-light;
+  opacity: 0.78;
+}
+
+.diffuse-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(84px);
+  will-change: transform, opacity;
+}
+
+.diffuse-orb-peach {
+  left: -8%;
+  bottom: 4%;
+  width: 44vw;
+  height: 44vw;
+  max-width: 620px;
+  max-height: 620px;
+  background: radial-gradient(
+    circle at 45% 45%,
+    rgba(248, 178, 146, 0.34) 0%,
+    rgba(242, 142, 168, 0.16) 44%,
+    transparent 74%
+  );
+  animation: diffuseFloatA 16s ease-in-out infinite alternate;
+}
+
+.diffuse-orb-sky {
+  right: -6%;
+  top: 4%;
+  width: 42vw;
+  height: 42vw;
+  max-width: 580px;
+  max-height: 580px;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(104, 168, 255, 0.32) 0%,
+    rgba(168, 142, 255, 0.18) 48%,
+    transparent 76%
+  );
+  animation: diffuseFloatB 20s ease-in-out infinite alternate;
+}
+
+.diffuse-orb-aqua {
+  right: 12%;
+  bottom: -6%;
+  width: 34vw;
+  height: 34vw;
+  max-width: 460px;
+  max-height: 460px;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(94, 234, 212, 0.24) 0%,
+    rgba(102, 186, 255, 0.12) 52%,
+    transparent 78%
+  );
+  animation: diffuseFloatC 18s ease-in-out infinite alternate;
+}
+
+@keyframes diffuseFloatA {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(3.5vw, -3vh, 0) scale(1.08);
+  }
+}
+
+@keyframes diffuseFloatB {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(-3vw, 3.5vh, 0) scale(1.06);
+  }
+}
+
+@keyframes diffuseFloatC {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.96);
+  }
+  100% {
+    transform: translate3d(-2.5vw, -2.5vh, 0) scale(1.1);
+  }
 }
 
 @keyframes waveHorizonPulse {
@@ -314,7 +410,7 @@ input[type='range'] {
   z-index: 1;
 }
 
-/* 1px 定向高光环（由 --glass-light 统一驱动：暖霞迎光边 + 星海背光边） */
+/* 1px 棱镜折射色散高光环（由 --glass-light 驱动：暖霞迎光 -> 柔和薰衣草 -> 冰青 -> 星海背光） */
 .v3-card::before,
 .glass-dock::before {
   content: '';
@@ -326,10 +422,10 @@ input[type='range'] {
   pointer-events: none;
   background: linear-gradient(
     var(--glass-light),
-    rgb(var(--glass-rim-near) / 0.52) 0%,
-    rgb(var(--glass-rim-near) / 0.16) 32%,
-    rgb(var(--glass-rim-far) / 0.08) 64%,
-    rgb(var(--glass-rim-far) / 0.34) 100%
+    rgb(var(--glass-rim-near) / 0.58) 0%,
+    rgba(246, 178, 224, 0.30) 24%,
+    rgba(116, 238, 222, 0.24) 56%,
+    rgb(var(--glass-rim-far) / 0.44) 100%
   );
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
@@ -337,7 +433,7 @@ input[type='range'] {
   mask-composite: exclude;
 }
 
-/* 柔和定向迎光光泽 */
+/* 柔和迎光光泽 + 内部双极弥散漫射 */
 .v3-card::after {
   content: '';
   position: absolute;
@@ -345,11 +441,41 @@ input[type='range'] {
   z-index: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(
-    var(--glass-light),
-    rgb(var(--glass-rim-near) / var(--glass-sheen)) 0%,
-    rgb(var(--glass-rim-near) / 0) 48%
-  );
+  background:
+    radial-gradient(
+      68% 54% at 10% 4%,
+      rgba(255, 214, 188, 0.14) 0%,
+      transparent 72%
+    ),
+    radial-gradient(
+      64% 52% at 92% 96%,
+      rgba(104, 198, 255, 0.12) 0%,
+      transparent 74%
+    ),
+    linear-gradient(
+      var(--glass-light),
+      rgb(var(--glass-rim-near) / var(--glass-sheen)) 0%,
+      rgb(var(--glass-rim-near) / 0) 48%
+    );
+}
+
+[data-theme='light'] .v3-card::after {
+  background:
+    radial-gradient(
+      68% 54% at 10% 4%,
+      rgba(255, 222, 198, 0.30) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      64% 52% at 92% 96%,
+      rgba(164, 214, 255, 0.22) 0%,
+      transparent 74%
+    ),
+    linear-gradient(
+      var(--glass-light),
+      rgb(var(--glass-rim-near) / var(--glass-sheen)) 0%,
+      rgb(var(--glass-rim-near) / 0) 48%
+    );
 }
 
 /* 单元专注阅读态略微稳固滤镜但仍保持清透 */

@@ -39,6 +39,16 @@ interface StatusWallViewProps {
   onTelemetryChange?: (next: TelemetrySnapshot) => void;
 }
 
+const WALL_BRANCH_SHORT: Record<string, string> = {
+  B1: 'AI与软件',
+  B2: '财经',
+  B3: '心理',
+  B4: '健康',
+  B5: '表达职业',
+  B6: '学习精力',
+  B7: '生活自保',
+};
+
 function formatClock(date: Date): string {
   const hh = String(date.getHours()).padStart(2, '0');
   const mm = String(date.getMinutes()).padStart(2, '0');
@@ -683,14 +693,25 @@ export function StatusWallView({
           transition: 'opacity 280ms ease',
         }}
       >
-        {/* [1] 今日总览 */}
-        <section className="wall-panel wall-panel-today" aria-label="今日总览">
+        {/* [1] 今日时光与天气 */}
+        <section className="wall-panel wall-panel-today" aria-label="今日时光与天气">
           <div className="wall-panel-head">
             <h2 className="wall-panel-title">
               <span className="wall-dot" />
-              今日总览
+              今日时光
             </h2>
-            <span className="wall-tag">{vm.weather}</span>
+            <div className="wall-head-actions">
+              {vm.lifeBlock.todayMood && (
+                <span className="wall-tag wall-tag-mood">
+                  {vm.lifeBlock.todayMood === 'relaxed'
+                    ? '松弛'
+                    : vm.lifeBlock.todayMood === 'focused'
+                      ? '充实'
+                      : '慢一点'}
+                </span>
+              )}
+              <span className="wall-tag">{vm.weather}</span>
+            </div>
           </div>
 
           <div className="wall-today-hero">
@@ -698,7 +719,7 @@ export function StatusWallView({
               <div className="wall-clock">{formatClock(now)}</div>
               <div className="wall-date-weather">{formatDateLabel(now)}</div>
             </div>
-            <Tooltip content={`今日已完成 ${vm.learning.todayPercent}%`} side="top">
+            <Tooltip content={`今日小事已完成 ${vm.learning.todayPercent}%`} side="top">
               <div className="wall-ring-wrap">
                 <svg width="84" height="84" viewBox="0 0 84 84">
                   <circle
@@ -733,7 +754,7 @@ export function StatusWallView({
                     {vm.learning.todayDone}/{vm.learning.todayTotal}
                   </text>
                   <text x="42" y="55" textAnchor="middle" fontSize="10" fill="#c6d7f0">
-                    今日进度
+                    今日小事
                   </text>
                 </svg>
               </div>
@@ -750,12 +771,40 @@ export function StatusWallView({
           </ul>
         </section>
 
-        {/* [3] 生存指南学习块 */}
-        <section className="wall-panel wall-panel-learning" aria-label="生存指南学习块">
+        {/* [2] 吉光片羽与待看片单（居中书桌生活主画框） */}
+        <section className="wall-panel wall-panel-content" aria-label="今日吉光与生活一招">
+          <div className="wall-panel-head">
+            <h2 className="wall-panel-title">
+              <span className="wall-dot" style={{ background: 'var(--wall-amber)' }} />
+              吉光片羽与书桌片单
+            </h2>
+            <span className="wall-tag">{vm.contentBlock.sourceLabel}</span>
+          </div>
+          <div className="wall-quote-body">
+            <p className="wall-quote-text" style={{ fontSize: '21px' }}>
+              「{vm.contentBlock.quote}」
+            </p>
+            <div className="wall-kpi-sub" style={{ marginTop: '10px' }}>
+              — {vm.contentBlock.quoteSource}
+            </div>
+          </div>
+          <div className="wall-weakness-box" style={{ marginBottom: '10px' }}>
+            <div className="wall-tip-inline">
+              <span className="wall-tip-tag">每日一招</span>
+              <span className="wall-tip-title">{vm.learning.dailyTipTitle}</span>
+            </div>
+          </div>
+          <div className="wall-movie-foot" style={{ marginTop: 0 }}>
+            近期想看：{vm.contentBlock.movie}
+          </div>
+        </section>
+
+        {/* [3] 生活技能轻览（收轻至中下位，保留全部 7 分支与 B1 专项切换） */}
+        <section className="wall-panel wall-panel-learning" aria-label="生活技能轻览">
           <div className="wall-panel-head">
             <h2 className="wall-panel-title">
               <span className="wall-dot" />
-              生存指南学习块
+              成长与技能轻览
             </h2>
             <div className="wall-head-actions">
               <span
@@ -774,7 +823,6 @@ export function StatusWallView({
 
           <div className="wall-learning-body">
             <div className="wall-tree-summary-col">
-              <div className="wall-kpi-sub">七分支技能星图</div>
               <SkillAtlasSvg
                 content={content}
                 telemetry={telemetry}
@@ -784,10 +832,7 @@ export function StatusWallView({
               <div className="wall-tree-metrics">
                 <div className="wall-big-kpi font-mono-num">{vm.learning.activeDaysTotal}</div>
                 <div className="wall-kpi-sub">
-                  累计点亮（连学 {vm.learning.consecutiveDays} 天）
-                </div>
-                <div className="wall-dual-mini font-mono-num">
-                  AI {vm.b1Kanban.aiLineMinutes}m · 软件 {vm.b1Kanban.softwareLineMinutes}m
+                  累计足迹（连着 {vm.learning.consecutiveDays} 天）
                 </div>
               </div>
             </div>
@@ -797,9 +842,9 @@ export function StatusWallView({
                 {vm.learning.branchProgress.map((bp) => (
                   <div className="wall-bar-row" key={bp.id}>
                     <span className="wall-bar-name">
-                      {bp.id} {bp.name.slice(0, 2)}
+                      {WALL_BRANCH_SHORT[bp.id] ?? bp.name.slice(0, 4)}
                     </span>
-                    <div className="wall-bar-track is-thick">
+                    <div className="wall-bar-track">
                       <div
                         className="wall-bar-fill"
                         style={{
@@ -812,37 +857,19 @@ export function StatusWallView({
                   </div>
                 ))}
               </div>
-
-              <div className="wall-weakness-box">
-                <div className="wall-tip-inline">
-                  <span className="wall-tip-tag">每日一招</span>
-                  <span className="wall-tip-title">{vm.learning.dailyTipTitle}</span>
-                </div>
-                <div className="wall-weakness-items">
-                  {vm.learning.weaknessTop5.length === 0 ? (
-                    <span className="wall-kpi-sub">暂无错题积压 · 今日状态稳健</span>
-                  ) : (
-                    vm.learning.weaknessTop5.slice(0, 3).map((w) => (
-                      <span className="wall-weak-chip" key={w.label}>
-                        {w.branchId} · {w.label}
-                      </span>
-                    ))
-                  )}
-                </div>
-              </div>
             </div>
           </div>
         </section>
 
-        {/* [2] 关键节点倒计时块 */}
-        <section className="wall-panel wall-panel-countdown" aria-label="关键节点倒计时">
+        {/* [4] 重要日子倒数 */}
+        <section className="wall-panel wall-panel-countdown" aria-label="重要日子倒数">
           <div className="wall-panel-head">
             <h2 className="wall-panel-title">
               <span className="wall-dot" style={{ background: 'var(--wall-amber)' }} />
-              关键节点
+              重要日子
             </h2>
             <span className="wall-tag">
-              {personal?.countdowns && personal.countdowns.length > 0 ? '个人节点' : '倒计时'}
+              {personal?.countdowns && personal.countdowns.length > 0 ? '我的日子' : '倒数日'}
             </span>
           </div>
           <div className="wall-countdown-stack">
@@ -878,12 +905,12 @@ export function StatusWallView({
           </div>
         </section>
 
-        {/* [4] 生活节律与实验（支持大屏一键 +1 喝水打卡） */}
-        <section className="wall-panel wall-panel-life" aria-label="生活节律与实验">
+        {/* [5] 身体照顾与日常小挑战（支持大屏一键 +1 喝水打卡） */}
+        <section className="wall-panel wall-panel-life" aria-label="身体照顾与日常节律">
           <div className="wall-panel-head">
             <h2 className="wall-panel-title">
               <span className="wall-dot" />
-              生活节律与实验
+              身体照顾与小挑战
             </h2>
             <span
               data-testid="wall-life-source-tag"
@@ -894,16 +921,8 @@ export function StatusWallView({
           </div>
           <div className="wall-life-grid-2x2">
             <div className="wall-micro-tile">
-              <span className="wall-micro-label">跑步习惯</span>
-              <strong className="wall-micro-val">{vm.lifeBlock.running}</strong>
-            </div>
-            <div className="wall-micro-tile">
-              <span className="wall-micro-label">睡眠复盘</span>
-              <strong className="wall-micro-val">{vm.lifeBlock.sleep}</strong>
-            </div>
-            <div className="wall-micro-tile">
               <div className="flex items-center justify-between gap-2">
-                <span className="wall-micro-label">饮水节律</span>
+                <span className="wall-micro-label">今日喝水</span>
                 <Tooltip content="顺手记一杯水，实时同步周报" side="top">
                   <button
                     type="button"
@@ -919,45 +938,45 @@ export function StatusWallView({
                 {vm.lifeBlock.water}
               </strong>
             </div>
+            <div className="wall-micro-tile">
+              <span className="wall-micro-label">睡眠照顾</span>
+              <strong className="wall-micro-val">{vm.lifeBlock.sleep}</strong>
+            </div>
+            <div className="wall-micro-tile">
+              <span className="wall-micro-label">本周运动</span>
+              <strong className="wall-micro-val">{vm.lifeBlock.running}</strong>
+            </div>
             <div className="wall-micro-tile is-accent-tile">
-              <span className="wall-micro-label">月度生活实验</span>
+              <span className="wall-micro-label">日常小挑战</span>
               <strong className="wall-micro-val">{vm.lifeBlock.experimentLine}</strong>
             </div>
           </div>
         </section>
 
-        {/* [6] 服务与数据状态 */}
-        <section className="wall-panel wall-panel-status" aria-label="服务与数据状态">
+        {/* [6] 书桌状态与同步 */}
+        <section className="wall-panel wall-panel-status" aria-label="书桌状态与同步">
           <div className="wall-panel-head">
-            <h2 className="wall-panel-title">服务与数据状态</h2>
+            <h2 className="wall-panel-title">书桌状态</h2>
             <span className="wall-tag">
               {autoRotateSeconds > 0
                 ? `每 ${autoRotateSeconds}s 轮播`
-                : `每 ${content.wallConfig.refreshIntervalSeconds}s 刷新`}
+                : `本机常亮`}
             </span>
           </div>
           <div className="wall-status-two-col">
             <div className="wall-micro-tile">
-              <span className="wall-micro-label">服务器运行态</span>
-              <strong className="wall-micro-val">{vm.statusBlock.serverExpiry}</strong>
+              <span className="wall-micro-label">云端续期</span>
+              <strong className="wall-micro-val" style={{ fontSize: '14px' }}>
+                {vm.statusBlock.serverExpiry}
+              </strong>
             </div>
             <div className="wall-micro-tile">
-              <span className="wall-micro-label">本地数据通道</span>
-              <strong className="wall-micro-val">{vm.statusBlock.cloudSync}</strong>
+              <span className="wall-micro-label">数据同步</span>
+              <strong className="wall-micro-val" style={{ fontSize: '14px' }}>
+                {vm.statusBlock.cloudSync}
+              </strong>
             </div>
           </div>
-        </section>
-
-        {/* [5] 今日吉光 */}
-        <section className="wall-panel wall-panel-content" aria-label="今日吉光">
-          <div className="wall-panel-head">
-            <h2 className="wall-panel-title">今日吉光</h2>
-            <span className="wall-tag">{vm.contentBlock.sourceLabel}</span>
-          </div>
-          <div className="wall-quote-body">
-            <p className="wall-quote-text">{vm.contentBlock.quote}</p>
-          </div>
-          <div className="wall-movie-foot">{vm.contentBlock.movie}</div>
         </section>
       </div>
 

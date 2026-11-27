@@ -20,9 +20,12 @@ import {
   UnitVisualFrame,
 } from '@/components/ComplianceBadges';
 import { useGlossaryDrawer } from '@/components/GlossaryDrawer';
+import { LifeScenarioSim } from '@/components/LifeScenarioSim';
+import { LifeToolsSandbox, type LifeToolKey } from '@/components/LifeToolsSandbox';
 import { RichText } from '@/components/RichText';
 import { AlertBanner, Drawer, Popconfirm, Tooltip } from '@/components/ui/overlays';
 import { Badge, Button, Card } from '@/components/ui/primitives';
+import { getScenarioByUnitId } from '@/data/lifeScenarios';
 import type { PlatformContentBundle } from '@/core/contentLoader';
 import {
   recordActionSubmission,
@@ -52,6 +55,13 @@ interface UnitPlayerViewProps {
   onBackToBranches: (branchId: LearningUnit['branchId']) => void;
   onOpenUnit: (unitId: string) => void;
 }
+
+const UNIT_LIVE_SANDBOX_MAP: Partial<Record<string, LifeToolKey>> = {
+  'unit-b4-sleep': 'sleep',
+  'unit-b2-investing': 'compound',
+  'unit-b3-decision': 'compound',
+  'unit-b5-writing': 'message',
+};
 
 const STEP_META = [
   { num: 1, short: '场景', full: '场景开场' },
@@ -657,7 +667,7 @@ export function UnitPlayerView({
           </Card>
         )}
 
-        {/* 第 3 步：简明双栏（左吸顶动图沙盒 + 右精排原理拆解；溯源/出处/划重点优雅收纳进右侧抽屉） */}
+        {/* 第 3 步：简明双栏（左吸顶动图沙盒 + 配套生活小算盘 + 右精排原理拆解） */}
         {step === 3 && (
           <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1.22fr)_minmax(0,1fr)]">
             <div className="space-y-4 lg:sticky lg:top-[76px]">
@@ -666,6 +676,11 @@ export function UnitPlayerView({
                 activeStep={diagramStep}
                 onStepChange={setDiagramStep}
               />
+              {UNIT_LIVE_SANDBOX_MAP[unit.id] && (
+                <Card className="p-4">
+                  <LifeToolsSandbox mode={UNIT_LIVE_SANDBOX_MAP[unit.id]} compact />
+                </Card>
+              )}
             </div>
 
             <div className="space-y-4">
@@ -938,20 +953,33 @@ export function UnitPlayerView({
           </Card>
         )}
 
-        {/* 第 5 步：自测 */}
+        {/* 第 5 步：真实情景演练 + 提取自测 */}
         {step === 5 && (
           <Card className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-2.5">
               <div className="flex flex-wrap items-center gap-2.5">
                 <Badge tone="accent">第 5 步 · 提取自测</Badge>
                 <span className="text-[13px] text-[var(--ink-3)]">
-                  达标线 {Math.round(unit.quiz.passRatio * 100)}%，错题自动排入 1/3/7 天重测
+                  达标线 {Math.round(unit.quiz.passRatio * 100)}%，拿不准的题会自动收进温习本
                 </span>
               </div>
               <Button size="sm" variant="subtle" onClick={() => openStudyDrawer('notes')}>
                 边对照划重点
               </Button>
             </div>
+
+            {(() => {
+              const linkedScenario = getScenarioByUnitId(unit.id);
+              if (!linkedScenario) return null;
+              return (
+                <div className="space-y-2">
+                  <div className="text-[13px] font-semibold text-[var(--dawn)]">
+                    先在真实生活情景里演练一局
+                  </div>
+                  <LifeScenarioSim scenario={linkedScenario} />
+                </div>
+              );
+            })()}
 
             <div className="space-y-6">
               {unit.quiz.questions.map((q, qIdx) => {

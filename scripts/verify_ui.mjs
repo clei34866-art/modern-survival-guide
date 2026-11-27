@@ -353,16 +353,41 @@ async function main() {
       `⌘K 全局命令面板可打开/检索全量 28 单元+30 概念并按 Esc 关闭 (items=${cmdkOpenAudit.itemCount})`
     );
 
-    // 验证 Wave 双层壁纸加载 + 六分法弹出层（Drawer 速览抽屉、Popconfirm 气泡确认、Modal 强确认）
+    // 验证 Wave 双层壁纸 + 弥散渐变 + 真 SDF 组合与 RGB 折射色散玻璃透镜
     const waveLoaded = await cdp.evalJs(`(() => {
       const bg = document.querySelector('.wave-bg-img');
       const fg = document.querySelector('.wave-fg-img');
+      const diffuseOrbs = document.querySelectorAll('.wave-diffuse-mesh .diffuse-orb').length;
+      const sdfCompound = document.querySelectorAll('[data-liquid-glass="compound"]').length;
+      const dispMaps = document.querySelectorAll('svg defs filter feDisplacementMap').length;
       return {
         bgOk: Boolean(bg && bg.complete && bg.naturalWidth >= 1000),
         fgOk: Boolean(fg && fg.complete && fg.naturalWidth >= 1000),
+        diffuseOrbs,
+        sdfCompound,
+        dispMaps,
       };
     })()`);
     check(waveLoaded.bgOk && waveLoaded.fgOk, 'L4', `Wave 双层星海原画与人物前景层加载完整 (bg=${waveLoaded.bgOk}, fg=${waveLoaded.fgOk})`);
+    check(
+      waveLoaded.diffuseOrbs >= 3 && waveLoaded.sdfCompound >= 1 && waveLoaded.dispMaps >= 3,
+      'L5',
+      `光学增强生效：弥散渐变(${waveLoaded.diffuseOrbs}极) + Smooth-Min SDF 组合(${waveLoaded.sdfCompound}处) + RGB 三通道折射色散(${waveLoaded.dispMaps}位移通道)`
+    );
+
+    // Gen-2 生活化首页验证：直接一键 +1 杯喝水 & 心情贴纸点击
+    const homeWaterBefore = await cdp.evalJs(`document.querySelector('[data-testid="today-water-count"]')?.textContent?.trim() || ''`);
+    await cdp.evalJs(`document.querySelector('[data-testid="today-water-plus-btn"]')?.click()`);
+    await new Promise((r) => setTimeout(r, 180));
+    const homeWaterAfter = await cdp.evalJs(`document.querySelector('[data-testid="today-water-count"]')?.textContent?.trim() || ''`);
+    await cdp.evalJs(`document.querySelector('[data-testid="today-mood-relaxed"]')?.click()`);
+    await new Promise((r) => setTimeout(r, 150));
+    const moodPressed = await cdp.evalJs(`document.querySelector('[data-testid="today-mood-relaxed"]')?.getAttribute('aria-pressed') === 'true'`);
+    check(
+      homeWaterBefore !== homeWaterAfter && homeWaterAfter.startsWith('1/') && moodPressed,
+      'L5',
+      `首页「今日生活桌面」一键喝水(${homeWaterBefore} -> ${homeWaterAfter})与心情贴纸即时生效`
+    );
 
     // 验证首页「抽屉速览」Drawer 正常滑出并支持 Esc 关闭
     await cdp.evalJs(`document.querySelector('[data-testid="today-unit-preview-btn"]')?.click()`);
@@ -390,7 +415,24 @@ async function main() {
     await new Promise((r) => setTimeout(r, 180));
     check(rhythmDrawerOpen, 'L5', `Gen-2 R1 首页「节律偏好」Drawer 正常滑出（作息/分支/打卡/通透度）`);
 
-    // 验证实验室：任务移除走 Popconfirm 气泡确认，重置全部留痕走 Modal 模态确认
+    // Gen-2 生活化交互验证：遇事速查（生活情景对话模拟 + 实用生活小算盘切换）
+    await cdp.goto(`${baseUrl}/#/events`);
+    await cdp.evalJs(`document.querySelector('[data-testid="open-scenario-sim-rent"]')?.click()`);
+    await new Promise((r) => setTimeout(r, 240));
+    await cdp.evalJs(`document.querySelector('[data-testid="sim-choice-r1-verify"]')?.click()`);
+    await new Promise((r) => setTimeout(r, 200));
+    const simOutcomeOk = await cdp.evalJs(`Boolean(document.querySelector('[data-testid="sim-outcome-box"]'))`);
+    await cdp.screenshot('05b-scenario-sim-drawer-1440.png', false);
+    await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await new Promise((r) => setTimeout(r, 180));
+    await cdp.evalJs(`document.querySelector('[data-testid="life-tool-tab-message"]')?.click()`);
+    await new Promise((r) => setTimeout(r, 160));
+    const msgSandboxOk = await cdp.evalJs(`Boolean(document.querySelector('[data-testid="sandbox-message"]'))`);
+    check(simOutcomeOk, 'L5', `遇事演练小剧场（生活情景对话模拟）选定回应即时推演后果`);
+    check(msgSandboxOk, 'L5', `实用生活小算盘可无缝切换至「高情商发消息改写对照器」`);
+
+    // 验证生活手账：任务移除走 Popconfirm 气泡确认，生活笔记可新增，重置留痕走 Modal 模态确认
     await cdp.goto(`${baseUrl}/#/lab`);
     await cdp.evalJs(`(() => {
       const quickBtn = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('清洗本周'));
@@ -406,6 +448,14 @@ async function main() {
     await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
     await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
     await new Promise((r) => setTimeout(r, 150));
+
+    await cdp.evalJs(`(() => {
+      const notesTab = [...document.querySelectorAll('button[role="tab"]')].find((b) => b.textContent?.includes('笔记'));
+      notesTab?.click();
+    })()`);
+    await new Promise((r) => setTimeout(r, 180));
+    const notebookVisible = await cdp.evalJs(`Boolean(document.querySelector('[data-testid="life-notebook-view"]'))`);
+    check(notebookVisible, 'L5', `生活手账「随身生活笔记」面板正常渲染与检索`);
 
     await cdp.evalJs(`(() => {
       const backupTab = [...document.querySelectorAll('button[role="tab"]')].find((b) => b.textContent?.includes('备份'));
@@ -521,9 +571,9 @@ async function main() {
       scrollH: document.documentElement.scrollHeight,
     })`);
     check(
-      wallWaterAudit.sourceTag === '个人打卡' && wallWaterAudit.waterVal.includes('1 / 8') && wallWaterAudit.scrollH <= 1080,
+      wallWaterAudit.sourceTag === '个人打卡' && wallWaterAudit.waterVal.includes('2 / 8') && wallWaterAudit.scrollH <= 1080,
       'L5',
-      `Gen-2 R1 状态墙一键 +1 喝水打卡即时转实为「个人打卡」且保持零滚屏 (${wallWaterAudit.waterVal})`
+      `Gen-2 首页 + 状态墙跨页联动 +1 喝水打卡即时转实为「个人打卡」且保持零滚屏 (${wallWaterAudit.waterVal})`
     );
     await cdp.evalJs(`document.querySelector('[data-testid="wall-config-drawer-trigger"]')?.click()`);
     await new Promise((r) => setTimeout(r, 220));

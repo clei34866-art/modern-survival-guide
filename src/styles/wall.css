@@ -88,18 +88,18 @@
 }
 
 .wall-panel-today { grid-column: 1 / span 4; grid-row: 1 / span 3; }
-.wall-panel-learning { grid-column: 5 / span 5; grid-row: 1 / span 4; }
-.wall-panel-countdown { grid-column: 10 / span 3; grid-row: 1 / span 3; }
 .wall-panel-life { grid-column: 1 / span 4; grid-row: 4 / span 3; }
-.wall-panel-status { grid-column: 5 / span 5; grid-row: 5 / span 2; }
-.wall-panel-content { grid-column: 10 / span 3; grid-row: 4 / span 3; }
+.wall-panel-content { grid-column: 5 / span 5; grid-row: 1 / span 3; }
+.wall-panel-learning { grid-column: 5 / span 5; grid-row: 4 / span 3; }
+.wall-panel-countdown { grid-column: 10 / span 3; grid-row: 1 / span 4; }
+.wall-panel-status { grid-column: 10 / span 3; grid-row: 5 / span 2; }
 
 .wall-panel {
   position: relative;
   isolation: isolate;
   background: var(--wall-surface);
-  -webkit-backdrop-filter: blur(16px) saturate(1.68) brightness(1.06);
-  backdrop-filter: blur(16px) saturate(1.68) brightness(1.06);
+  -webkit-backdrop-filter: blur(16px) saturate(1.72) brightness(1.06);
+  backdrop-filter: blur(16px) saturate(1.72) brightness(1.06);
   border: 1px solid transparent;
   border-radius: 18px;
   padding: 16px 18px;
@@ -127,15 +127,27 @@
   pointer-events: none;
   background: linear-gradient(
     144deg,
-    rgba(255, 230, 212, 0.50) 0%,
-    rgba(255, 230, 212, 0.14) 34%,
-    rgba(148, 202, 255, 0.08) 65%,
-    rgba(148, 202, 255, 0.32) 100%
+    rgba(255, 224, 202, 0.56) 0%,
+    rgba(244, 178, 226, 0.28) 28%,
+    rgba(116, 238, 222, 0.22) 62%,
+    rgba(148, 202, 255, 0.40) 100%
   );
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   mask-composite: exclude;
+}
+
+.wall-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(64% 52% at 8% 6%, rgba(255, 212, 184, 0.12) 0%, transparent 72%),
+    radial-gradient(60% 50% at 92% 94%, rgba(94, 214, 255, 0.10) 0%, transparent 74%);
 }
 
 .wall-panel-head {
@@ -195,6 +207,12 @@
   background: rgba(245, 184, 154, 0.16);
   border-color: rgba(245, 184, 154, 0.42);
   color: var(--wall-amber);
+}
+
+.wall-tag-mood {
+  background: rgba(245, 184, 154, 0.18);
+  border-color: rgba(245, 184, 154, 0.44);
+  color: #ffe3d1;
 }
 
 .wall-btn {
@@ -298,15 +316,15 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 230px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: 184px minmax(0, 1fr);
+  gap: 14px;
 }
 
 .wall-tree-summary-col {
   background: var(--wall-surface-2);
   border: 1px solid var(--wall-border);
   border-radius: 13px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -323,19 +341,19 @@
 
 .skill-tree-wall-box svg {
   width: 100%;
-  max-height: 230px;
+  max-height: 152px;
   height: auto;
   display: block;
 }
 
 .wall-tree-metrics {
-  padding-top: 10px;
+  padding-top: 8px;
   border-top: 1px solid var(--wall-border);
 }
 
 .wall-big-kpi {
   font-family: var(--font-mono);
-  font-size: 36px;
+  font-size: 28px;
   font-weight: 600;
   line-height: 1.05;
   color: var(--wall-green);

@@ -43,6 +43,7 @@ import type { BranchId, LearningUnit, ScheduledTaskItem, TelemetrySnapshot } fro
 import { BranchesView } from '@/views/BranchesView';
 import { EventPacksView } from '@/views/EventPacksView';
 import { LifeLabWeeklyView } from '@/views/LifeLabWeeklyView';
+import { LifeNotebookView } from '@/views/LifeNotebookView';
 import { ReviewDeckView } from '@/views/ReviewDeckView';
 import { StatusWallView } from '@/views/StatusWallView';
 import { TaskPoolView } from '@/views/TaskPoolView';
@@ -110,11 +111,11 @@ function formatMinutes(ms: number): string {
 }
 
 const NAV_ITEMS = [
-  { key: 'today', label: '今日主线', short: '今天', href: '#/', icon: Sparkles },
-  { key: 'branches', label: '技能星图', short: '星图', href: '#/branches', icon: Compass },
-  { key: 'review', label: '刷卡重测', short: '重测', href: '#/review?tab=retest', icon: Layers },
-  { key: 'events', label: '事件包', short: '事件', href: '#/events', icon: Briefcase },
-  { key: 'lab', label: '实验室', short: '实验', href: '#/lab', icon: FlaskConical },
+  { key: 'today', label: '今天', short: '今天', href: '#/', icon: Sparkles },
+  { key: 'branches', label: '生活技能', short: '技能', href: '#/branches', icon: Compass },
+  { key: 'review', label: '温习本', short: '温习', href: '#/review?tab=retest', icon: Layers },
+  { key: 'events', label: '遇事速查', short: '速查', href: '#/events', icon: Briefcase },
+  { key: 'lab', label: '生活手账', short: '手账', href: '#/lab', icon: FlaskConical },
 ] as const;
 
 export function App() {
@@ -140,21 +141,22 @@ export function App() {
   const [backupPreview, setBackupPreview] = useState<string>('');
   const [resetModalOpen, setResetModalOpen] = useState<boolean>(false);
   const [importModalOpen, setImportModalOpen] = useState<boolean>(false);
-  const [labTab, setLabTab] = useState<'pool' | 'experiment' | 'weekly' | 'backup'>('pool');
+  const [labTab, setLabTab] = useState<'pool' | 'experiment' | 'notes' | 'weekly' | 'backup'>('pool');
 
   // 共享学习内容速览 Drawer
   const [previewUnit, setPreviewUnit] = useState<LearningUnit | null>(null);
 
-  // Chromium 悬浮导航胶囊 SVG 液态玻璃折射
+  // Chromium 悬浮导航胶囊：真 2D Smooth-Min SDF 组合 + RGB 三通道棱镜折射色散
   const navPillRef = useLiquidGlass<HTMLElement>({
     enabled: route.page !== 'wall' && route.page !== 'unit',
-    scale: -24,
-    chroma: 2,
-    border: 0.14,
-    mapBlur: 8,
-    blur: 10,
-    saturate: 1.75,
-    maxWidth: 680,
+    sdfMode: 'compound',
+    scale: -26,
+    chroma: 4.8,
+    border: 0.16,
+    blur: 11,
+    saturate: 1.82,
+    brightness: 1.07,
+    maxWidth: 700,
   });
 
   useEffect(() => {
@@ -602,6 +604,7 @@ export function App() {
                   <a
                     key={item.key}
                     href={item.href}
+                    data-sdf-pill=""
                     aria-current={isActive ? 'page' : undefined}
                     className={cn(
                       'relative inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[12.5px] font-medium whitespace-nowrap no-underline transition-colors lg:gap-1.5 lg:px-3.5 lg:text-[13.5px]',
@@ -642,7 +645,7 @@ export function App() {
                   className="inline-flex h-[36px] max-[480px]:h-[44px] cursor-pointer items-center gap-1.5 rounded-full border border-[var(--line-strong)] bg-[var(--surface-plate)] px-2.5 text-[13px] text-[var(--ink-2)] transition-colors hover:border-[var(--accent-border)] hover:text-[var(--ink-1)] lg:px-3"
                 >
                   <Search size={14} strokeWidth={1.6} />
-                  <span className="hidden xl:inline">检索</span>
+                  <span className="hidden xl:inline">搜索</span>
                   <kbd className="font-mono-num hidden rounded border border-[var(--line)] px-1.5 py-0.2 text-[11px] text-[var(--ink-3)] lg:inline">
                     ⌘K
                   </kbd>
@@ -763,24 +766,25 @@ export function App() {
             <div className="space-y-6">
               <header className="space-y-1.5">
                 <h1 className="sky-heading m-0 text-[24px] font-semibold tracking-[-0.02em] text-[var(--ink-1)] sm:text-[28px]">
-                  真实任务与生活实验室
+                  生活手账
                 </h1>
                 <p className="sky-heading m-0 text-[14.5px] text-[var(--ink-2)]">
-                  把真实待办接进学习行动步，按月做可控变量生活实验，并随时导出本地 JSON 备份
+                  记下最近要办的小事、挑一个轻松的日常小挑战，随手收好自己的生活备忘与每周小结
                 </p>
               </header>
 
               <div
                 className="flex items-center gap-1 overflow-x-auto overflow-y-hidden border-b border-[var(--line)] pb-px"
                 role="tablist"
-                aria-label="实践实验室子视图"
+                aria-label="生活手账子视图"
               >
                 {(
                   [
-                    { id: 'pool', label: '真实任务池' },
-                    { id: 'experiment', label: '月度生活实验室' },
-                    { id: 'weekly', label: '每周生活复盘' },
-                    { id: 'backup', label: '本地留痕与备份' },
+                    { id: 'pool', label: '生活待办' },
+                    { id: 'experiment', label: '日常小挑战' },
+                    { id: 'notes', label: '生活笔记' },
+                    { id: 'weekly', label: '每周小结' },
+                    { id: 'backup', label: '本机备份' },
                   ] as const
                 ).map((t) => (
                   <button
@@ -817,6 +821,15 @@ export function App() {
                   telemetry={telemetry}
                   mode="lab"
                   onTelemetryChange={setTelemetry}
+                />
+              )}
+
+              {labTab === 'notes' && (
+                <LifeNotebookView
+                  content={content}
+                  telemetry={telemetry}
+                  onTelemetryChange={setTelemetry}
+                  onOpenUnit={handleOpenUnit}
                 />
               )}
 

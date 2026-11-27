@@ -69,6 +69,7 @@ export interface WallViewModel {
     water: string;
     waterCupsToday: number;
     waterGoalToday: number;
+    todayMood?: 'relaxed' | 'focused' | 'tired';
     experimentLine: string;
     sourceLabel: '同步源' | '个人打卡' | '示例占位';
     isExternalSynced: boolean;
@@ -151,23 +152,23 @@ export function computeWallViewModel(
   const todos =
     externalSync?.todos && externalSync.todos.length > 0
       ? externalSync.todos.slice(0, 4)
-      : plan.tasks.slice(0, 4).map((t) => `${t.branchId} · ${t.title}`);
+      : plan.tasks.slice(0, 4).map((t) => t.title);
 
   const activeExp = (telemetry.lifeLabExperiments ?? [])[0];
-  let experimentLine = '本月生活实验：待开启（可在站内实验室立项）';
+  let experimentLine = '日常小挑战：还没挑主题，随时去生活手账选一个小习惯';
   if (activeExp) {
     if (activeExp.entries.length > 0) {
       const avg =
         Math.round(
           (activeExp.entries.reduce((s, e) => s + e.value, 0) / activeExp.entries.length) * 10
         ) / 10;
-      experimentLine = `${activeExp.title}：均 ${avg}${activeExp.metricUnit}（基线 ${activeExp.baselineValue}${activeExp.metricUnit} · ${activeExp.entries.length}天）`;
+      experimentLine = `${activeExp.title}：近期均值 ${avg}${activeExp.metricUnit}（已打卡 ${activeExp.entries.length} 天）`;
     } else {
-      experimentLine = `${activeExp.title}：已立项（基线 ${activeExp.baselineValue}${activeExp.metricUnit}）`;
+      experimentLine = `${activeExp.title}：已开启，等你记下第一天感受`;
     }
   }
 
-  // 聚合近 7 日个人生活轻打卡（喝水 / 睡眠 / 跑步），优先于示例占位
+  // 聚合近 7 日个人生活轻打卡（喝水 / 睡眠 / 跑步 / 心情），优先于示例占位
   const windowStart = addDaysToDateKey(todayKey, -6);
   const lifeLogsMap = telemetry.dailyLifeLogs ?? {};
   const todayLife = lifeLogsMap[todayKey];
@@ -193,14 +194,14 @@ export function computeWallViewModel(
       (runLogs.length > 0
         ? `本周 ${runLogs.length} 次 · 累计 ${totalRunKm} km`
         : todayLife
-          ? '本周尚未记录跑步（可在配置抽屉补录）'
+          ? '本周还没出门跑，晚风舒服时走两圈也不错'
           : cfg.reservedBlocksSample.life.running),
     sleep:
       externalSync?.life?.sleep ??
       (avgSleep !== null
         ? `近 7 日均睡 ${avgSleep} h${todayLife?.sleepHours ? `（昨夜 ${todayLife.sleepHours}h）` : ''}`
         : todayLife
-          ? '尚未记录睡眠时长'
+          ? '昨夜睡得怎么样？点配置顺手记一下'
           : cfg.reservedBlocksSample.life.sleep),
     water:
       externalSync?.life?.water ??
@@ -209,6 +210,7 @@ export function computeWallViewModel(
         : cfg.reservedBlocksSample.life.water),
     waterCupsToday,
     waterGoalToday,
+    todayMood: todayLife?.mood,
     experimentLine,
     sourceLabel: externalSync?.life
       ? ('同步源' as const)

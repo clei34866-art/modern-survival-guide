@@ -1,11 +1,21 @@
-import { ArrowRight, BookOpen, Check, ListChecks, RotateCcw } from 'lucide-react';
+import {
+  ArrowRight,
+  BookOpen,
+  Check,
+  ListChecks,
+  MessageCircle,
+  RotateCcw,
+} from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { LifeScenarioSim } from '@/components/LifeScenarioSim';
+import { LifeToolsSandbox } from '@/components/LifeToolsSandbox';
 import { Drawer, Popconfirm, Tooltip } from '@/components/ui/overlays';
 import { Badge, Button, Card } from '@/components/ui/primitives';
 import type { PlatformContentBundle } from '@/core/contentLoader';
 import { setActiveEventPackWithPlan, toggleToolboxItemCheck } from '@/core/db';
 import { buildDailyPlanSnapshot } from '@/core/scheduler';
+import { LIFE_SCENARIOS, type LifeScenario } from '@/data/lifeScenarios';
 import { cn } from '@/lib/utils';
 import type { TelemetrySnapshot } from '@/types/schema';
 
@@ -27,6 +37,7 @@ export function EventPacksView({
   onPreviewUnit,
 }: EventPacksViewProps) {
   const [checklistPack, setChecklistPack] = useState<EventPackItem | null>(null);
+  const [activeScenario, setActiveScenario] = useState<LifeScenario | null>(null);
   const branchMap = new Map(content.catalog.branches.map((b) => [b.id, b]));
   const activePackId = telemetry.activeEventPackId;
 
@@ -40,25 +51,48 @@ export function EventPacksView({
       )
     );
     onTelemetryChange(next);
-    toast(packId ? `已激活事件包：${title}` : `已取消激活：${title}`);
+    toast(packId ? `已放进今天安排：${title}` : `已移出今天安排：${title}`);
   };
 
   return (
-    <div className="space-y-8">
-      {/* 事件包三步验收单详情 Drawer（页面更简明，点开即可对照核验） */}
+    <div className="space-y-9">
+      {/* 抽屉 1：遇事演练小剧场（生活情景对话模拟） */}
+      <Drawer
+        open={Boolean(activeScenario)}
+        onOpenChange={(open) => {
+          if (!open) setActiveScenario(null);
+        }}
+        title={activeScenario?.title ?? '遇事演练小剧场'}
+        description={activeScenario?.subtitle}
+        widthClassName="w-[min(540px,94vw)]"
+      >
+        {activeScenario && (
+          <LifeScenarioSim
+            key={activeScenario.id}
+            scenario={activeScenario}
+            compact
+            onOpenLinkedUnit={(uid) => {
+              setActiveScenario(null);
+              onOpenUnit(uid);
+            }}
+          />
+        )}
+      </Drawer>
+
+      {/* 抽屉 2：事件包三步验收单 */}
       <Drawer
         open={Boolean(checklistPack)}
         onOpenChange={(open) => {
           if (!open) setChecklistPack(null);
         }}
-        title={checklistPack?.title ?? '事件落地验收单'}
-        description={checklistPack ? `触发场景：${checklistPack.triggerScenario}` : undefined}
+        title={checklistPack?.title ?? '三步落地清单'}
+        description={checklistPack ? `适用情况：${checklistPack.triggerScenario}` : undefined}
       >
         {checklistPack && (
           <div className="space-y-4">
             <div className="glass-plate space-y-2.5 p-4">
               <div className="text-[12.5px] font-semibold text-[var(--dawn)]">
-                事件落地三步验收单
+                先做到这三步就稳了
               </div>
               <ol className="m-0 list-decimal space-y-2 pl-5 text-[14px] leading-[1.65] text-[var(--ink-1)]">
                 {checklistPack.combinedActionChecklist.map((c) => (
@@ -69,7 +103,7 @@ export function EventPacksView({
 
             <div className="space-y-2">
               <div className="text-[12.5px] font-semibold text-[var(--ink-2)]">
-                跨分支组课清单（{checklistPack.modules.length} 项）
+                顺手补齐这 {checklistPack.modules.length} 块常识
               </div>
               {checklistPack.modules.map((mod, idx) => {
                 const bMeta = branchMap.get(mod.branchId);
@@ -79,7 +113,7 @@ export function EventPacksView({
                   <div key={idx} className="glass-plate space-y-1.5 p-3.5">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-[13px] font-semibold text-[var(--ink-1)]">
-                        {mod.branchId} {bMeta?.name} · {mod.roleTitle}
+                        {bMeta?.name} · {mod.roleTitle}
                       </span>
                       {hasValidUnit && mod.unitId && (
                         <Button
@@ -91,7 +125,7 @@ export function EventPacksView({
                             onOpenUnit(targetId);
                           }}
                         >
-                          学习
+                          去看看
                         </Button>
                       )}
                     </div>
@@ -106,139 +140,89 @@ export function EventPacksView({
 
       <header className="space-y-1">
         <h1 className="sky-heading m-0 text-[24px] font-semibold tracking-[-0.02em] text-[var(--ink-1)] sm:text-[28px]">
-          生活事件包与可复用工具箱
+          遇事速查 · 演练、算账与随身清单
         </h1>
         <p className="sky-heading m-0 text-[14px] text-[var(--ink-2)]">
-          按真实生活场景跨分支一键组课，自动排入今日高精力时段
+          租房防坑、防诈骗、熬夜补觉、出门打包——不用先背理论，遇到什么直接点开用
         </p>
       </header>
 
-      {/* 1. 跨分支生活事件包 */}
-      <section className="space-y-4" aria-label="生活事件包（跨分支组课）">
-        {content.eventPacks.map((pack) => {
-          const isActive = activePackId === pack.id;
-          return (
-            <Card
-              key={pack.id}
-              className={cn('space-y-4', isActive && 'border-[var(--growth-border)]')}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {isActive && <Badge tone="growth">已激活 · 接入今日调度流</Badge>}
-                    <Badge tone="neutral" className="font-mono-num">
-                      跨 {pack.modules.length} 个分支
-                    </Badge>
-                  </div>
-                  <h2 className="m-0 text-[18.5px] font-semibold text-[var(--ink-1)]">
-                    {pack.title}
-                  </h2>
-                  <p className="m-0 text-[13.5px] text-[var(--ink-2)]">
-                    触发场景：{pack.triggerScenario}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Tooltip content="在右侧抽屉查看本事件三步落地验收单">
-                    <Button
-                      size="sm"
-                      variant="subtle"
-                      onClick={() => setChecklistPack(pack)}
-                    >
-                      <ListChecks size={14} strokeWidth={1.6} />
-                      <span>验收单</span>
-                    </Button>
-                  </Tooltip>
-
-                  {isActive ? (
-                    <Popconfirm
-                      title="取消激活该事件包？"
-                      description="移出后今日高精力时段将恢复常规排期。"
-                      confirmLabel="取消激活"
-                      tone="warning"
-                      onConfirm={() => handleSetPack(undefined, pack.title)}
-                    >
-                      <Button variant="outline">取消激活</Button>
-                    </Popconfirm>
-                  ) : (
-                    <Button
-                      variant="primary"
-                      onClick={() => handleSetPack(pack.id, pack.title)}
-                    >
-                      激活并排入今日
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              <div className="divide-y divide-[var(--line)] border-t border-[var(--line)]">
-                {pack.modules.map((mod, idx) => {
-                  const bMeta = branchMap.get(mod.branchId);
-                  const hasValidUnit =
-                    Boolean(mod.unitId) && content.units.some((u) => u.id === mod.unitId);
-
-                  return (
-                    <div
-                      className="flex flex-col justify-between gap-2.5 py-3 sm:flex-row sm:items-center"
-                      key={idx}
-                    >
-                      <div className="space-y-0.5">
-                        <div className="flex flex-wrap items-center gap-2 text-[13px]">
-                          <span
-                            className="h-2 w-2 rounded-full"
-                            style={{ backgroundColor: bMeta?.accentToken ?? 'var(--accent)' }}
-                          />
-                          <span className="text-[var(--ink-3)]">
-                            {mod.branchId} {bMeta?.name ?? mod.branchId}
-                          </span>
-                          <span className="text-[var(--ink-3)]">/</span>
-                          <strong className="font-medium text-[var(--ink-1)]">
-                            {mod.roleTitle}
-                          </strong>
-                        </div>
-                        <div className="text-[13.5px] text-[var(--ink-2)]">{mod.actionGuide}</div>
-                      </div>
-
-                      {hasValidUnit && mod.unitId && (
-                        <div className="flex shrink-0 items-center gap-1.5 self-start sm:self-center">
-                          <Tooltip content="在右侧抽屉快速预览本节内容">
-                            <Button
-                              size="sm"
-                              variant="subtle"
-                              onClick={() => onPreviewUnit(mod.unitId!)}
-                            >
-                              <BookOpen size={13} strokeWidth={1.6} />
-                              <span>速览</span>
-                            </Button>
-                          </Tooltip>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => onOpenUnit(mod.unitId!)}
-                          >
-                            <span>学习</span>
-                            <ArrowRight size={13} strokeWidth={1.5} />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
-          );
-        })}
-      </section>
-
-      {/* 2. 生活工具箱（重置挂载 Popconfirm 气泡轻确认） */}
-      <section className="space-y-4" aria-label="生活工具箱">
+      {/* 1. 遇事演练小剧场（生活情景对话模拟） */}
+      <section className="space-y-4" aria-label="生活情景对话模拟">
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
             <h2 className="sky-heading m-0 text-[20px] font-semibold text-[var(--ink-1)]">
-              生活工具箱 · 可复用核对清单
+              遇事演练小剧场 · 先在模拟里踩一次坑
             </h2>
             <p className="sky-heading mt-1 mb-0 text-[13.5px] text-[var(--ink-2)]">
-              随用随打勾，用完气泡确认一键重置
+              选一个高频生活难题，点不同回应立刻看到真实后果与稳妥招数
+            </p>
+          </div>
+          <Badge tone="neutral" className="font-mono-num">
+            {LIFE_SCENARIOS.length} 个日常情景
+          </Badge>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 lg:grid-cols-3">
+          {LIFE_SCENARIOS.map((sc) => {
+            const bMeta = branchMap.get(sc.branchId);
+            return (
+              <Card
+                key={sc.id}
+                className="flex flex-col justify-between gap-4 p-5"
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="inline-flex items-center gap-1.5 text-[12px] text-[var(--ink-3)]">
+                      <span
+                        className="h-2 w-2 rounded-full"
+                        style={{ backgroundColor: bMeta?.accentToken ?? 'var(--accent)' }}
+                      />
+                      <span>{sc.tag}</span>
+                    </span>
+                    <span className="font-mono-num text-[11.5px] text-[var(--ink-3)]">
+                      {sc.rounds.length} 幕互动
+                    </span>
+                  </div>
+                  <h3 className="m-0 text-[15.5px] font-semibold leading-[1.45] text-[var(--ink-1)]">
+                    {sc.title}
+                  </h3>
+                  <p className="m-0 text-[13px] leading-[1.6] text-[var(--ink-2)]">
+                    {sc.subtitle}
+                  </p>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    data-testid={`open-scenario-${sc.id}`}
+                    onClick={() => setActiveScenario(sc)}
+                  >
+                    <MessageCircle size={13} strokeWidth={1.7} />
+                    <span>演练一局</span>
+                  </Button>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 2. 实用生活小算盘 / 互动沙盒 */}
+      <section aria-label="实用生活小算盘">
+        <LifeToolsSandbox mode="all" />
+      </section>
+
+      {/* 3. 生活工具箱（6 份随手核对清单） */}
+      <section className="space-y-4" aria-label="随身生活清单">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 className="sky-heading m-0 text-[20px] font-semibold text-[var(--ink-1)]">
+              随身核对清单 · 用完一键重置
+            </h2>
+            <p className="sky-heading mt-1 mb-0 text-[13.5px] text-[var(--ink-2)]">
+              看房、打包、看病体检、买保险前顺手打勾，少漏一件关键小事
             </p>
           </div>
           <Badge tone="neutral" className="font-mono-num">
@@ -259,7 +243,7 @@ export function EventPacksView({
                         className="h-2 w-2 rounded-full"
                         style={{ backgroundColor: bMeta?.accentToken ?? 'var(--accent)' }}
                       />
-                      <span>{box.branchId} 工具清单</span>
+                      <span>{bMeta?.name ?? box.branchId}</span>
                     </div>
                     <h3 className="mt-1 mb-0.5 text-[16.5px] font-semibold text-[var(--ink-1)]">
                       {box.title}
@@ -329,21 +313,136 @@ export function EventPacksView({
         </div>
       </section>
 
-      {/* 3. 人生节点预备包 */}
+      {/* 4. 跨主题生活锦囊包 */}
+      <section className="space-y-4" aria-label="生活场景组合包">
+        <div>
+          <h2 className="sky-heading m-0 text-[20px] font-semibold text-[var(--ink-1)]">
+            大事锦囊包 · 放进今天顺手准备
+          </h2>
+          <p className="sky-heading mt-1 mb-0 text-[13.5px] text-[var(--ink-2)]">
+            近期要汇报、出远门或首次租房？激活对应锦囊，今天页面会自动帮你排好要看的内容
+          </p>
+        </div>
+
+        {content.eventPacks.map((pack) => {
+          const isActive = activePackId === pack.id;
+          return (
+            <Card
+              key={pack.id}
+              className={cn('space-y-4', isActive && 'border-[var(--growth-border)]')}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {isActive && <Badge tone="growth">已放进今天安排</Badge>}
+                    <Badge tone="neutral" className="font-mono-num">
+                      涵盖 {pack.modules.length} 块常识
+                    </Badge>
+                  </div>
+                  <h3 className="m-0 text-[18px] font-semibold text-[var(--ink-1)]">
+                    {pack.title}
+                  </h3>
+                  <p className="m-0 text-[13.5px] text-[var(--ink-2)]">{pack.triggerScenario}</p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Tooltip content="在右侧抽屉查看三步落地核对单">
+                    <Button size="sm" variant="subtle" onClick={() => setChecklistPack(pack)}>
+                      <ListChecks size={14} strokeWidth={1.6} />
+                      <span>三步清单</span>
+                    </Button>
+                  </Tooltip>
+
+                  {isActive ? (
+                    <Popconfirm
+                      title="移出今天安排？"
+                      description="移出后今天页面将恢复常规生活推荐。"
+                      confirmLabel="移出"
+                      tone="warning"
+                      onConfirm={() => handleSetPack(undefined, pack.title)}
+                    >
+                      <Button variant="outline">已放进今天</Button>
+                    </Popconfirm>
+                  ) : (
+                    <Button
+                      variant="primary"
+                      onClick={() => handleSetPack(pack.id, pack.title)}
+                    >
+                      放进今天准备
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div className="divide-y divide-[var(--line)] border-t border-[var(--line)]">
+                {pack.modules.map((mod, idx) => {
+                  const bMeta = branchMap.get(mod.branchId);
+                  const hasValidUnit =
+                    Boolean(mod.unitId) && content.units.some((u) => u.id === mod.unitId);
+
+                  return (
+                    <div
+                      className="flex flex-col justify-between gap-2.5 py-3 sm:flex-row sm:items-center"
+                      key={idx}
+                    >
+                      <div className="space-y-0.5">
+                        <div className="flex flex-wrap items-center gap-2 text-[13px]">
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{ backgroundColor: bMeta?.accentToken ?? 'var(--accent)' }}
+                          />
+                          <span className="text-[var(--ink-3)]">{bMeta?.name ?? mod.branchId}</span>
+                          <span className="text-[var(--ink-3)]">/</span>
+                          <strong className="font-medium text-[var(--ink-1)]">
+                            {mod.roleTitle}
+                          </strong>
+                        </div>
+                        <div className="text-[13.5px] text-[var(--ink-2)]">{mod.actionGuide}</div>
+                      </div>
+
+                      {hasValidUnit && mod.unitId && (
+                        <div className="flex shrink-0 items-center gap-1.5 self-start sm:self-center">
+                          <Tooltip content="在右侧抽屉快速扫一眼要点">
+                            <Button
+                              size="sm"
+                              variant="subtle"
+                              onClick={() => onPreviewUnit(mod.unitId!)}
+                            >
+                              <BookOpen size={13} strokeWidth={1.6} />
+                              <span>速览</span>
+                            </Button>
+                          </Tooltip>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onOpenUnit(mod.unitId!)}
+                          >
+                            <span>去看看</span>
+                            <ArrowRight size={13} strokeWidth={1.5} />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          );
+        })}
+      </section>
+
+      {/* 5. 人生节点预备包 */}
       <section className="space-y-4" aria-label="人生节点预备包">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="sky-heading m-0 text-[20px] font-semibold text-[var(--ink-1)]">
-            人生节点预备包
+            人生重要阶段小锦囊
           </h2>
-          <Badge tone="neutral">按阶段持续扩充</Badge>
+          <Badge tone="neutral">随人生阶段翻阅</Badge>
         </div>
-        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 lg:grid-cols-4">
           {content.stagePrepPacks.map((sp) => (
             <Card className="space-y-2.5 p-5" key={sp.id}>
-              <div className="flex flex-wrap items-center gap-1.5">
-                <Badge tone="accent">{sp.stageHint}</Badge>
-                <Badge tone="neutral">{sp.includedBranches.join(' / ')}</Badge>
-              </div>
+              <Badge tone="accent">{sp.stageHint}</Badge>
               <h3 className="m-0 text-[16px] font-semibold text-[var(--ink-1)]">{sp.title}</h3>
               <p className="m-0 text-[13.5px] leading-[1.6] text-[var(--ink-2)]">{sp.summary}</p>
             </Card>

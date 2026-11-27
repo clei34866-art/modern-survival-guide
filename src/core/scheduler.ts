@@ -21,23 +21,33 @@ export interface EnergySlotMeta {
 export const ENERGY_SLOTS: EnergySlotMeta[] = [
   {
     band: 'fragment',
-    title: '早间 / 碎片时段',
-    timeHint: '起床后 · 通勤 · 课间排队',
-    rhythmDesc: '顺手翻几张概念卡、读一段真实场景导读，热身不费脑。',
+    title: '上午 / 碎片间隙',
+    timeHint: '起床后 · 通勤 · 排队间隙',
+    rhythmDesc: '顺手翻几张小卡片、看一段生活案例，不费脑。',
   },
   {
     band: 'peak',
-    title: '晚饭后、实验前（高精力）',
-    timeHint: '头脑最清醒的整块时间',
-    rhythmDesc: '集中攻克一节新内容或推进一项实战行动任务，啃完就收。',
+    title: '傍晚整块时间',
+    timeHint: '晚饭后 · 头脑最清醒的时候',
+    rhythmDesc: '挑一件对最近生活最有用的事静心看完，做完就歇着。',
   },
   {
     band: 'low',
-    title: '实验后（低精力）',
-    timeHint: '从实验室回来 · 睡前放松',
-    rhythmDesc: '绝不排新难点，只做 1/3/7 天错题温习或轻翻熟卡。',
+    title: '睡前轻松翻一翻',
+    timeHint: '临睡前 · 放空缓冲',
+    rhythmDesc: '不碰新难点，顺手回想一两个模糊的小点就收工。',
   },
 ];
+
+const EVERYDAY_LIFE_BRANCHES: BranchId[] = ['B2', 'B3', 'B4', 'B5', 'B6', 'B7'];
+
+function isEverydayLifeUnit(u: LearningUnit): boolean {
+  return EVERYDAY_LIFE_BRANCHES.includes(u.branchId);
+}
+
+function cleanUnitTitle(title: string): string {
+  return title.replace(/^【示例占位】/, '').trim();
+}
 
 function fmtHour(h: number): string {
   return `${String(h).padStart(2, '0')}:00`;
@@ -74,7 +84,7 @@ export function detectCurrentEnergyBand(
   return 'low';
 }
 
-/** Gen-2 R1：首页「换一题」——在不重复当前单元的前提下按偏好分支轮换同槽位候选单元 */
+/** Gen-2 R1/R2：首页「换一个」——默认优先在日常实用主题（理财/心理/健康/表达/精力/自保）中轮换，也可按偏好分支切换 */
 export function pickAlternativeUnitTask(
   content: PlatformContentBundle,
   telemetry: TelemetrySnapshot,
@@ -86,14 +96,26 @@ export function pickAlternativeUnitTask(
   const branchFiltered =
     branchPref && branchPref !== 'ALL'
       ? content.units.filter((u) => u.branchId === branchPref)
-      : content.units;
+      : [
+          ...content.units.filter(isEverydayLifeUnit),
+          ...content.units.filter((u) => !isEverydayLifeUnit(u)),
+        ];
   const basePool = branchFiltered.length > 0 ? branchFiltered : content.units;
 
-  const uncleared = basePool.filter(
-    (u) => !telemetry.unitSubmissions[u.id]?.isCleared && u.id !== currentTask.unitId
+  const inPlanIds = new Set(
+    (telemetry.currentDailyPlan?.tasks ?? [])
+      .map((t) => t.unitId)
+      .filter((id): id is string => Boolean(id))
   );
+  if (currentTask.unitId) inPlanIds.add(currentTask.unitId);
+
+  const uncleared = basePool.filter(
+    (u) => !telemetry.unitSubmissions[u.id]?.isCleared && !inPlanIds.has(u.id)
+  );
+  const fallbackNoDup = basePool.filter((u) => !inPlanIds.has(u.id));
   const fallback = basePool.filter((u) => u.id !== currentTask.unitId);
-  const candidates = uncleared.length > 0 ? uncleared : fallback;
+  const candidates =
+    uncleared.length > 0 ? uncleared : fallbackNoDup.length > 0 ? fallbackNoDup : fallback;
   if (candidates.length === 0) return null;
 
   const currentIdx = basePool.findIndex((u) => u.id === currentTask.unitId);
@@ -108,8 +130,8 @@ export function pickAlternativeUnitTask(
       branchId: nextUnit.branchId,
       trackId: nextUnit.trackId,
       unitId: nextUnit.id,
-      title: `轻导读：${nextUnit.scenarioHook.sceneTitle}`,
-      humanHint: `先看生活案例并猜一道反直觉预测题（来自 ${nextUnit.branchId} 分支）。`,
+      title: cleanUnitTitle(nextUnit.title),
+      humanHint: nextUnit.scenarioHook.sceneTitle,
       estimatedMinutes: Math.min(10, Math.max(5, Math.round(nextUnit.estimatedMinutes / 3))),
       keepInLowBattery: true,
       isPlaceholder: nextUnit.isPlaceholder,
@@ -123,8 +145,8 @@ export function pickAlternativeUnitTask(
     branchId: nextUnit.branchId,
     trackId: nextUnit.trackId,
     unitId: nextUnit.id,
-    title: nextUnit.title.replace(/^【示例占位】/, ''),
-    humanHint: `完成图文导学 + 自测，顺手推进「${nextUnit.actionTask.title}」。`,
+    title: cleanUnitTitle(nextUnit.title),
+    humanHint: `${nextUnit.scenarioHook.sceneTitle} · 顺手做完「${nextUnit.actionTask.title}」。`,
     estimatedMinutes: nextUnit.estimatedMinutes,
     keepInLowBattery: currentTask.keepInLowBattery,
     isPlaceholder: nextUnit.isPlaceholder,
@@ -133,11 +155,11 @@ export function pickAlternativeUnitTask(
 
 export function getGreetingByHour(date = new Date()): string {
   const hour = date.getHours();
-  if (hour >= 5 && hour < 11) return '早安，新的一天慢慢来';
-  if (hour >= 11 && hour < 14) return '午间好，吃完饭歇口气';
-  if (hour >= 14 && hour < 17) return '下午好，碎片间隙顺手翻两页';
-  if (hour >= 17 && hour < 21) return '晚饭后黄金时段，挑最重要的一件做完就好';
-  return '实验辛苦了，今晚只做轻温习，早点休息';
+  if (hour >= 5 && hour < 11) return '早安，今天也慢慢来';
+  if (hour >= 11 && hour < 14) return '午安，先吃好饭歇口气';
+  if (hour >= 14 && hour < 17) return '下午好，给自己留一口气';
+  if (hour >= 17 && hour < 21) return '傍晚好，挑一件顺手的小事';
+  return '夜深了，轻松翻两页就好';
 }
 
 function hashDateKey(dateKey: string): number {
@@ -149,8 +171,10 @@ function hashDateKey(dateKey: string): number {
 }
 
 export function pickDailyTip(tips: DailyLifeTip[], dateKey: string): DailyLifeTip {
-  const idx = hashDateKey(dateKey) % tips.length;
-  return tips[idx];
+  const lifeTips = tips.filter((t) => EVERYDAY_LIFE_BRANCHES.includes(t.branchId));
+  const pool = lifeTips.length > 0 ? lifeTips : tips;
+  const idx = hashDateKey(dateKey) % pool.length;
+  return pool[idx];
 }
 
 function pickCrossBranchUnits(
@@ -158,8 +182,21 @@ function pickCrossBranchUnits(
   telemetry: TelemetrySnapshot,
   dateKey: string
 ): { previewUnit: LearningUnit; peakUnit: LearningUnit } {
-  const uncleared = units.filter((u) => !telemetry.unitSubmissions[u.id]?.isCleared);
-  const pool = uncleared.length > 0 ? uncleared : units;
+  const prefBranch = telemetry.schedulePrefs?.preferredBranchId;
+  const scoped =
+    prefBranch && prefBranch !== 'ALL'
+      ? units.filter((u) => u.branchId === prefBranch)
+      : units.filter(isEverydayLifeUnit);
+
+  const primaryPool = scoped.length > 0 ? scoped : units;
+  const unclearedPrimary = primaryPool.filter((u) => !telemetry.unitSubmissions[u.id]?.isCleared);
+  const unclearedAll = units.filter((u) => !telemetry.unitSubmissions[u.id]?.isCleared);
+  const pool =
+    unclearedPrimary.length > 0
+      ? unclearedPrimary
+      : unclearedAll.length > 0
+        ? unclearedAll
+        : primaryPool;
 
   const fragmentCandidates = pool.filter((u) => u.recommendedEnergy === 'fragment');
   const peakCandidates = pool.filter((u) => u.recommendedEnergy === 'peak');
@@ -217,8 +254,8 @@ export function buildDailyPlanSnapshot(
       branchId: primaryFlashBranch,
       trackId: primaryBranchTrack,
       conceptIds: flashConcepts.map((c) => c.id),
-      title: `顺手翻 ${flashConcepts.length} 张跨分支概念闪卡`,
-      humanHint: `涵盖「${flashConcepts.map((c) => c.label).join(' · ')}」，唤醒记忆通路。`,
+      title: `顺手翻 ${flashConcepts.length} 张生活小卡片`,
+      humanHint: `聊聊「${flashConcepts.map((c) => c.label).join(' · ')}」，花三四分钟换换脑子。`,
       estimatedMinutes: 4,
       keepInLowBattery: true,
       isPlaceholder: false,
@@ -230,8 +267,8 @@ export function buildDailyPlanSnapshot(
       branchId: previewUnit.branchId,
       trackId: previewUnit.trackId,
       unitId: previewUnit.id,
-      title: `轻导读：${previewUnit.scenarioHook.sceneTitle}`,
-      humanHint: `先看生活案例并猜一道反直觉预测题（来自 ${previewUnit.branchId} 分支）。`,
+      title: cleanUnitTitle(previewUnit.title),
+      humanHint: previewUnit.scenarioHook.sceneTitle,
       estimatedMinutes: 6,
       keepInLowBattery: true,
       isPlaceholder: previewUnit.isPlaceholder,
@@ -277,8 +314,8 @@ export function buildDailyPlanSnapshot(
       branchId: peakUnit.branchId,
       trackId: peakUnit.trackId,
       unitId: peakUnit.id,
-      title: `${peakUnit.title.replace(/^【示例占位】/, '')}`,
-      humanHint: `完成图文导学 + 自测，顺手推进「${peakUnit.actionTask.title}」。`,
+      title: cleanUnitTitle(peakUnit.title),
+      humanHint: `${peakUnit.scenarioHook.sceneTitle} · 顺手做完「${peakUnit.actionTask.title}」。`,
       estimatedMinutes: peakUnit.estimatedMinutes,
       keepInLowBattery: false,
       isPlaceholder: peakUnit.isPlaceholder,

@@ -141,20 +141,20 @@ export function TaskPoolView({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="m-0 text-[18px] font-semibold text-[var(--ink-1)]">
-              真实任务池 · 把真实待办变成学习过关产出
+              生活待办 · 把手头要办的小事顺手划掉
             </h2>
             <p className="mt-1 mb-0 text-[13.5px] text-[var(--ink-2)]">
-              录入你手头真正要做的事，进入对应学习单元第 6 步即可一键挂载抵扣
+              记下你近期真正要做的事（整理账单、看房、慢跑、写汇报），顺手就能联动对应的实用小招
             </p>
           </div>
           <Badge tone="neutral" className="font-mono-num">
-            进行中 {tasks.filter((t) => t.status === 'open').length} · 已交付{' '}
+            待办 {tasks.filter((t) => t.status === 'open').length} · 已完成{' '}
             {tasks.filter((t) => t.status === 'completed').length}
           </Badge>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[12.5px] text-[var(--ink-3)]">常用场景速添：</span>
+          <span className="text-[12.5px] text-[var(--ink-3)]">常见小事一键加：</span>
           {QUICK_TEMPLATES.map((tpl) => (
             <Button key={tpl.title} size="sm" variant="subtle" onClick={() => handleQuickAdd(tpl)}>
               <Plus size={13} strokeWidth={1.6} />

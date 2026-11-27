@@ -3,10 +3,12 @@ import type {
   CardRating,
   ConceptCardStat,
   DailyLifeLog,
+  DailyMood,
   DailyPlanSnapshot,
   EnergyBand,
   LifeLabEntry,
   LifeLabExperiment,
+  LifeNoteItem,
   MilestoneDeliverableRecord,
   QuizAttemptLog,
   RealLifeTask,
@@ -72,8 +74,13 @@ export function hasLiveTelemetry(snapshot: TelemetrySnapshot): boolean {
     (snapshot.realTasks?.some((t) => t.status === 'completed') ?? false) ||
     (snapshot.lifeLabExperiments?.some((e) => e.entries.length > 0) ?? false) ||
     Object.values(snapshot.dailyLifeLogs ?? {}).some(
-      (log) => log.waterCups > 0 || (log.runningKm ?? 0) > 0 || (log.sleepHours ?? 0) > 0
-    )
+      (log) =>
+        log.waterCups > 0 ||
+        (log.runningKm ?? 0) > 0 ||
+        (log.sleepHours ?? 0) > 0 ||
+        Boolean(log.mood)
+    ) ||
+    (snapshot.lifeNotes?.length ?? 0) > 0
   );
 }
 
@@ -420,6 +427,7 @@ export async function importTelemetryJson(rawJson: string): Promise<TelemetrySna
     schedulePrefs: parsed.schedulePrefs,
     dailyLifeLogs: parsed.dailyLifeLogs ?? {},
     wallPersonal: parsed.wallPersonal,
+    lifeNotes: parsed.lifeNotes ?? [],
   };
   return saveTelemetry(normalized);
 }
@@ -478,7 +486,7 @@ export async function swapDailyPlanTask(
   });
 }
 
-/** Gen-2 R1：记录或微调当日生活轻打卡（喝水 / 睡眠 / 跑步），跨标签实时同步状态墙与周报 */
+/** Gen-2 R1/R2：记录或微调当日生活轻打卡（喝水 / 睡眠 / 跑步 / 心情），跨标签实时同步状态墙与周报 */
 export async function logDailyLifeHabit(
   patch: {
     waterDelta?: number;
@@ -486,6 +494,7 @@ export async function logDailyLifeHabit(
     waterGoal?: number;
     sleepHours?: number | null;
     runningKm?: number | null;
+    mood?: DailyMood | null;
   },
   dateKey = getLocalDateKey()
 ): Promise<TelemetrySnapshot> {
@@ -515,6 +524,8 @@ export async function logDailyLifeHabit(
       : patch.runningKm !== undefined
         ? Math.max(0, Math.min(100, Math.round(patch.runningKm * 10) / 10))
         : existing.runningKm;
+  const nextMood =
+    patch.mood === null ? undefined : patch.mood !== undefined ? patch.mood : existing.mood;
 
   const updated: DailyLifeLog = {
     dateKey,
@@ -522,11 +533,15 @@ export async function logDailyLifeHabit(
     waterGoal: nextGoal,
     sleepHours: nextSleep,
     runningKm: nextRun,
+    mood: nextMood,
     updatedAt: new Date().toISOString(),
   };
 
   const hasProgress =
-    updated.waterCups > 0 || (updated.runningKm ?? 0) > 0 || (updated.sleepHours ?? 0) > 0;
+    updated.waterCups > 0 ||
+    (updated.runningKm ?? 0) > 0 ||
+    (updated.sleepHours ?? 0) > 0 ||
+    Boolean(updated.mood);
 
   return saveTelemetry({
     ...snap,
@@ -535,6 +550,40 @@ export async function logDailyLifeHabit(
       ...prevMap,
       [dateKey]: updated,
     },
+  });
+}
+
+/** Gen-2 R2：新增随身生活笔记 / 备忘手账 */
+export async function addLifeNote(input: {
+  title: string;
+  body: string;
+  branchId?: BranchId;
+  tags?: string[];
+}): Promise<TelemetrySnapshot> {
+  const snap = await loadTelemetry();
+  const nowIso = new Date().toISOString();
+  const item: LifeNoteItem = {
+    id: `note_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    title: input.title.trim() || '生活随手记',
+    body: input.body.trim(),
+    branchId: input.branchId,
+    tags: input.tags?.filter(Boolean),
+    createdAt: nowIso,
+    updatedAt: nowIso,
+  };
+  return saveTelemetry({
+    ...snap,
+    activeDates: touchActiveDate(snap.activeDates),
+    lifeNotes: [item, ...(snap.lifeNotes ?? [])],
+  });
+}
+
+/** Gen-2 R2：移除随身生活笔记 */
+export async function removeLifeNote(noteId: string): Promise<TelemetrySnapshot> {
+  const snap = await loadTelemetry();
+  return saveTelemetry({
+    ...snap,
+    lifeNotes: (snap.lifeNotes ?? []).filter((n) => n.id !== noteId),
   });
 }
 

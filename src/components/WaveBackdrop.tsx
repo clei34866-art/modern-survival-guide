@@ -218,8 +218,13 @@ export function WaveBackdrop({ mode = 'home', pureView = false }: WaveBackdropPr
         className="wave-bg-img absolute inset-0 h-full w-full object-cover object-center"
       />
 
-      {/* Layer 2: 柔和地平线霞光呼吸层 */}
+      {/* Layer 2: 柔和地平线霞光呼吸 + 有机多极弥散渐变光晕 */}
       <div className="wave-horizon-breath absolute inset-0" />
+      <div className="wave-diffuse-mesh absolute inset-0" aria-hidden="true">
+        <span className="diffuse-orb diffuse-orb-peach" />
+        <span className="diffuse-orb diffuse-orb-sky" />
+        <span className="diffuse-orb diffuse-orb-aqua" />
+      </div>
 
       {/* Layer 3: 独立人物剪影微视差前景层 */}
       <img

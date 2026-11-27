@@ -35,10 +35,10 @@ async function main() {
     b1BlenderUnits.length < 3 ||
     b2Units.length < 3 ||
     b3Units.length < 2 ||
-    allLoadedUnits.length < 28 ||
+    allLoadedUnits.length < 46 ||
     allLoadedUnits.some((u) => u.isPlaceholder)
   ) {
-    throw new Error('全七分支 28 节正式学习单元未全部就绪或存在占位单元');
+    throw new Error('全七分支 46 节正式学习单元未全部就绪或存在占位单元');
   }
 
   const bundle = {

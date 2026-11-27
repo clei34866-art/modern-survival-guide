@@ -4,13 +4,22 @@ import {
   CalendarClock,
   Check,
   CheckCircle2,
+  CloudRain,
   Droplets,
   Layers,
   Lightbulb,
   MessageCircle,
+  Pause,
+  Play,
   Plus,
+  RotateCcw,
   Shuffle,
   SlidersHorizontal,
+  Timer,
+  Volume2,
+  VolumeX,
+  Waves,
+  Wind,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -33,6 +42,7 @@ import {
   pickAlternativeUnitTask,
 } from '@/core/scheduler';
 import { getRetestQueue } from '@/core/srs';
+import { type AmbientSoundKind, deskAmbientEngine } from '@/lib/ambientAudio';
 import { useLiquidGlass } from '@/lib/liquidGlass';
 import { cn } from '@/lib/utils';
 import type {
@@ -75,11 +85,17 @@ const CLARITY_OPTIONS: Array<{ value: GlassClarityMode; label: string; desc: str
   { value: 'frosted', label: '深读', desc: '长文护眼高对比' },
 ];
 
+const SOUND_OPTIONS: Array<{ id: Exclude<AmbientSoundKind, 'off'>; label: string; icon: typeof Waves }> = [
+  { id: 'waves', label: '海浪', icon: Waves },
+  { id: 'rain', label: '细雨', icon: CloudRain },
+  { id: 'breeze', label: '夜风', icon: Wind },
+];
+
 function formatReadableDate(dateKey: string): string {
   const [y, m, d] = dateKey.split('-').map(Number);
   const dt = new Date(y, m - 1, d);
-  const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-  return `${m} 月 ${d} 日 · ${weekdays[dt.getDay()]}`;
+  const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+  return `${y} · ${String(m).padStart(2, '0')} · ${String(d).padStart(2, '0')}  ${weekdays[dt.getDay()]}`;
 }
 
 function diffDaysSimple(fromDateKey: string, toDateKey: string): number {
@@ -98,6 +114,12 @@ function getBranchMeta(branches: BranchCatalog[], id: string) {
   );
 }
 
+function formatTimerClock(totalSeconds: number): string {
+  const mm = Math.floor(totalSeconds / 60);
+  const ss = totalSeconds % 60;
+  return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+}
+
 export function TodayView({
   content,
   telemetry,
@@ -114,15 +136,21 @@ export function TodayView({
   const [selectedBand, setSelectedBand] = useState<EnergyBand>(currentBand);
   const [rhythmDrawerOpen, setRhythmDrawerOpen] = useState(false);
   const [tipDrawerOpen, setTipDrawerOpen] = useState(false);
+  const [now, setNow] = useState<Date>(() => new Date());
 
-  // 真 SDF 折射色散玻璃透镜（仅用于左右两块悬浮玻璃卡片，中轴完全留白给 Wave）
+  // 书桌轻生活小件：25 分钟专注时钟 + 原生 Web Audio 氛围声（海浪 / 细雨 / 夜风）
+  const [focusSeconds, setFocusSeconds] = useState<number>(25 * 60);
+  const [focusRunning, setFocusRunning] = useState<boolean>(false);
+  const [soundMode, setSoundMode] = useState<AmbientSoundKind>(() => deskAmbientEngine.getMode());
+
+  // 真 SDF 折射色散玻璃透镜（仅用于左右两块悬浮玻璃卡片，中轴留给电影感星海人物）
   const focalGlassRef = useLiquidGlass<HTMLDivElement>({
     sdfMode: 'single',
     scale: -22,
     chroma: 4.2,
     border: 0.13,
-    blur: 14,
-    saturate: 1.76,
+    blur: 16,
+    saturate: 1.82,
     maxWidth: 540,
   });
   const lifeCardGlassRef = useLiquidGlass<HTMLDivElement>({
@@ -130,8 +158,8 @@ export function TodayView({
     scale: -20,
     chroma: 4.5,
     border: 0.15,
-    blur: 14,
-    saturate: 1.78,
+    blur: 16,
+    saturate: 1.82,
     maxWidth: 420,
   });
 
@@ -150,6 +178,32 @@ export function TodayView({
   const [runInput, setRunInput] = useState<string>(
     todayLife?.runningKm !== undefined ? String(todayLife.runningKm) : ''
   );
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    if (!focusRunning) return;
+    const t = setInterval(() => {
+      setFocusSeconds((prev) => {
+        if (prev <= 1) {
+          setFocusRunning(false);
+          toast.success('25 分钟温柔专注完成，起来喝口水望望窗外吧');
+          return 25 * 60;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, [focusRunning]);
+
+  useEffect(() => {
+    return () => {
+      deskAmbientEngine.stop();
+    };
+  }, []);
 
   useEffect(() => {
     setFragHour(prefs.fragmentStartHour);
@@ -213,7 +267,7 @@ export function TodayView({
 
   const currentClarity: GlassClarityMode = telemetry.wallPersonal?.glassClarity ?? 'clear';
 
-  // 最近的一个倒数日（优先用户自己的，其次默认示例）
+  // 最近的一个倒数日（优先用户自己的，其次默认）
   const activeCountdowns: WallCountdownItem[] =
     telemetry.wallPersonal?.countdowns && telemetry.wallPersonal.countdowns.length > 0
       ? telemetry.wallPersonal.countdowns
@@ -222,10 +276,25 @@ export function TodayView({
     .map((cd) => ({ ...cd, daysLeft: diffDaysSimple(plan.dateKey, cd.targetDate) }))
     .sort((a, b) => a.daysLeft - b.daysLeft)[0];
 
-  const weatherLine = telemetry.wallPersonal?.weatherNote?.trim();
+  const weatherLine =
+    telemetry.wallPersonal?.weatherNote?.trim() || content.wallConfig.todayPlaceholder.weather;
+  const dailyQuote =
+    telemetry.wallPersonal?.quote?.trim() || content.wallConfig.reservedBlocksSample.content.quote;
   const todayMood = todayLife?.mood;
   const waterCups = todayLife?.waterCups ?? 0;
   const waterGoal = todayLife?.waterGoal ?? 8;
+
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
+
+  const handleToggleSound = (mode: Exclude<AmbientSoundKind, 'off'>) => {
+    const next: AmbientSoundKind = soundMode === mode ? 'off' : mode;
+    deskAmbientEngine.play(next);
+    setSoundMode(next);
+    const labelMap = { waves: '潮汐海浪声', rain: '细雨敲窗声', breeze: '夜空微风声', off: '已静音' };
+    toast(next === 'off' ? '已关闭书桌氛围声' : `正在轻放：${labelMap[next]}`);
+  };
 
   const handleSwapFocalTask = async () => {
     if (!focalTask || !focalTask.unitId) return;
@@ -303,7 +372,7 @@ export function TodayView({
   };
 
   return (
-    <div className="flex flex-col justify-between gap-7 py-2 sm:py-5 lg:min-h-[calc(100vh-132px)] lg:gap-9">
+    <div className="flex flex-col justify-between gap-7 py-2 sm:py-4 lg:min-h-[calc(100vh-124px)] lg:gap-8">
       {/* 右侧 Drawer 1：每日生活一招详情 */}
       <Drawer
         open={tipDrawerOpen}
@@ -568,41 +637,91 @@ export function TodayView({
         </div>
       </Drawer>
 
-      {/* 1. 温柔自然的生活桌面页头（不堆指标，留出大块海天） */}
-      <header className="flex flex-wrap items-end justify-between gap-4" aria-label="今日生活桌面">
-        <div className="space-y-1">
-          <div className="sky-heading font-mono-num text-[13px] text-[var(--ink-2)]">
-            {formatReadableDate(plan.dateKey)}
-            {weatherLine ? ` · ${weatherLine}` : ''}
+      {/* 1. 电影画报感无框主视觉头（超大纤细时钟 + 衬线生活一句 + 右上无框倒计时焦点，中央海天大片呼吸） */}
+      <header
+        className="flex flex-wrap items-start justify-between gap-6 pt-1 sm:pt-3"
+        aria-label="今日电影感生活桌面"
+      >
+        <div className="max-w-[580px] space-y-3">
+          <div className="sky-heading flex flex-wrap items-center gap-2.5 text-[12.5px] tracking-[0.08em] text-[var(--ink-2)]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--growth)] shadow-[0_0_8px_var(--growth)]" />
+            <span className="font-mono-num">{formatReadableDate(plan.dateKey)}</span>
+            <span className="opacity-40">/</span>
+            <span>{weatherLine}</span>
           </div>
-          <h1 className="sky-heading m-0 text-[26px] font-semibold leading-[1.24] tracking-[-0.02em] text-[var(--ink-1)] sm:text-[31px]">
-            {getGreetingByHour()}
-          </h1>
+
+          <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
+            <div
+              className="cinema-clock-digits sky-heading inline-flex items-baseline text-[54px] text-[var(--ink-1)] sm:text-[68px]"
+              aria-label={`当前时间 ${hh}:${mm}:${ss}`}
+            >
+              <span>{hh}</span>
+              <span className="cinema-colon-pulse mx-0.5 -translate-y-1 text-[var(--dawn)]">:</span>
+              <span>{mm}</span>
+              <span className="font-mono-num ml-2 text-[17px] font-light text-[var(--dawn)] sm:text-[20px]">
+                {ss}
+              </span>
+            </div>
+
+            <h1 className="sky-heading m-0 text-[20px] font-medium tracking-[0.01em] text-[var(--ink-1)] sm:text-[23px]">
+              {getGreetingByHour()}
+            </h1>
+          </div>
+
+          <div className="cinema-hairline-rule" aria-hidden="true" />
+
+          <p className="cinema-serif-quote sky-heading m-0 text-[16px] leading-[1.68] text-[var(--ink-1)] opacity-90 sm:text-[18px]">
+            「{dailyQuote}」
+          </p>
         </div>
 
-        <div className="flex items-center gap-3.5">
-          <div className="w-[136px] space-y-1.5" aria-label={`今日小事完成 ${progressPct}%`}>
-            <div className="sky-heading flex items-center justify-between text-[12.5px]">
-              <span className="text-[var(--ink-2)]">今日小事</span>
-              <strong className="font-mono-num text-[var(--ink-1)]">
-                {completedCount}/{totalCount}
-              </strong>
+        {/* 右上无框轻浮区：最近倒数日 + 极简小记进度控制 */}
+        <div className="flex flex-col items-end gap-3 self-stretch justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-[116px] space-y-1.5" aria-label={`今日小事完成 ${progressPct}%`}>
+              <div className="sky-heading flex items-center justify-between text-[12px]">
+                <span className="text-[var(--ink-2)]">今日小事</span>
+                <strong className="font-mono-num text-[var(--ink-1)]">
+                  {completedCount}/{totalCount}
+                </strong>
+              </div>
+              <ProgressBar percent={progressPct} color="var(--growth)" />
             </div>
-            <ProgressBar percent={progressPct} color="var(--growth)" />
+
+            <Tooltip content="调整作息、补录睡眠跑步、添加倒数日与玻璃通透度">
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-full"
+                data-testid="today-rhythm-drawer-trigger"
+                onClick={() => setRhythmDrawerOpen(true)}
+              >
+                <SlidersHorizontal size={13} strokeWidth={1.7} />
+                <span>小记与偏好</span>
+              </Button>
+            </Tooltip>
           </div>
 
-          <Tooltip content="调整作息、补录睡眠跑步、添加倒数日与玻璃通透度">
-            <Button
-              size="sm"
-              variant="outline"
-              className="rounded-full"
-              data-testid="today-rhythm-drawer-trigger"
+          {nearestCountdown && (
+            <button
+              type="button"
               onClick={() => setRhythmDrawerOpen(true)}
+              className="sky-heading group flex cursor-pointer items-baseline gap-3 border-0 bg-transparent p-0 text-right transition-opacity hover:opacity-100"
             >
-              <SlidersHorizontal size={13} strokeWidth={1.7} />
-              <span>小记与偏好</span>
-            </Button>
-          </Tooltip>
+              <div>
+                <div className="text-[11px] tracking-[0.14em] text-[var(--dawn)] uppercase">
+                  重要日子
+                </div>
+                <div className="text-[14px] font-medium text-[var(--ink-1)]">
+                  {nearestCountdown.label}
+                </div>
+              </div>
+              <div className="cinema-clock-digits inline-flex items-baseline gap-0.5 text-[38px] text-[var(--dawn)]">
+                <span>{nearestCountdown.daysLeft}</span>
+                <span className="font-sans text-[12.5px] font-normal text-[var(--ink-2)]">天</span>
+              </div>
+            </button>
+          )}
         </div>
       </header>
 
@@ -619,16 +738,16 @@ export function TodayView({
         </section>
       )}
 
-      {/* 2. 主舞台：左清透生活聚焦卡 + 中轴完整留白给 Wave 星海少女 + 右生活小记陪伴卡 */}
+      {/* 2. 主舞台：左极透电影聚焦手册卡 + 中央大面积留白给星海与剪影 + 右书桌生活与氛围声陪伴台 */}
       <section
-        className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[minmax(0,460px)_1fr_minmax(0,318px)]"
-        aria-label="今日顺手看看与生活小记"
+        className="grid grid-cols-1 items-end gap-8 lg:grid-cols-[minmax(0,450px)_1fr_minmax(0,336px)]"
+        aria-label="今日顺手看看与生活陪伴台"
       >
         {/* 左：单焦清透光学玻璃卡（真 SDF 边缘折射 + 色散） */}
         {focalTask && focalBranch && (
           <div
             ref={focalGlassRef}
-            className="v3-card flex flex-col justify-between gap-6 p-6 sm:p-8"
+            className="v3-card flex flex-col justify-between gap-6 p-6 sm:p-7"
             aria-label="今日顺手一读"
           >
             <div className="space-y-3.5">
@@ -638,7 +757,7 @@ export function TodayView({
                     className="h-2 w-2 rounded-full"
                     style={{ backgroundColor: focalBranch.accentToken }}
                   />
-                  <span>{focalBranch.name}</span>
+                  <span>{focalBranch.name} · 深度实战手册</span>
                 </span>
                 <span className="font-mono-num text-[var(--ink-3)]">
                   {focalDone ? '已看过' : `约 ${focalTask.estimatedMinutes} 分钟`}
@@ -647,12 +766,12 @@ export function TodayView({
 
               <h2
                 data-testid="today-focal-title"
-                className="m-0 text-[21px] font-semibold leading-[1.38] tracking-[-0.02em] text-[var(--ink-1)] sm:text-[24px]"
+                className="m-0 text-[20px] font-semibold leading-[1.38] tracking-[-0.02em] text-[var(--ink-1)] sm:text-[23px]"
               >
                 {focalDisplayTitle}
               </h2>
 
-              <p className="m-0 text-[14.5px] leading-[1.75] text-[var(--ink-2)]">
+              <p className="m-0 text-[14.2px] leading-[1.76] text-[var(--ink-2)]">
                 <RichText text={focalDisplayHint} concepts={content.knowledgeGraph.nodes} />
               </p>
             </div>
@@ -665,7 +784,7 @@ export function TodayView({
                 >
                   <span>
                     {focalTask.unitId
-                      ? '进去看看'
+                      ? '阅读手册'
                       : focalTask.kind === 'retest_review'
                         ? '去温习一下'
                         : '顺手翻几张卡'}
@@ -674,7 +793,7 @@ export function TodayView({
                 </a>
 
                 {focalTask.unitId && (
-                  <Tooltip content="在右侧抽屉快速扫一眼要点，不用跳转页面">
+                  <Tooltip content="在右侧抽屉快速扫一眼核心结论，不用跳转页面">
                     <Button
                       variant="outline"
                       size="lg"
@@ -691,7 +810,7 @@ export function TodayView({
 
               <div className="flex items-center gap-4 pt-1 text-[13px] text-[var(--ink-3)]">
                 {focalTask.unitId && (
-                  <Tooltip content="换一篇今天想看的生活内容">
+                  <Tooltip content="从全站 46 篇手册里换一篇今天想看的">
                     <button
                       type="button"
                       data-testid="today-swap-task-btn"
@@ -717,16 +836,16 @@ export function TodayView({
           </div>
         )}
 
-        {/* 中轴视觉呼吸走廊：桌面端完全让位给 Wave 银河、少女剪影与落日海面 */}
+        {/* 中轴视觉呼吸走廊：桌面端完整让位给 Wave 银河、少女剪影与落日地平线 */}
         <div className="hidden lg:block" aria-hidden="true" />
 
-        {/* 右：今日生活小记陪伴卡（一键喝水 + 今日状态贴纸 + 最近倒数日 + 轻时段清单） */}
+        {/* 右：书桌生活陪伴台（8 格喝水 + 心情 + 25 分钟书桌专注钟 & 原生白噪音 + 轻量时段清单） */}
         <div
           ref={lifeCardGlassRef}
-          className="v3-card flex flex-col gap-3.5 p-4 sm:p-5 lg:self-end"
-          aria-label="今日生活小记与时段清单"
+          className="v3-card flex flex-col gap-3.5 p-4 sm:p-5"
+          aria-label="书桌生活陪伴与氛围声"
         >
-          {/* 1. 一键喝水 + 今日心情 */}
+          {/* 1. 可视化 8 格喝水 + 今日状态贴纸 */}
           <div className="space-y-2.5 border-b border-[var(--line)] pb-3">
             <div className="flex items-center justify-between gap-2">
               <div className="inline-flex items-center gap-1.5 text-[13px] text-[var(--ink-2)]">
@@ -747,10 +866,25 @@ export function TodayView({
                 data-sdf-pill=""
                 data-testid="today-water-plus-btn"
                 onClick={() => handleQuickWater(1)}
-                className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-[var(--growth-border)] bg-[var(--growth-soft)] px-2.5 py-1 text-[12px] font-semibold text-[var(--growth)] transition-transform active:scale-95"
+                className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-[var(--growth-border)] bg-[var(--growth-soft)] px-2.5 py-0.5 text-[12px] font-semibold text-[var(--growth)] transition-transform active:scale-95"
               >
                 +1 杯
               </button>
+            </div>
+
+            {/* 8 格水滴进度条 */}
+            <div className="grid grid-cols-8 gap-1" aria-hidden="true">
+              {Array.from({ length: waterGoal }).map((_, idx) => (
+                <span
+                  key={idx}
+                  className={cn(
+                    'h-1.5 rounded-full transition-colors',
+                    idx < waterCups
+                      ? 'bg-[var(--growth)] shadow-[0_0_8px_rgba(94,234,212,0.45)]'
+                      : 'bg-[var(--surface-raised)]'
+                  )}
+                />
+              ))}
             </div>
 
             <div className="grid grid-cols-3 gap-1.5" role="group" aria-label="今日状态贴纸">
@@ -765,10 +899,10 @@ export function TodayView({
                     aria-pressed={active}
                     onClick={() => handleSelectMood(m.value)}
                     className={cn(
-                      'min-h-[30px] cursor-pointer rounded-full border text-[12px] font-medium transition-colors',
+                      'min-h-[29px] cursor-pointer rounded-full border text-[12px] font-medium transition-colors',
                       active
                         ? 'border-[var(--dawn-border)] bg-[var(--dawn-soft)] text-[var(--ink-1)]'
-                        : 'border-[var(--line)] bg-[var(--surface-plate)] text-[var(--ink-3)] hover:text-[var(--ink-1)]'
+                        : 'border-[var(--line)] bg-transparent text-[var(--ink-3)] hover:text-[var(--ink-1)]'
                     )}
                   >
                     {m.label}
@@ -778,27 +912,86 @@ export function TodayView({
             </div>
           </div>
 
-          {/* 2. 最近值得期待的日子 */}
-          {nearestCountdown && (
-            <button
-              type="button"
-              onClick={() => setRhythmDrawerOpen(true)}
-              className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-[11px] border border-[var(--line)] bg-[var(--surface-plate)] px-3 py-2 text-left transition-colors hover:border-[var(--dawn-border)]"
-            >
-              <span className="inline-flex min-w-0 items-center gap-1.5 text-[12.5px] text-[var(--ink-2)]">
-                <CalendarClock size={13} strokeWidth={1.7} className="shrink-0 text-[var(--dawn)]" />
-                <span className="truncate">{nearestCountdown.label}</span>
+          {/* 2. 新生活化小件：书桌 25 分钟温柔专注钟 + 原生氛围白噪音 */}
+          <div
+            className="space-y-2 border-b border-[var(--line)] pb-3"
+            data-testid="desk-ambient-bar"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="inline-flex items-center gap-1.5 text-[12.5px] text-[var(--ink-2)]">
+                <Timer size={13} strokeWidth={1.7} className="text-[var(--dawn)]" />
+                <span>书桌专注</span>
+                <strong className="font-mono-num text-[14px] font-medium text-[var(--ink-1)]">
+                  {formatTimerClock(focusSeconds)}
+                </strong>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  data-testid="focus-timer-toggle"
+                  onClick={() => setFocusRunning((v) => !v)}
+                  className={cn(
+                    'inline-flex h-[26px] cursor-pointer items-center gap-1 rounded-full border px-2.5 text-[11.5px] font-medium transition-colors',
+                    focusRunning
+                      ? 'border-[var(--dawn-border)] bg-[var(--dawn-soft)] text-[var(--ink-1)]'
+                      : 'border-[var(--line)] bg-transparent text-[var(--ink-2)] hover:text-[var(--ink-1)]'
+                  )}
+                >
+                  {focusRunning ? <Pause size={11} /> : <Play size={11} />}
+                  <span>{focusRunning ? '暂停' : '开始'}</span>
+                </button>
+                {focusSeconds !== 25 * 60 && (
+                  <button
+                    type="button"
+                    aria-label="重置专注计时"
+                    onClick={() => {
+                      setFocusRunning(false);
+                      setFocusSeconds(25 * 60);
+                    }}
+                    className="inline-flex h-[26px] w-[26px] cursor-pointer items-center justify-center rounded-full border border-[var(--line)] bg-transparent text-[var(--ink-3)] hover:text-[var(--ink-1)]"
+                  >
+                    <RotateCcw size={11} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-1.5">
+              <span className="inline-flex items-center gap-1 text-[11.5px] text-[var(--ink-3)]">
+                {soundMode === 'off' ? <VolumeX size={12} /> : <Volume2 size={12} className="text-[var(--accent)]" />}
+                <span>氛围声</span>
               </span>
-              <span className="font-mono-num shrink-0 text-[12.5px] font-semibold text-[var(--dawn)]">
-                还有 {nearestCountdown.daysLeft} 天
-              </span>
-            </button>
-          )}
+              <div className="flex items-center gap-1">
+                {SOUND_OPTIONS.map((item) => {
+                  const Icon = item.icon;
+                  const active = soundMode === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      data-testid={`ambient-sound-${item.id}`}
+                      aria-pressed={active}
+                      onClick={() => handleToggleSound(item.id)}
+                      className={cn(
+                        'inline-flex h-[25px] cursor-pointer items-center gap-1 rounded-full border px-2 text-[11.5px] transition-colors',
+                        active
+                          ? 'border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--ink-1)]'
+                          : 'border-[var(--line)] bg-transparent text-[var(--ink-3)] hover:text-[var(--ink-1)]'
+                      )}
+                    >
+                      <Icon size={11} strokeWidth={1.7} />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
 
           {/* 3. 轻量三时段小清单 */}
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             <div
-              className="grid grid-cols-3 gap-1 rounded-full border border-[var(--line)] bg-[var(--surface-plate)] p-1"
+              className="grid grid-cols-3 gap-1 rounded-full border border-[var(--line)] bg-transparent p-0.5"
               role="tablist"
               aria-label="时段切换"
             >
@@ -815,7 +1008,7 @@ export function TodayView({
                     aria-selected={isSelected}
                     onClick={() => setSelectedBand(slot.band)}
                     className={cn(
-                      'flex min-h-[30px] cursor-pointer items-center justify-center gap-1 rounded-full px-1.5 text-[12px] font-medium transition-colors',
+                      'flex min-h-[28px] cursor-pointer items-center justify-center gap-1 rounded-full px-1.5 text-[12px] font-medium transition-colors',
                       isSelected
                         ? 'bg-[var(--accent-soft)] text-[var(--ink-1)]'
                         : 'text-[var(--ink-3)] hover:text-[var(--ink-1)]'
@@ -883,9 +1076,9 @@ export function TodayView({
         </div>
       </section>
 
-      {/* 3. 底部单行清透信息丝带 */}
+      {/* 3. 底部单行极透电影丝带 */}
       <footer
-        className="v3-card flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-[20px] px-5 py-3.5"
+        className="v3-card flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-full px-5 py-3"
         aria-label="今日轻量辅助条"
       >
         <Tooltip content="点击在右侧抽屉细看今日实用一招" side="top">

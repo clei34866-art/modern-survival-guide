@@ -27,9 +27,22 @@ interface StepNarration {
   text: string;
 }
 
+/** 兼容字符串与 { label/title, detail } 对象型节点描述，杜绝运行时 .trim() 崩溃 */
+function normalizeDiagramLabel(raw: unknown): string {
+  if (typeof raw === 'string') return raw;
+  if (raw && typeof raw === 'object') {
+    const obj = raw as { label?: string; title?: string; detail?: string };
+    const head = (obj.label ?? obj.title ?? '').trim();
+    const tail = (obj.detail ?? '').trim();
+    if (head && tail) return `${head}：${tail}`;
+    return head || tail;
+  }
+  return String(raw ?? '');
+}
+
 /** 将中英文混排标签按视觉宽度拆成 1–3 行，杜绝任何省略号截断与标点孤字 */
-function wrapSvgLines(label: string, maxUnitsPerLine = 11, maxLines = 3): string[] {
-  const clean = label.trim();
+function wrapSvgLines(label: unknown, maxUnitsPerLine = 11, maxLines = 3): string[] {
+  const clean = normalizeDiagramLabel(label).trim();
   if (!clean) return [''];
   const tagSplit = clean.match(/^(<[a-zA-Z0-9_-]+>)(.+)$/);
   if (tagSplit) {
@@ -117,7 +130,7 @@ export function ExactDiagram({
   } => {
     if (template === 'flow_pipeline') {
       const steps = Array.isArray(data.steps)
-        ? (data.steps as string[]).slice(0, 5)
+        ? (data.steps as unknown[]).slice(0, 5).map(normalizeDiagramLabel)
         : ['输入材料', '结构处理', '核查输出'];
       return {
         totalSteps: steps.length,
@@ -190,14 +203,16 @@ export function ExactDiagram({
 
     if (template === 'two_axis_matrix') {
       const quads = Array.isArray(data.quadrants)
-        ? (data.quadrants as string[])
+        ? (data.quadrants as unknown[]).map(normalizeDiagramLabel)
         : ['象限一', '象限二', '象限三', '象限四'];
+      const xAxisRaw = data.xAxis ?? data.xAxisLabel ?? '横轴维度';
+      const yAxisRaw = data.yAxis ?? data.yAxisLabel ?? '纵轴维度';
       return {
         totalSteps: 5,
         narrations: [
           {
             tag: '二维标尺',
-            text: `同时衡量「${String(data.xAxis ?? '横轴维度').replace(/→/g, '').trim()}」与「${String(data.yAxis ?? '纵轴维度').replace(/↑/g, '').trim()}」，避免单维拍脑袋`,
+            text: `同时衡量「${String(xAxisRaw).replace(/→/g, '').trim()}」与「${String(yAxisRaw).replace(/↑/g, '').trim()}」，避免单维拍脑袋`,
           },
           { tag: '左上象限', text: `左上区：${quads[0] ?? ''}` },
           { tag: '右上关键区', text: `右上关键区：${quads[1] ?? ''}` },
@@ -282,7 +297,7 @@ export function ExactDiagram({
     // 1. FLOW PIPELINE
     if (template === 'flow_pipeline') {
       const steps = Array.isArray(data.steps)
-        ? (data.steps as string[]).slice(0, 5)
+        ? (data.steps as unknown[]).slice(0, 5).map(normalizeDiagramLabel)
         : ['输入材料', '结构处理', '核查输出'];
       const count = steps.length;
       const boxW = count <= 4 ? 148 : 124;
@@ -691,10 +706,20 @@ export function ExactDiagram({
 
     // 4. TWO AXIS MATRIX
     if (template === 'two_axis_matrix') {
-      const xLabel = typeof data.xAxis === 'string' ? data.xAxis : '横轴维度 →';
-      const yLabel = typeof data.yAxis === 'string' ? data.yAxis : '↑ 纵轴维度';
+      const xLabel =
+        typeof data.xAxis === 'string'
+          ? data.xAxis
+          : typeof data.xAxisLabel === 'string'
+            ? data.xAxisLabel
+            : '横轴维度 →';
+      const yLabel =
+        typeof data.yAxis === 'string'
+          ? data.yAxis
+          : typeof data.yAxisLabel === 'string'
+            ? data.yAxisLabel
+            : '↑ 纵轴维度';
       const quads = Array.isArray(data.quadrants)
-        ? (data.quadrants as string[])
+        ? (data.quadrants as unknown[]).map(normalizeDiagramLabel)
         : ['象限一', '象限二', '象限三', '象限四'];
 
       const boxes = [

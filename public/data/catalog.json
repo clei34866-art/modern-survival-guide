@@ -58,9 +58,14 @@
           "unlockAfterTrackId": "b1-ai-l1",
           "milestoneDeliverable": {
             "title": "一份处理个人真实实验或生活数据的 Python 脚本与图表",
-            "criteria": ["自测达标", "脚本可复现输出清洗结果与规范可视化图"]
+            "criteria": [
+              "自测达标",
+              "脚本可复现输出清洗结果与规范可视化图"
+            ]
           },
-          "unitIds": ["unit-b1-l2-numpy"],
+          "unitIds": [
+            "unit-b1-l2-numpy"
+          ],
           "curatedResources": [
             {
               "title": "NumPy 官方快速入门与数组广播教程",
@@ -82,9 +87,14 @@
           "unlockAfterTrackId": "b1-ai-l2",
           "milestoneDeliverable": {
             "title": "一个包含基线对比与误差分析的完整建模小项目",
-            "criteria": ["自测达标", "清晰区分训练/验证泄漏风险并给出评估结论"]
+            "criteria": [
+              "自测达标",
+              "清晰区分训练/验证泄漏风险并给出评估结论"
+            ]
           },
-          "unitIds": ["unit-b1-l3-overfit"],
+          "unitIds": [
+            "unit-b1-l3-overfit"
+          ],
           "curatedResources": [
             {
               "title": "李宏毅《机器学习》公开课讲义索引",
@@ -106,9 +116,14 @@
           "unlockAfterTrackId": "b1-ai-l3",
           "milestoneDeliverable": {
             "title": "复现轻量模型或落地一次真实个人知识库 RAG / 微调应用",
-            "criteria": ["自测达标", "具备可验证的检索准确率或微调前后对比记录"]
+            "criteria": [
+              "自测达标",
+              "具备可验证的检索准确率或微调前后对比记录"
+            ]
           },
-          "unitIds": ["unit-b1-l4-transformer"],
+          "unitIds": [
+            "unit-b1-l4-transformer"
+          ],
           "curatedResources": [
             {
               "title": "Attention Is All You Need (arXiv 开放获取原文)",
@@ -125,9 +140,13 @@
           "unlockAfterTrackId": "b1-ai-l4",
           "milestoneDeliverable": {
             "title": "一篇跨学科论文复现/精读卡片或交叉小实验",
-            "criteria": ["提炼问题假设、方法边界与迁移到个人科研的可行点"]
+            "criteria": [
+              "提炼问题假设、方法边界与迁移到个人科研的可行点"
+            ]
           },
-          "unitIds": ["unit-b1-l5-paper"],
+          "unitIds": [
+            "unit-b1-l5-paper"
+          ],
           "curatedResources": [
             {
               "title": "arXiv Condensed Matter / Materials Science & AI 开放检索",
@@ -143,7 +162,9 @@
           "summary": "跳过冗长手捏泥巴，直奔场景组织、材质灯光与 bpy 脚本批量生成科研示意图",
           "milestoneDeliverable": {
             "title": "用一份 bpy Python 脚本一键生成可复现实验结构/晶体/流程图渲染",
-            "criteria": ["脚本在 Blender Scripting 面板无报错运行并输出高清 PNG"]
+            "criteria": [
+              "脚本在 Blender Scripting 面板无报错运行并输出高清 PNG"
+            ]
           },
           "unitIds": [
             "unit-b1-blender-data",
@@ -168,7 +189,9 @@
           "kind": "software_pack",
           "title": "软件包 S2 · Office / WPS 高效排版与表格",
           "summary": "长文档样式自动化、数据透视表核账、清爽学术汇报页母版",
-          "unitIds": ["unit-b1-sw-office-style"],
+          "unitIds": [
+            "unit-b1-sw-office-style"
+          ],
           "curatedResources": [
             {
               "title": "Microsoft 365 Word 样式与长文档排版官方支持中心",
@@ -182,7 +205,9 @@
           "kind": "software_pack",
           "title": "软件包 S3 · Git 与现代开发工具链",
           "summary": "分支管理、后悔药回滚、终端效率与代码编辑器高频工作流",
-          "unitIds": ["unit-b1-sw-git-safety"],
+          "unitIds": [
+            "unit-b1-sw-git-safety"
+          ],
           "curatedResources": [
             {
               "title": "Pro Git 第二版（开源中文版）",
@@ -196,7 +221,9 @@
           "kind": "software_pack",
           "title": "软件包 S4 · 笔记工具与科研知识库",
           "summary": "Markdown 双链笔记、文献阅读卡片流与防囤积检索结构",
-          "unitIds": ["unit-b1-sw-notes-graph"],
+          "unitIds": [
+            "unit-b1-sw-notes-graph"
+          ],
           "curatedResources": [
             {
               "title": "Obsidian 官方中文帮助文档（双链与本地 Markdown 库）",
@@ -210,7 +237,9 @@
           "kind": "software_pack",
           "title": "软件包 S5 · 剪辑工具与快速成片",
           "summary": "粗剪节奏、音画对齐、字幕批处理与课程/推文短视频交付",
-          "unitIds": ["unit-b1-sw-video-pipeline"],
+          "unitIds": [
+            "unit-b1-sw-video-pipeline"
+          ],
           "curatedResources": [
             {
               "title": "FFmpeg 音视频命令行快速处理官方文档",
@@ -235,8 +264,15 @@
           "id": "b2-main",
           "kind": "branch_path",
           "title": "个人财务生存主路径",
-          "summary": "覆盖记账与三桶预算 → 保险保障与条款核验 → 基金阶梯与期限匹配三大核心生存课",
-          "unitIds": ["unit-b2-budget", "unit-b2-insurance", "unit-b2-investing"],
+          "summary": "记账三桶预算、保险避坑、投资底层逻辑 → 五险一金个税退税、个人征信与反消费陷阱（6 篇全覆盖）",
+          "unitIds": [
+            "unit-b2-budget",
+            "unit-b2-insurance",
+            "unit-b2-investing",
+            "unit-b2-tax-social",
+            "unit-b2-credit-debt",
+            "unit-b2-smart-spending"
+          ],
           "curatedResources": [
             {
               "title": "中国投资者网 · 投资者课堂（基金、股票、债券基础与风险提示）",
@@ -272,8 +308,14 @@
           "id": "b3-main",
           "kind": "branch_path",
           "title": "应用心理与决策主路径",
-          "summary": "覆盖情绪管理与认知重评 → 认知偏误与零基决策，附经典实验溯源与专业求助红线",
-          "unitIds": ["unit-b3-emotion", "unit-b3-decision"],
+          "summary": "情绪调节、决策防偏误 → 人际边界拒绝、拖延症破局与非暴力冲突沟通（5 篇全覆盖）",
+          "unitIds": [
+            "unit-b3-emotion",
+            "unit-b3-decision",
+            "unit-b3-boundaries",
+            "unit-b3-procrastination",
+            "unit-b3-conflict"
+          ],
           "curatedResources": [
             {
               "title": "OpenStax Psychology 2e · 10.4 Emotion 开放获取教材",
@@ -308,8 +350,14 @@
           "id": "b4-main",
           "kind": "branch_path",
           "title": "身体管理主路径",
-          "summary": "科学睡眠与昼夜节律 → WHO 150 分钟跑步防伤与久坐自救",
-          "unitIds": ["unit-b4-sleep", "unit-b4-running"],
+          "summary": "科学睡眠、无伤跑步 → 看病挂号体检解读、211 饮食外卖指南与护颈护眼工位自救（5 篇全覆盖）",
+          "unitIds": [
+            "unit-b4-sleep",
+            "unit-b4-running",
+            "unit-b4-hospital-checkup",
+            "unit-b4-diet-takeout",
+            "unit-b4-spine-eyes"
+          ],
           "curatedResources": [
             {
               "title": "WHO 关于身体活动和久坐行为的指南",
@@ -333,8 +381,14 @@
           "id": "b5-main",
           "kind": "branch_path",
           "title": "清晰表达与职业准备路径",
-          "summary": "结论先行结构化写作与汇报 → 经得起追问的 STAR 量化简历与作品集",
-          "unitIds": ["unit-b5-writing", "unit-b5-resume"],
+          "summary": "结论先行写作、STAR 简历 → 面试追问与谈薪、高效会议纪要向上对齐、答辩 PPT 减法稳场（5 篇全覆盖）",
+          "unitIds": [
+            "unit-b5-writing",
+            "unit-b5-resume",
+            "unit-b5-interview-salary",
+            "unit-b5-upward-meetings",
+            "unit-b5-presentation"
+          ],
           "curatedResources": [
             {
               "title": "Purdue Online Writing Lab (OWL) 公开写作结构指南",
@@ -358,8 +412,14 @@
           "id": "b6-main",
           "kind": "branch_path",
           "title": "高效学习与精力调度路径",
-          "summary": "主动提取与 1/3/7 间隔重测 → 费曼输出与三时段精力精准匹配",
-          "unitIds": ["unit-b6-retrieval", "unit-b6-feynman"],
+          "summary": "主动提取间隔重测、费曼精力匹配 → SIFT 一手溯源防谣言、深度专注降噪与大项目防烂尾拆解（5 篇全覆盖）",
+          "unitIds": [
+            "unit-b6-retrieval",
+            "unit-b6-feynman",
+            "unit-b6-info-factcheck",
+            "unit-b6-deep-focus",
+            "unit-b6-project-breakdown"
+          ],
           "curatedResources": [
             {
               "title": "Strengthening the Student Toolbox: Study Strategies Boost Learning (Dunlosky 等公开综述)",
@@ -383,8 +443,14 @@
           "id": "b7-main",
           "kind": "branch_path",
           "title": "法律、数字安全与急救路径",
-          "summary": "租房与实习合同民法典四步避坑 → 数字账号 2FA 防诈与黄金 4 分钟急救核心",
-          "unitIds": ["unit-b7-contract", "unit-b7-digital-firstaid"],
+          "summary": "租房实习合同、账号 2FA 与 CPR 急救 → 居家水电燃气应急、12315 消费维权与独行差旅自保（5 篇全覆盖）",
+          "unitIds": [
+            "unit-b7-contract",
+            "unit-b7-digital-firstaid",
+            "unit-b7-home-emergency",
+            "unit-b7-consumer-rights",
+            "unit-b7-travel-safety"
+          ],
           "curatedResources": [
             {
               "title": "国家法律法规数据库（民法典·合同编 / 消费者权益保护法）",

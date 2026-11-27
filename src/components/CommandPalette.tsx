@@ -47,7 +47,7 @@ export function CommandPalette({
             <div className="flex items-center gap-2.5 px-4 border-b border-[var(--line)]">
               <Search size={16} strokeWidth={1.5} className="text-[var(--ink-3)] shrink-0" />
               <Command.Input
-                placeholder="搜索学习单元、知识点、生存分支或页面…"
+                placeholder="搜任意生活/技能关键词（如：体检、退税、押金、12315、跳闸、谈薪、拖延）…"
                 className="!border-none !px-0"
               />
               <kbd className="font-mono-num text-[11px] px-1.5 py-0.5 rounded border border-[var(--line-strong)] text-[var(--ink-3)] shrink-0">
@@ -97,19 +97,24 @@ export function CommandPalette({
                 </Command.Item>
               </Command.Group>
 
-              <Command.Group heading="互动学习单元">
-                {content.units.map((u) => (
-                  <Command.Item
-                    key={u.id}
-                    value={`${u.branchId} ${u.title} ${u.id}`}
-                    onSelect={() => jump(`#/unit/${encodeURIComponent(u.id)}`)}
-                  >
-                    <span className="truncate">{u.title}</span>
-                    <span className="font-mono-num text-[12px] text-[var(--ink-3)] shrink-0">
-                      {u.branchId} · {u.estimatedMinutes}m
-                    </span>
-                  </Command.Item>
-                ))}
+              <Command.Group heading={`深度实战手册（全站 ${content.units.length} 篇，支持正文关键词检索）`}>
+                {content.units.map((u) => {
+                  const fullTextSnippet = u.guide.blocks
+                    .map((b) => `${b.heading} ${b.keyTakeaway ?? ''}`)
+                    .join(' ');
+                  return (
+                    <Command.Item
+                      key={u.id}
+                      value={`${u.branchId} ${u.title} ${u.scenarioHook.sceneTitle} ${fullTextSnippet} ${u.id}`}
+                      onSelect={() => jump(`#/unit/${encodeURIComponent(u.id)}`)}
+                    >
+                      <span className="truncate">{u.title}</span>
+                      <span className="font-mono-num text-[12px] text-[var(--ink-3)] shrink-0">
+                        {u.branchId} · {u.estimatedMinutes}m
+                      </span>
+                    </Command.Item>
+                  );
+                })}
               </Command.Group>
 
               <Command.Group heading="核心概念闪卡">

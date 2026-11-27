@@ -5,6 +5,7 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
+  Download,
   HelpCircle,
   Layers,
   ListChecks,
@@ -15,6 +16,7 @@ import {
   Search,
   Sparkles,
   Sun,
+  Type,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
@@ -96,6 +98,15 @@ export function UnitPlayerView({
   const [diagramStep, setDiagramStep] = useState<number | undefined>(undefined);
   const [readProgress, setReadProgress] = useState<number>(0);
 
+  // 阅读字号舒适度切换（标准 / 舒展大字，自动记住）
+  const [fontScale, setFontScale] = useState<'normal' | 'large'>(() => {
+    try {
+      return localStorage.getItem('msg-handbook-font') === 'large' ? 'large' : 'normal';
+    } catch {
+      return 'normal';
+    }
+  });
+
   // 右侧「资料与出处」Drawer
   const [studyDrawerOpen, setStudyDrawerOpen] = useState<boolean>(false);
   const [studyDrawerTab, setStudyDrawerTab] = useState<'notes' | 'sources'>('notes');
@@ -135,7 +146,7 @@ export function UnitPlayerView({
   const currentConcept = concepts[Math.min(cardIdx, Math.max(0, concepts.length - 1))];
   const isCurrentFlipped = currentConcept ? Boolean(flippedCards[currentConcept.id]) : false;
 
-  // 监听滚动进度与目录高亮
+  // 监听滚动进度与实时 IntersectionObserver 目录自动高亮
   useEffect(() => {
     const onScroll = () => {
       const doc = document.documentElement;
@@ -144,8 +155,114 @@ export function UnitPlayerView({
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
-    return () => window.removeEventListener('scroll', onScroll);
-  }, [unit.id]);
+
+    const sectionIds = [
+      'sec-tldr',
+      'sec-visual',
+      ...unit.guide.blocks.map((_, idx) => `sec-block-${idx}`),
+      'sec-checklist',
+      'sec-optional',
+    ];
+    let observer: IntersectionObserver | null = null;
+    if (typeof IntersectionObserver !== 'undefined') {
+      observer = new IntersectionObserver(
+        (entries) => {
+          const visible = entries
+            .filter((e) => e.isIntersecting)
+            .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+          if (visible[0]?.target?.id) {
+            setActiveSecId(visible[0].target.id);
+          }
+        },
+        { rootMargin: '-16% 0px -66% 0px', threshold: 0.05 }
+      );
+      for (const id of sectionIds) {
+        const el = document.getElementById(id);
+        if (el) observer.observe(el);
+      }
+    }
+
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      observer?.disconnect();
+    };
+  }, [unit.id, unit.guide.blocks.length]);
+
+  const handleToggleFontScale = () => {
+    setFontScale((prev) => {
+      const next = prev === 'normal' ? 'large' : 'normal';
+      try {
+        localStorage.setItem('msg-handbook-font', next);
+      } catch {
+        // ignore
+      }
+      toast(next === 'large' ? '已切至「舒展大字」护眼模式' : '已切回「标准」排版字号');
+      return next;
+    });
+  };
+
+  const handleExcerptSection = async (heading: string, takeaway: string | undefined, md: string) => {
+    const shortTitle = `${unit.title.split('：')[0]} · ${heading.split(/[：?？]/)[0].replace(/`/g, '').slice(0, 16)}`;
+    const cleanExcerpt =
+      takeaway?.trim() ||
+      md
+        .replace(/```[\s\S]*?```/g, '')
+        .replace(/[#>*`|]/g, '')
+        .trim()
+        .slice(0, 160);
+    const next = await addLifeNote({
+      title: shortTitle,
+      body: `${cleanExcerpt}\n\n（摘自手册：${unit.title}）`,
+      branchId: unit.branchId,
+    });
+    onTelemetryChange(next);
+    toast.success('已摘录进「生活手账 → 生活笔记」');
+  };
+
+  const handleExportMarkdown = () => {
+    const lines = [
+      `# ${unit.title}`,
+      '',
+      `> 领域：${parentBranch?.name ?? unit.branchId} ｜ 预计阅读：约 ${unit.estimatedMinutes} 分钟`,
+      '',
+      `## 场景背景`,
+      unit.scenarioHook.story,
+      '',
+      `## 一分钟核心结论`,
+      ...takeaways.map((b, i) => `${i + 1}. ${b.keyTakeaway}`),
+      '',
+      ...unit.guide.blocks.flatMap((b, i) => [
+        `## 0${i + 1} ${b.heading}`,
+        '',
+        b.markdown,
+        '',
+        b.keyTakeaway ? `> **本节一句话**：${b.keyTakeaway}` : '',
+        '',
+      ]),
+      `## 拿走就能用：${unit.actionTask.title}`,
+      ...unit.actionTask.steps.map((s) => `- [ ] ${s}`),
+      '',
+      `## 权威参考出处`,
+      ...unit.sources.map((s) => `- ${s.sourceOrg}：${s.sourceUrl}（核验：${s.fetchedAt}）`),
+      '',
+    ];
+    const mdText = lines.join('\n');
+    try {
+      const blob = new Blob([mdText], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${unit.id}.md`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success('已导出本篇完整 Markdown 手册与核对清单');
+    } catch {
+      void navigator.clipboard?.writeText(mdText);
+      toast.success('已将本篇完整 Markdown 复制到剪贴板');
+    }
+  };
 
   // 离开页面时自动温和记录阅读时长（不打断）
   useEffect(() => {
@@ -446,6 +563,37 @@ export function UnitPlayerView({
               </Button>
             </Tooltip>
 
+            <Tooltip content={fontScale === 'large' ? '切回标准排版字号' : '切至舒展大字护眼阅读'}>
+              <button
+                type="button"
+                aria-label="切换阅读字号"
+                data-testid="unit-font-toggle"
+                onClick={handleToggleFontScale}
+                className={cn(
+                  'inline-flex h-[34px] cursor-pointer items-center gap-1 rounded-full border px-2.5 text-[12px] font-medium transition-colors',
+                  fontScale === 'large'
+                    ? 'border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--ink-1)]'
+                    : 'border-[var(--line-strong)] bg-[var(--surface-plate)] text-[var(--ink-2)] hover:text-[var(--ink-1)]'
+                )}
+              >
+                <Type size={13} strokeWidth={1.7} />
+                <span className="hidden md:inline">{fontScale === 'large' ? '舒展' : '标准'}</span>
+              </button>
+            </Tooltip>
+
+            <Tooltip content="导出本篇完整 Markdown 手册与核对清单">
+              <button
+                type="button"
+                aria-label="导出本篇 Markdown"
+                data-testid="unit-export-md-btn"
+                onClick={handleExportMarkdown}
+                className="inline-flex h-[34px] cursor-pointer items-center gap-1 rounded-full border border-[var(--line-strong)] bg-[var(--surface-plate)] px-2.5 text-[12px] font-medium text-[var(--ink-2)] transition-colors hover:border-[var(--accent-border)] hover:text-[var(--ink-1)]"
+              >
+                <Download size={13} strokeWidth={1.7} />
+                <span className="hidden md:inline">导出 MD</span>
+              </button>
+            </Tooltip>
+
             <Tooltip content="本篇划重点、术语表与权威出处">
               <Button
                 variant="subtle"
@@ -540,7 +688,10 @@ export function UnitPlayerView({
         </aside>
 
         {/* 右：整页长文实战手册画布 */}
-        <article className="min-w-0 max-w-[820px] space-y-6">
+        <article
+          className="handbook-article-shell min-w-0 max-w-[820px] space-y-6"
+          data-font-scale={fontScale}
+        >
           <PlaceholderBanner visible={unit.isPlaceholder} />
 
           {/* 1. 封面标题 + 一分钟核心结论 */}
@@ -620,14 +771,25 @@ export function UnitPlayerView({
                 onMouseEnter={() => setActiveSecId(`sec-block-${idx}`)}
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-[var(--line)] pb-3">
-                  <h2 className="m-0 flex items-baseline gap-2.5 text-[18.5px] font-semibold leading-[1.4] text-[var(--ink-1)] sm:text-[20px]">
-                    <span className="font-mono-num text-[13.5px] font-semibold text-[var(--dawn)]">
+                  <h2 className="m-0 flex min-w-0 flex-1 items-baseline gap-2.5 text-[18.5px] font-semibold leading-[1.4] text-[var(--ink-1)] sm:text-[20px]">
+                    <span className="font-mono-num shrink-0 text-[13.5px] font-semibold text-[var(--dawn)]">
                       0{idx + 1}
                     </span>
                     <span>
                       <RichText text={blk.heading} concepts={concepts} />
                     </span>
                   </h2>
+                  <Tooltip content="一键把本节核心要点存进「生活手账 → 生活笔记」">
+                    <button
+                      type="button"
+                      data-testid="excerpt-section-btn"
+                      onClick={() => handleExcerptSection(blk.heading, blk.keyTakeaway, blk.markdown)}
+                      className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-full border border-[var(--line)] bg-transparent px-2.5 py-1 text-[11.5px] font-medium text-[var(--ink-3)] transition-colors hover:border-[var(--dawn-border)] hover:text-[var(--dawn)]"
+                    >
+                      <BookmarkPlus size={12} strokeWidth={1.7} />
+                      <span>摘录</span>
+                    </button>
+                  </Tooltip>
                 </div>
 
                 <MarkdownArticle text={blk.markdown} concepts={concepts} />

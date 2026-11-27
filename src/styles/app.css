@@ -575,6 +575,48 @@ input[type='range'] {
   text-shadow: var(--sky-text-shadow);
 }
 
+/* 电影感首页排版（与 1080P StandBy 画报状态墙同源字体语言） */
+.cinema-clock-digits {
+  font-family: 'Inter', 'SF Pro Display', 'Segoe UI Light', 'Helvetica Neue', system-ui, sans-serif;
+  font-weight: 200;
+  letter-spacing: -0.045em;
+  line-height: 0.94;
+  font-variant-numeric: tabular-nums;
+}
+
+.cinema-serif-quote {
+  font-family: 'Noto Serif SC', 'Songti SC', 'STSong', 'Source Han Serif SC', Georgia, serif;
+  letter-spacing: 0.025em;
+}
+
+.cinema-hairline-rule {
+  width: 52px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--dawn) 0%, transparent 100%);
+  opacity: 0.82;
+}
+
+.cinema-colon-pulse {
+  animation: cinemaColonBreath 2s ease-in-out infinite;
+}
+
+@keyframes cinemaColonBreath {
+  0%, 100% { opacity: 0.86; }
+  50% { opacity: 0.30; }
+}
+
+/* 手册舒展大字护眼模式 */
+.handbook-article-shell[data-font-scale='large'] .handbook-prose p,
+.handbook-article-shell[data-font-scale='large'] .handbook-prose ul,
+.handbook-article-shell[data-font-scale='large'] .handbook-prose ol {
+  font-size: 17px;
+  line-height: 1.94;
+}
+
+.handbook-article-shell[data-font-scale='large'] .handbook-table {
+  font-size: 14.8px;
+}
+
 /* 行内代码芯片 & 术语触发器（悬停 Tooltip + 点击 Drawer） */
 .inline-code {
   font-family: var(--font-mono);

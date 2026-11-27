@@ -348,9 +348,9 @@ async function main() {
     const cmdkClosed = await cdp.evalJs(`!document.querySelector('[cmdk-input]')`);
 
     check(
-      cmdkOpenAudit.hasInput && cmdkOpenAudit.itemCount >= 30 && cmdkClosed,
+      cmdkOpenAudit.hasInput && cmdkOpenAudit.itemCount >= 80 && cmdkClosed,
       'L5',
-      `⌘K 全局命令面板可打开/检索全量 28 单元+30 概念并按 Esc 关闭 (items=${cmdkOpenAudit.itemCount})`
+      `⌘K 全局命令面板可打开/检索全量 46 篇手册+48 概念并按 Esc 关闭 (items=${cmdkOpenAudit.itemCount})`
     );
 
     // 验证 Wave 双层壁纸 + 弥散渐变 + 真 SDF 组合与 RGB 折射色散玻璃透镜
@@ -375,7 +375,7 @@ async function main() {
       `光学增强生效：弥散渐变(${waveLoaded.diffuseOrbs}极) + Smooth-Min SDF 组合(${waveLoaded.sdfCompound}处) + RGB 三通道折射色散(${waveLoaded.dispMaps}位移通道)`
     );
 
-    // Gen-2 生活化首页验证：直接一键 +1 杯喝水 & 心情贴纸点击
+    // Gen-2 生活化首页验证：直接一键 +1 杯喝水 & 心情贴纸 & 电影感书桌专注钟与氛围声
     const homeWaterBefore = await cdp.evalJs(`document.querySelector('[data-testid="today-water-count"]')?.textContent?.trim() || ''`);
     await cdp.evalJs(`document.querySelector('[data-testid="today-water-plus-btn"]')?.click()`);
     await new Promise((r) => setTimeout(r, 180));
@@ -383,10 +383,11 @@ async function main() {
     await cdp.evalJs(`document.querySelector('[data-testid="today-mood-relaxed"]')?.click()`);
     await new Promise((r) => setTimeout(r, 150));
     const moodPressed = await cdp.evalJs(`document.querySelector('[data-testid="today-mood-relaxed"]')?.getAttribute('aria-pressed') === 'true'`);
+    const cinemaDeskOk = await cdp.evalJs(`Boolean(document.querySelector('.cinema-clock-digits') && document.querySelector('.cinema-serif-quote') && document.querySelector('[data-testid="desk-ambient-bar"]'))`);
     check(
-      homeWaterBefore !== homeWaterAfter && homeWaterAfter.startsWith('1/') && moodPressed,
+      homeWaterBefore !== homeWaterAfter && homeWaterAfter.startsWith('1/') && moodPressed && cinemaDeskOk,
       'L5',
-      `首页「今日生活桌面」一键喝水(${homeWaterBefore} -> ${homeWaterAfter})与心情贴纸即时生效`
+      `电影感首页「今日生活桌面」超大时钟/衬线句/书桌专注氛围声 + 一键喝水(${homeWaterBefore} -> ${homeWaterAfter})与心情贴纸即时生效`
     );
 
     // 验证首页「抽屉速览」Drawer 正常滑出并支持 Esc 关闭
@@ -644,7 +645,9 @@ async function main() {
       { id: 'unit-b1-l1-agent', expected: 'two_axis_matrix', shot: '12-unit-matrix-1440.png' },
       { id: 'unit-b1-blender-transform', expected: 'coordinate_3d', shot: '13-unit-3d-1440.png' },
       { id: 'unit-b4-sleep', expected: 'curve_compare', shot: '13b-unit-b4-sleep-1440.png' },
+      { id: 'unit-b4-hospital-checkup', expected: 'flow_pipeline', shot: '13d-unit-b4-hospital-1440.png' },
       { id: 'unit-b7-contract', expected: 'flow_pipeline', shot: '13c-unit-b7-contract-1440.png' },
+      { id: 'unit-b7-home-emergency', expected: 'flow_pipeline', shot: '13e-unit-b7-home-1440.png' },
     ];
 
     for (const u of templateUnits) {
@@ -733,12 +736,22 @@ async function main() {
 
       await cdp.screenshot(u.shot, u.id === 'unit-b7-contract');
 
-      // 在第一篇手册验证：一键标为已读 + 参考资料 Drawer + 术语 Drawer + 可选 3D 翻卡 + 可选自测提交
+      // 在第一篇手册验证：一键标为已读 + 字号舒展切换 + 一键摘录 + 参考资料 Drawer + 术语 Drawer + 可选 3D 翻卡 + 可选自测提交
       if (u.id === 'unit-b1-l1-prompt') {
         await cdp.evalJs(`document.querySelector('[data-testid="unit-mark-read-btn"]')?.click()`);
         await new Promise((r) => setTimeout(r, 200));
         const markedReadText = await cdp.evalJs(`document.querySelector('[data-testid="unit-mark-read-btn"]')?.textContent?.trim() || ''`);
         check(markedReadText.includes('已读'), 'L5', `手册顶栏一键「标为已读」免做题直接留痕 (${markedReadText})`);
+
+        await cdp.evalJs(`document.querySelector('[data-testid="unit-font-toggle"]')?.click()`);
+        await new Promise((r) => setTimeout(r, 140));
+        const fontScaleLarge = await cdp.evalJs(`document.querySelector('.handbook-article-shell')?.getAttribute('data-font-scale') === 'large'`);
+        await cdp.evalJs(`document.querySelector('[data-testid="unit-font-toggle"]')?.click()`);
+        await new Promise((r) => setTimeout(r, 100));
+        await cdp.evalJs(`document.querySelector('[data-testid="excerpt-section-btn"]')?.click()`);
+        await new Promise((r) => setTimeout(r, 180));
+        const hasExportBtn = await cdp.evalJs(`Boolean(document.querySelector('[data-testid="unit-export-md-btn"]'))`);
+        check(fontScaleLarge && hasExportBtn, 'L5', `手册阅读精修生效：舒展大字切换 + 一键摘录到生活笔记 + 导出 MD 按钮就绪`);
 
         await cdp.evalJs(`document.querySelector('[data-testid="study-drawer-trigger"]')?.click()`);
         await new Promise((r) => setTimeout(r, 220));

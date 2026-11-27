@@ -131,12 +131,12 @@ class CDPClient {
 
   async goto(url) {
     await this.send('Page.navigate', { url });
-    await new Promise((r) => setTimeout(r, 420));
+    await new Promise((r) => setTimeout(r, 480));
     await this.evalJs(`
       new Promise((resolve) => {
-        const deadline = Date.now() + 6000;
+        const deadline = Date.now() + 10000;
         const tick = () => {
-          const ready = document.querySelector('h1, .wall-clock, .wall-b1-subview');
+          const ready = Boolean(document.body && document.querySelector('h1, .wall-clock, .wall-b1-subview'));
           if (ready || Date.now() > deadline) {
             if (document.fonts && document.fonts.ready) {
               Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 700))]).then(() => resolve(true));
@@ -416,8 +416,44 @@ async function main() {
     await new Promise((r) => setTimeout(r, 180));
     check(rhythmDrawerOpen, 'L5', `Gen-2 R1 首页「节律偏好」Drawer 正常滑出（作息/分支/打卡/通透度）`);
 
-    // Gen-2 生活化交互验证：遇事速查（生活情景对话模拟 + 实用生活小算盘切换）
+    // Gen-2 生活化交互验证：遇事速查（落地省钱与外卖比价台 + 实时券源 Drawer + 情景演练 + 生活小算盘）
     await cdp.goto(`${baseUrl}/#/events`);
+    const dealsHubReady = await cdp.evalJs(`Boolean(document.querySelector('[data-testid="deals-savings-hub"]'))`);
+    await cdp.evalJs(`document.querySelector('[data-testid="deals-tab-compare"]')?.click()`);
+    await new Promise((r) => setTimeout(r, 180));
+    const compareAudit = await cdp.evalJs(`(() => {
+      const mtNetBefore = document.querySelector('[data-testid="compare-meituan-net"]')?.textContent?.trim() || '';
+      const discInput = document.querySelector('[data-testid="compare-meituan-discount"]');
+      if (discInput) {
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+        setter.call(discInput, '20');
+        discInput.dispatchEvent(new Event('input', { bubbles: true }));
+        discInput.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      return { mtNetBefore, hasWinner: Boolean(document.querySelector('[data-testid="deals-compare-winner"]')) };
+    })()`);
+    await new Promise((r) => setTimeout(r, 150));
+    const mtNetAfter = await cdp.evalJs(`document.querySelector('[data-testid="compare-meituan-net"]')?.textContent?.trim() || ''`);
+    await cdp.evalJs(`document.querySelector('[data-testid="deals-log-saving-btn"]')?.click()`);
+    await new Promise((r) => setTimeout(r, 160));
+    await cdp.screenshot('05c-deals-compare-1440.png', false);
+    await cdp.evalJs(`document.querySelector('[data-testid="deals-config-trigger"]')?.click()`);
+    await new Promise((r) => setTimeout(r, 220));
+    const dealsDrawerOpen = await cdp.evalJs(`Boolean(document.querySelector('[data-overlay-type="drawer"] [data-testid="deals-feed-url-input"]'))`);
+    await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await new Promise((r) => setTimeout(r, 180));
+    check(
+      dealsHubReady && compareAudit.hasWinner && compareAudit.mtNetBefore !== mtNetAfter,
+      'L5',
+      `日常省钱台「外卖/团购实付比价器」实时重算到手价与最省方案 (${compareAudit.mtNetBefore} -> ${mtNetAfter})`
+    );
+    check(
+      dealsDrawerOpen,
+      'L5',
+      `日常省钱台「配置官方联盟实时券源」右侧 Drawer 正常滑出（含 Cloudflare Worker 接入表单）`
+    );
+
     await cdp.evalJs(`document.querySelector('[data-testid="open-scenario-sim-rent"]')?.click()`);
     await new Promise((r) => setTimeout(r, 240));
     await cdp.evalJs(`document.querySelector('[data-testid="sim-choice-r1-verify"]')?.click()`);

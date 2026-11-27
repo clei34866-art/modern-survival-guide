@@ -1,0 +1,8 @@
+name = "modern-survival-guide-deals"
+main = "coupons-worker.js"
+compatibility_date = "2025-11-01"
+
+[vars]
+SOURCE_NAME = "我的个人联盟实时券源"
+CACHE_TTL_SECONDS = "900"
+ALLOWED_ORIGIN = "*"

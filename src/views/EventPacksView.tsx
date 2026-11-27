@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { DealsSavingsHub } from '@/components/DealsSavingsHub';
 import { LifeScenarioSim } from '@/components/LifeScenarioSim';
 import { LifeToolsSandbox } from '@/components/LifeToolsSandbox';
 import { Drawer, Popconfirm, Tooltip } from '@/components/ui/overlays';
@@ -140,12 +141,17 @@ export function EventPacksView({
 
       <header className="space-y-1">
         <h1 className="sky-heading m-0 text-[24px] font-semibold tracking-[-0.02em] text-[var(--ink-1)] sm:text-[28px]">
-          遇事速查 · 演练、算账与随身清单
+          遇事速查 · 省钱领券、演练与随身清单
         </h1>
         <p className="sky-heading m-0 text-[14px] text-[var(--ink-2)]">
-          租房防坑、防诈骗、熬夜补觉、出门打包——不用先背理论，遇到什么直接点开用
+          外卖团购实付比价、个人官方联盟券源、租房防坑演练与随身核对清单——遇到日常事直接点开用
         </p>
       </header>
+
+      {/* 0. 落地生活省钱台（美团/淘宝/抖音官方渠道、外卖实付比价、个人口令夹与 Cloudflare Worker 实时券源） */}
+      <section aria-label="日常省钱与领券台">
+        <DealsSavingsHub />
+      </section>
 
       {/* 1. 遇事演练小剧场（生活情景对话模拟） */}
       <section className="space-y-4" aria-label="生活情景对话模拟">

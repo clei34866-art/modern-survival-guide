@@ -1,6 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { Command } from 'cmdk';
-import { BookOpen, Compass, FlaskConical, Layers, Monitor, Search, Sparkles } from 'lucide-react';
+import { BookOpen, Compass, FlaskConical, Layers, Monitor, Search, Sparkles, Tag } from 'lucide-react';
 import { useEffect } from 'react';
 import type { PlatformContentBundle } from '@/core/contentLoader';
 
@@ -47,7 +47,7 @@ export function CommandPalette({
             <div className="flex items-center gap-2.5 px-4 border-b border-[var(--line)]">
               <Search size={16} strokeWidth={1.5} className="text-[var(--ink-3)] shrink-0" />
               <Command.Input
-                placeholder="搜任意生活/技能关键词（如：体检、退税、押金、12315、跳闸、谈薪、拖延）…"
+                placeholder="搜任意生活/技能关键词（如：外卖、比价、领券、体检、退税、押金、12315、谈薪）…"
                 className="!border-none !px-0"
               />
               <kbd className="font-mono-num text-[11px] px-1.5 py-0.5 rounded border border-[var(--line-strong)] text-[var(--ink-3)] shrink-0">
@@ -78,6 +78,15 @@ export function CommandPalette({
                   <span className="font-mono-num text-[12px] text-[var(--ink-3)]">
                     {content.knowledgeGraph.nodes.length} 卡
                   </span>
+                </Command.Item>
+                <Command.Item
+                  value="日常省钱与外卖比价台 美团 淘宝 抖音 饿了么 优惠券 团购 联盟 Worker"
+                  onSelect={() => jump('#/events')}
+                >
+                  <span className="flex items-center gap-2.5">
+                    <Tag size={15} strokeWidth={1.5} /> 日常省钱与外卖比价台（官方通道 & 实时券源）
+                  </span>
+                  <span className="font-mono-num text-[12px] text-[var(--ink-3)]">省钱</span>
                 </Command.Item>
                 <Command.Item onSelect={() => jump('#/events')}>
                   <span className="flex items-center gap-2.5">

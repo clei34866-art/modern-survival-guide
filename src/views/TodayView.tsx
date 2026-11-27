@@ -237,9 +237,9 @@ export function TodayView({
   const selectedSlotTasks = allTasks.filter((t) => t.slot === selectedBand);
   const focalTask: ScheduledTaskItem | undefined =
     selectedSlotTasks.find((t) => Boolean(t.unitId) && !plan.completedTaskIds.includes(t.id)) ??
-    selectedSlotTasks.find((t) => !plan.completedTaskIds.includes(t.id)) ??
     allTasks.find((t) => Boolean(t.unitId) && !plan.completedTaskIds.includes(t.id)) ??
-    allTasks.find((t) => !plan.completedTaskIds.includes(t.id)) ??
+    allTasks.find((t) => Boolean(t.unitId)) ??
+    selectedSlotTasks.find((t) => !plan.completedTaskIds.includes(t.id)) ??
     selectedSlotTasks[0] ??
     allTasks[0];
 
@@ -1099,7 +1099,7 @@ export function TodayView({
             className="inline-flex items-center gap-1.5 text-[var(--ink-2)] no-underline transition-colors hover:text-[var(--dawn)]"
           >
             <MessageCircle size={14} strokeWidth={1.6} className="text-[var(--dawn)]" />
-            <span>遇事演练</span>
+            <span>省钱与速查</span>
           </a>
 
           <span className="h-3.5 w-px bg-[var(--line)]" aria-hidden="true" />

@@ -2,9 +2,7 @@ import {
   ArrowRight,
   BookOpen,
   Check,
-  ChevronDown,
   ExternalLink,
-  Lock,
   ShieldCheck,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -15,7 +13,6 @@ import { Badge, Button, Card, ProgressBar } from '@/components/ui/primitives';
 import type { PlatformContentBundle } from '@/core/contentLoader';
 import {
   getTrackClearanceStatus,
-  isTrackUnlocked,
   isUnitCleared,
 } from '@/core/gatekeeper';
 import { cn } from '@/lib/utils';
@@ -41,12 +38,6 @@ interface BranchesViewProps {
   }) => Promise<void>;
 }
 
-const ENERGY_LABELS = {
-  fragment: '碎片轻读',
-  peak: '高精力时段',
-  low: '低精力回顾',
-} as const;
-
 export function BranchesView({
   content,
   telemetry,
@@ -58,7 +49,6 @@ export function BranchesView({
   const [selectedBranchId, setSelectedBranchId] = useState<BranchId>(initialBranchId);
   const [b1LineTab, setB1LineTab] = useState<'ai' | 'software'>('ai');
   const [redlinesDrawerOpen, setRedlinesDrawerOpen] = useState<boolean>(false);
-  const [expandedLockedTracks, setExpandedLockedTracks] = useState<Record<string, boolean>>({});
   const [milestoneDrawerTrack, setMilestoneDrawerTrack] = useState<TrackGroup | null>(null);
   const [milestoneDraft, setMilestoneDraft] = useState<string>('');
 
@@ -71,10 +61,6 @@ export function BranchesView({
     content.catalog.branches[0];
 
   const unitMap = new Map<string, LearningUnit>(content.units.map((u) => [u.id, u]));
-
-  const toggleLockedTrack = (trackId: string) => {
-    setExpandedLockedTracks((prev) => ({ ...prev, [trackId]: !prev[trackId] }));
-  };
 
   const openMilestoneDrawer = (track: TrackGroup) => {
     const msRecord = telemetry.milestoneSubmissions[track.id];
@@ -105,80 +91,11 @@ export function BranchesView({
     allBranchTracks: TrackGroup[],
     isFeaturedSoftware = false
   ) => {
-    const unlocked = isTrackUnlocked(track, allBranchTracks, telemetry);
     const status = getTrackClearanceStatus(track, telemetry);
     const prereqTrack = track.unlockAfterTrackId
       ? allBranchTracks.find((t) => t.id === track.unlockAfterTrackId)
       : undefined;
     const msRecord = telemetry.milestoneSubmissions[track.id];
-
-    if (!unlocked) {
-      const isOpen = Boolean(expandedLockedTracks[track.id]);
-      return (
-        <article key={track.id} className="v3-card overflow-hidden">
-          <button
-            type="button"
-            className="flex w-full cursor-pointer items-center justify-between gap-3 border-0 bg-transparent px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-plate)]"
-            aria-expanded={isOpen}
-            onClick={() => toggleLockedTrack(track.id)}
-          >
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] border border-[var(--line)] bg-[var(--surface-plate)] text-[var(--ink-3)]">
-                <Lock size={14} strokeWidth={1.6} />
-              </span>
-              <div className="min-w-0">
-                <div className="truncate text-[14.5px] font-medium text-[var(--ink-1)]">
-                  {track.title}
-                </div>
-                <div className="truncate text-[12.5px] text-[var(--ink-3)]">{track.summary}</div>
-              </div>
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <Badge tone="neutral">
-                完成「{prereqTrack?.title.split('·')[0].trim() ?? '前置阶段'}」解锁
-              </Badge>
-              <ChevronDown
-                size={16}
-                strokeWidth={1.5}
-                className={cn(
-                  'text-[var(--ink-3)] transition-transform duration-150',
-                  isOpen && 'rotate-180'
-                )}
-              />
-            </div>
-          </button>
-
-          {isOpen && (
-            <div className="space-y-3 border-t border-[var(--line)] bg-[var(--surface-plate)] px-4 py-3.5 text-[13.5px]">
-              {track.milestoneDeliverable && (
-                <div className="text-[var(--ink-2)]">
-                  <strong className="font-medium text-[var(--ink-1)]">本阶目标产出：</strong>
-                  {track.milestoneDeliverable.title}
-                </div>
-              )}
-              {track.curatedResources.length > 0 && (
-                <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
-                  {track.curatedResources.map((res) => (
-                    <li key={res.url + res.title} className="flex flex-wrap items-center gap-1.5">
-                      <a
-                        href={res.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-[var(--accent)] hover:underline"
-                      >
-                        <span>{res.title}</span>
-                        <ExternalLink size={12} strokeWidth={1.5} />
-                      </a>
-                      <span className="text-[12px] text-[var(--ink-3)]">（{res.org}）</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-        </article>
-      );
-    }
 
     return (
       <Card
@@ -195,14 +112,18 @@ export function BranchesView({
               {status.isTrackCleared ? (
                 <Badge tone="growth">
                   <Check size={12} strokeWidth={2} />
-                  <span>本阶已过关</span>
+                  <span>本组已读完</span>
+                </Badge>
+              ) : prereqTrack ? (
+                <Badge tone="neutral">
+                  进阶 · 建议顺带先看「{prereqTrack.title.split('·')[0].trim()}」
                 </Badge>
               ) : (
-                <Badge tone="accent">当前开放</Badge>
+                <Badge tone="accent">自由阅读</Badge>
               )}
               {track.unitIds.length > 0 && (
                 <Badge tone="neutral" className="font-mono-num">
-                  {status.clearedUnits}/{status.totalUnits} 节
+                  已读 {status.clearedUnits}/{status.totalUnits} 篇
                 </Badge>
               )}
             </div>
@@ -213,15 +134,15 @@ export function BranchesView({
           </div>
 
           {track.milestoneDeliverable && (
-            <Tooltip content="在右侧抽屉查看验收标准并登记实战产出">
-              <Button size="sm" variant="outline" onClick={() => openMilestoneDrawer(track)}>
-                <span>{status.milestoneApproved ? '已验收 · 更新' : '阶段产出登记'}</span>
+            <Tooltip content="可选：登记你做完的实战小成果">
+              <Button size="sm" variant="subtle" onClick={() => openMilestoneDrawer(track)}>
+                <span>{status.milestoneApproved ? '已记成果' : '记下小成果'}</span>
               </Button>
             </Tooltip>
           )}
         </div>
 
-        {/* 单元清单：支持抽屉速览 + 直接学习 */}
+        {/* 深度手册清单：全部直接开放阅读，零锁定门禁 */}
         <div className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
           {track.unitIds.map((uid, idx) => {
             const unit = unitMap.get(uid);
@@ -246,9 +167,9 @@ export function BranchesView({
                   <div className="min-w-0 space-y-0.5">
                     <div className="text-[15px] font-medium text-[var(--ink-1)]">{unit.title}</div>
                     <div className="flex flex-wrap items-center gap-1.5 text-[12.5px] text-[var(--ink-3)]">
-                      <span className="font-mono-num">{unit.estimatedMinutes}m</span>
+                      <span className="font-mono-num">约 {unit.estimatedMinutes} 分钟</span>
                       <span>·</span>
-                      <span>{ENERGY_LABELS[unit.recommendedEnergy]}</span>
+                      <span>{unit.guide.blocks.length} 节深度拆解</span>
                       <span>·</span>
                       <span className="text-[var(--ink-2)]">
                         <RichText text={unit.actionTask.title} />
@@ -258,7 +179,7 @@ export function BranchesView({
                 </div>
 
                 <div className="flex shrink-0 items-center gap-1.5 self-start sm:self-center">
-                  <Tooltip content="在右侧抽屉快速预览本节内容与步骤">
+                  <Tooltip content="在右侧抽屉快速扫一眼本篇要点">
                     <Button
                       variant="subtle"
                       size="sm"
@@ -274,7 +195,7 @@ export function BranchesView({
                     size="sm"
                     onClick={() => onOpenUnit(unit.id)}
                   >
-                    <span>{cleared ? '回看' : '学习'}</span>
+                    <span>{cleared ? '重温' : '阅读手册'}</span>
                     <ArrowRight size={13} strokeWidth={1.6} />
                   </Button>
                 </div>
@@ -283,17 +204,17 @@ export function BranchesView({
           })}
         </div>
 
-        {/* 简洁阶段产出摘要条（完整表单收进右侧 Drawer） */}
+        {/* 简洁阶段产出摘要条 */}
         {track.milestoneDeliverable && msRecord?.artifactSummary && (
           <div className="rounded-[10px] border border-[var(--growth-border)] bg-[var(--growth-soft)] px-3.5 py-2 text-[13px] text-[var(--ink-1)]">
-            已归档产出：{msRecord.artifactSummary}
+            已记小成果：{msRecord.artifactSummary}
           </div>
         )}
 
         {/* 精选公开权威参考 */}
         {track.curatedResources.length > 0 && (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-[var(--ink-3)]">
-            <span>权威参考：</span>
+            <span>延伸参考：</span>
             {track.curatedResources.map((res) => (
               <a
                 key={res.url + res.title}
@@ -345,16 +266,9 @@ export function BranchesView({
               <Button
                 size="sm"
                 variant="primary"
-                disabled={
-                  milestoneDrawerTrack.unitIds.length > 0 &&
-                  !activeMilestoneStatus.allUnitsCleared
-                }
                 onClick={handleApproveMilestone}
               >
-                {milestoneDrawerTrack.unitIds.length > 0 &&
-                !activeMilestoneStatus.allUnitsCleared
-                  ? '请先完成本阶全部单元过关'
-                  : '确认产出达标并归档'}
+                保存我的小成果
               </Button>
             </>
           )
@@ -408,10 +322,10 @@ export function BranchesView({
 
       <header className="space-y-1">
         <h1 className="sky-heading m-0 text-[24px] font-semibold tracking-[-0.02em] text-[var(--ink-1)] sm:text-[28px]">
-          七大生存分支与技能星图
+          生活技能手册库
         </h1>
         <p className="sky-heading m-0 text-[14px] text-[var(--ink-2)]">
-          从真实问题按需点亮节点，点击任意单元可右侧抽屉速览或直接进入互动课
+          七大领域全部免费开放自由阅读，不设做题门禁，点开任意一篇即可整页读透并拿走实操模板
         </p>
       </header>
 
@@ -519,7 +433,7 @@ export function BranchesView({
                   : 'text-[var(--ink-2)] hover:text-[var(--ink-1)]'
               )}
             >
-              AI 能力线（L1–L5 逐层解锁）
+              AI 进阶手册（L1–L5 全部开放）
             </button>
             <button
               type="button"

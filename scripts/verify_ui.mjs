@@ -639,25 +639,10 @@ async function main() {
 
     for (const u of templateUnits) {
       await cdp.goto(`${baseUrl}/#/unit/${u.id}`);
-      await cdp.evalJs(`(() => {
-        const next1 = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('直觉预测'));
-        next1?.click();
-      })()`);
-      await new Promise((r) => setTimeout(r, 160));
-      await cdp.evalJs(`document.querySelector('.quiz-option-btn')?.click()`);
-      await new Promise((r) => setTimeout(r, 120));
-      await cdp.evalJs(`(() => {
-        const sub = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('锁定我的直觉判断'));
-        sub?.click();
-      })()`);
-      await new Promise((r) => setTimeout(r, 200));
-      await cdp.evalJs(`(() => {
-        const go3 = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('进入互动实验室'));
-        go3?.click();
-      })()`);
-      await new Promise((r) => setTimeout(r, 300));
+      await new Promise((r) => setTimeout(r, 260));
 
       const diagAudit = await cdp.evalJs(`(() => {
+        const reader = document.querySelector('[data-testid="handbook-reader"]');
         const stage = document.querySelector('.motion-explainer');
         const svg = stage?.querySelector('svg.exact-svg');
         const svgRect = svg?.getBoundingClientRect();
@@ -667,13 +652,22 @@ async function main() {
         const textBefore = stage?.querySelector('.motion-logic-text')?.textContent?.trim() || '';
         const nextBtn = stage?.querySelector('button[aria-label="下一步"]');
         nextBtn?.click();
+        const sectionCount = document.querySelectorAll('[id^="sec-block-"]').length;
+        const tableCount = document.querySelectorAll('table.handbook-table').length;
+        const copyBtnCount = document.querySelectorAll('[data-testid="copy-template-btn"]').length;
+        const charLen = [...document.querySelectorAll('.handbook-prose')].reduce((acc, el) => acc + (el.textContent?.trim().length || 0), 0);
         return {
+          hasReader: Boolean(reader),
           template: stage?.getAttribute('data-template') || '',
           width: svgRect ? Math.round(svgRect.width) : 0,
           height: svgRect ? Math.round(svgRect.height) : 0,
           truncated,
           stepBefore,
           textBefore,
+          sectionCount,
+          tableCount,
+          copyBtnCount,
+          charLen,
         };
       })()`);
       await new Promise((r) => setTimeout(r, 180));
@@ -683,10 +677,16 @@ async function main() {
         const textAfter = stage?.querySelector('.motion-logic-text')?.textContent?.trim() || '';
         const text = document.body.innerText || '';
         const rawBackticks = (text.match(/\`[^\`\\n]{1,40}\`/g) || []).slice(0, 3);
-        return { stepAfter, textAfter, rawBackticks };
+        const rawBold = (text.match(/\\*\\*[^*\\n]{2,40}\\*\\*/g) || []).slice(0, 3);
+        return { stepAfter, textAfter, rawBackticks, rawBold };
       })()`);
 
-      check(diagAudit.template === u.expected, 'L5', `单元 ${u.id} 渲染动图模板 ${u.expected} (实际=${diagAudit.template})`);
+      check(
+        diagAudit.hasReader && diagAudit.sectionCount >= 4 && diagAudit.charLen >= 900,
+        'L3',
+        `手册 ${u.id} 深度长文整页呈现 (${diagAudit.sectionCount}节 / ${diagAudit.charLen}字 / 表${diagAudit.tableCount} / 模板${diagAudit.copyBtnCount})`
+      );
+      check(diagAudit.template === u.expected, 'L5', `手册 ${u.id} 渲染动图模板 ${u.expected} (实际=${diagAudit.template})`);
       check(diagAudit.width >= 300 && diagAudit.height >= 120, 'L5', `动图模板 ${u.expected} SVG 尺寸有效 (${diagAudit.width}×${diagAudit.height})`);
       check(diagAudit.truncated.length === 0, 'L5', `动图模板 ${u.expected} 零 "..." 文本截断`);
       check(
@@ -694,7 +694,11 @@ async function main() {
         'L5',
         `动图模板 ${u.expected} 点击「下一步」真实切换步骤与解说 (${diagAudit.stepBefore} -> ${diagAfter.stepAfter})`
       );
-      check(diagAfter.rawBackticks.length === 0, 'L3', `单元 ${u.id} 导学正文零裸反引号`);
+      check(
+        diagAfter.rawBackticks.length === 0 && diagAfter.rawBold.length === 0,
+        'L3',
+        `手册 ${u.id} 长文排版零裸反引号与裸 ** 泄漏`
+      );
 
       // 验证 B2 预算交互沙盒滑块实时更新金额
       if (u.id === 'unit-b2-budget') {
@@ -703,7 +707,7 @@ async function main() {
           const readoutBefore = document.querySelector('[data-budget-income]')?.textContent?.trim() || '';
           if (!input) return { found: false };
           const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-          setter.call(input, '6000');
+          setter.call(input, '10000');
           input.dispatchEvent(new Event('input', { bubbles: true }));
           input.dispatchEvent(new Event('change', { bubbles: true }));
           return { found: true, readoutBefore };
@@ -711,16 +715,21 @@ async function main() {
         await new Promise((r) => setTimeout(r, 150));
         const readoutAfter = await cdp.evalJs(`document.querySelector('[data-budget-income]')?.textContent?.trim() || ''`);
         check(
-          sliderCheck.found && sliderCheck.readoutBefore.includes('3,000') && readoutAfter.includes('6,000'),
+          sliderCheck.found && sliderCheck.readoutBefore.includes('3,000') && readoutAfter.includes('10,000'),
           'L5',
           `B2 预算互动滑块实时更新金额 (${sliderCheck.readoutBefore} -> ${readoutAfter})`
         );
       }
 
-      await cdp.screenshot(u.shot, false);
+      await cdp.screenshot(u.shot, u.id === 'unit-b7-contract');
 
-      // 在第一单元验证：学习资料 Drawer + 术语 Drawer + 第 4 步 3D 翻卡 + 第 5 步禁用态与自测提交
+      // 在第一篇手册验证：一键标为已读 + 参考资料 Drawer + 术语 Drawer + 可选 3D 翻卡 + 可选自测提交
       if (u.id === 'unit-b1-l1-prompt') {
+        await cdp.evalJs(`document.querySelector('[data-testid="unit-mark-read-btn"]')?.click()`);
+        await new Promise((r) => setTimeout(r, 200));
+        const markedReadText = await cdp.evalJs(`document.querySelector('[data-testid="unit-mark-read-btn"]')?.textContent?.trim() || ''`);
+        check(markedReadText.includes('已读'), 'L5', `手册顶栏一键「标为已读」免做题直接留痕 (${markedReadText})`);
+
         await cdp.evalJs(`document.querySelector('[data-testid="study-drawer-trigger"]')?.click()`);
         await new Promise((r) => setTimeout(r, 220));
         const studyDrawerOpen = await cdp.evalJs(`Boolean(document.querySelector('[data-overlay-type="drawer"]'))`);
@@ -728,7 +737,7 @@ async function main() {
         await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
         await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
         await new Promise((r) => setTimeout(r, 180));
-        check(studyDrawerOpen, 'L5', `单元学习页「本节资料」右侧 Drawer 正常滑出展示划重点、术语与溯源`);
+        check(studyDrawerOpen, 'L5', `手册页「参考资料」右侧 Drawer 正常滑出展示划重点、术语与溯源`);
 
         await cdp.evalJs(`document.querySelector('.glossary-term-btn')?.click()`);
         await new Promise((r) => setTimeout(r, 220));
@@ -738,11 +747,8 @@ async function main() {
         await new Promise((r) => setTimeout(r, 180));
         check(glossaryDrawerOpen, 'L5', `正文术语点击后以右侧 Drawer 展开详解（非拥挤气泡/非遮屏弹窗）`);
 
-        await cdp.evalJs(`(() => {
-          const go4 = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('概念闪卡'));
-          go4?.click();
-        })()`);
-        await new Promise((r) => setTimeout(r, 250));
+        await cdp.evalJs(`document.querySelector('[data-testid="opt-tab-cards"]')?.click()`);
+        await new Promise((r) => setTimeout(r, 240));
         const flipCheck = await cdp.evalJs(`(() => {
           const card = document.querySelector('.flip-card-box');
           card?.click();
@@ -750,15 +756,12 @@ async function main() {
         })()`);
         await new Promise((r) => setTimeout(r, 260));
         const flippedOk = await cdp.evalJs(`Boolean(document.querySelector('.flip-card-box.is-flipped'))`);
-        check(flipCheck.found && flippedOk, 'L5', `单元第 4 步真 3D 弹簧闪卡点击翻面成功`);
+        check(flipCheck.found && flippedOk, 'L5', `页尾可选 3D 弹簧闪卡展开与点击翻面正常`);
 
-        await cdp.evalJs(`(() => {
-          const go5 = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('提取自测'));
-          go5?.click();
-        })()`);
+        await cdp.evalJs(`document.querySelector('[data-testid="opt-tab-quiz"]')?.click()`);
         await new Promise((r) => setTimeout(r, 220));
         const disabledBtnStyle = await cdp.evalJs(`(() => {
-          const sub = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('提交自测'));
+          const sub = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('核对答案'));
           if (!sub) return null;
           const st = getComputedStyle(sub);
           return { disabled: sub.disabled, opacity: parseFloat(st.opacity) };
@@ -766,7 +769,7 @@ async function main() {
         check(
           Boolean(disabledBtnStyle && disabledBtnStyle.disabled && disabledBtnStyle.opacity <= 0.6),
           'L4',
-          `单元第 5 步未答完前提交按钮禁用态清晰可见 (opacity=${disabledBtnStyle?.opacity})`
+          `页尾可选自测未选完前提交按钮禁用态清晰可见 (opacity=${disabledBtnStyle?.opacity})`
         );
 
         await cdp.evalJs(`(() => {
@@ -776,7 +779,7 @@ async function main() {
         })()`);
         await new Promise((r) => setTimeout(r, 120));
         await cdp.evalJs(`(() => {
-          const sub = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('提交自测'));
+          const sub = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('核对答案'));
           sub?.click();
         })()`);
         await new Promise((r) => setTimeout(r, 320));

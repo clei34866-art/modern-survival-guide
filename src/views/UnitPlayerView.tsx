@@ -1,12 +1,19 @@
 import {
   ArrowLeft,
-  ArrowRight,
   BookMarked,
+  BookmarkPlus,
   Check,
   CheckCircle2,
+  ChevronDown,
+  HelpCircle,
+  Layers,
+  ListChecks,
+  MessageCircle,
   Moon,
+  PenLine,
   RotateCw,
   Search,
+  Sparkles,
   Sun,
 } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -22,25 +29,23 @@ import {
 import { useGlossaryDrawer } from '@/components/GlossaryDrawer';
 import { LifeScenarioSim } from '@/components/LifeScenarioSim';
 import { LifeToolsSandbox, type LifeToolKey } from '@/components/LifeToolsSandbox';
-import { RichText } from '@/components/RichText';
-import { AlertBanner, Drawer, Popconfirm, Tooltip } from '@/components/ui/overlays';
+import { MarkdownArticle, RichText } from '@/components/RichText';
+import { Drawer, Popconfirm, Tooltip } from '@/components/ui/overlays';
 import { Badge, Button, Card } from '@/components/ui/primitives';
-import { getScenarioByUnitId } from '@/data/lifeScenarios';
 import type { PlatformContentBundle } from '@/core/contentLoader';
 import {
+  addLifeNote,
   recordActionSubmission,
   recordCardReview,
-  recordMilestoneSubmission,
   recordQuizAttempt,
   recordStudyDuration,
 } from '@/core/db';
-import { evaluateUnitPassGate, isTrackUnlocked } from '@/core/gatekeeper';
+import { getScenarioByUnitId } from '@/data/lifeScenarios';
 import { cn } from '@/lib/utils';
 import type {
   CardRating,
   ConceptNode,
   LearningUnit,
-  StudyDurationLog,
   TelemetrySnapshot,
 } from '@/types/schema';
 
@@ -63,16 +68,14 @@ const UNIT_LIVE_SANDBOX_MAP: Partial<Record<string, LifeToolKey>> = {
   'unit-b5-writing': 'message',
 };
 
-const STEP_META = [
-  { num: 1, short: '场景', full: '场景开场' },
-  { num: 2, short: '预测', full: '先预测' },
-  { num: 3, short: '实验室', full: '互动实验室' },
-  { num: 4, short: '闪卡', full: '3D 概念闪卡' },
-  { num: 5, short: '自测', full: '提取自测' },
-  { num: 6, short: '行动', full: '实战行动' },
-  { num: 7, short: '过关', full: '完成过关' },
-] as const;
+type OptionalTab = 'none' | 'scenario' | 'quiz' | 'cards' | 'note';
 
+/**
+ * 深度实战手册阅读器（取代僵硬的 7 步闯关流程）：
+ * - 一整页把一件事讲透：核心结论 → 深度分节正文（含正反对照表、可复制话术/代码模板、边界 FAQ）→ 互动图解与小算盘 → 随手核对清单
+ * - 左侧固定目录（桌面端）随时跳转，无强制翻页、无强制做题、无强制填作业门禁
+ * - 顶栏一键「标为已读」与「记入生活笔记」；情景演练、自测题、3D 闪卡退至页尾可选区，想练再点开
+ */
 export function UnitPlayerView({
   unit,
   content,
@@ -86,124 +89,135 @@ export function UnitPlayerView({
 }: UnitPlayerViewProps) {
   const glossary = useGlossaryDrawer();
   const existingSub = telemetry.unitSubmissions[unit.id];
-  const [step, setStep] = useState<number>(1);
-  const [maxVisitedStep, setMaxVisitedStep] = useState<number>(existingSub?.isCleared ? 7 : 1);
+  const isRead = Boolean(existingSub?.isCleared);
 
-  // 学习辅助抽屉（随手查划重点、术语、实验溯源与权威出处，彻底简化主学习画布）
+  // 左侧目录高亮与联动动图步进
+  const [activeSecId, setActiveSecId] = useState<string>('sec-tldr');
+  const [diagramStep, setDiagramStep] = useState<number | undefined>(undefined);
+  const [readProgress, setReadProgress] = useState<number>(0);
+
+  // 右侧「资料与出处」Drawer
   const [studyDrawerOpen, setStudyDrawerOpen] = useState<boolean>(false);
   const [studyDrawerTab, setStudyDrawerTab] = useState<'notes' | 'sources'>('notes');
 
+  // 随手核对的实操步骤勾选（纯本地轻交互，不强制提交）
+  const [checkedSteps, setCheckedSteps] = useState<Record<number, boolean>>({});
+
+  // 页尾 100% 可选练习区（默认折叠或按需展开）
+  const linkedScenario = getScenarioByUnitId(unit.id);
+  const [optionalTab, setOptionalTab] = useState<OptionalTab>('none');
+
+  // 可选：直觉思考 + 自测题态
   const [predChoice, setPredChoice] = useState<number | null>(null);
   const [predSubmitted, setPredSubmitted] = useState<boolean>(false);
-  const [diagramStep, setDiagramStep] = useState<number | undefined>(undefined);
-
-  const [cardIdx, setCardIdx] = useState<number>(0);
-  const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
-  const [ratedCards, setRatedCards] = useState<Record<string, CardRating>>({});
-
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>({});
   const [quizSubmitted, setQuizSubmitted] = useState<boolean>(false);
   const [quizScoreRatio, setQuizScoreRatio] = useState<number>(
     existingSub?.quizPassScoreRatio ?? 0
   );
 
-  const [deliverableText, setDeliverableText] = useState<string>(
-    existingSub?.deliverableSummary ?? ''
-  );
-  const [feynmanText, setFeynmanText] = useState<string>(existingSub?.feynmanOneLiner ?? '');
-  const [linkedRealTaskId, setLinkedRealTaskId] = useState<string | undefined>(
-    existingSub?.linkedRealTaskId
-  );
+  // 可选：3D 闪卡态
+  const [cardIdx, setCardIdx] = useState<number>(0);
+  const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
+  const [ratedCards, setRatedCards] = useState<Record<string, CardRating>>({});
 
+  // 可选：写一条生活笔记
+  const [memoText, setMemoText] = useState<string>(existingSub?.feynmanOneLiner ?? '');
+  const [noteTitle, setNoteTitle] = useState<string>(unit.title.split('：')[0] ?? unit.title);
+
+  const openedAtRef = useRef<number>(Date.now());
   const parentBranch = content.catalog.branches.find((b) => b.id === unit.branchId);
-  const parentTrack = parentBranch?.tracks.find((t) => t.id === unit.trackId);
-  const existingMilestone = parentTrack
-    ? telemetry.milestoneSubmissions[parentTrack.id]
-    : undefined;
-  const [signOffMilestone, setSignOffMilestone] = useState<boolean>(
-    existingMilestone?.isApproved ?? false
-  );
-  const [actionError, setActionError] = useState<string>('');
-
-  const stepEnteredAtRef = useRef<number>(Date.now());
-  useEffect(() => {
-    stepEnteredAtRef.current = Date.now();
-  }, [step, unit.id]);
-
-  const flushStepDuration = async (activity: StudyDurationLog['activity']) => {
-    const rawElapsed = Date.now() - stepEnteredAtRef.current;
-    const boundedMs = Math.min(Math.max(rawElapsed, 1500), 30 * 60 * 1000);
-    stepEnteredAtRef.current = Date.now();
-    const next = await recordStudyDuration({
-      branchId: unit.branchId,
-      trackId: unit.trackId,
-      unitId: unit.id,
-      activity,
-      durationMs: boundedMs,
-    });
-    onTelemetryChange(next);
-    return next;
-  };
-
-  const goToStep = (targetStep: number) => {
-    setStep(targetStep);
-    setMaxVisitedStep((prev) => Math.max(prev, targetStep));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
 
   const concepts: ConceptNode[] = unit.conceptNodeIds
     .map((cid) => content.knowledgeGraph.nodes.find((n) => n.id === cid))
     .filter((n): n is ConceptNode => Boolean(n));
-
   const takeaways = unit.guide.blocks.filter((b) => Boolean(b.keyTakeaway));
   const currentConcept = concepts[Math.min(cardIdx, Math.max(0, concepts.length - 1))];
+  const isCurrentFlipped = currentConcept ? Boolean(flippedCards[currentConcept.id]) : false;
 
-  const handleRateCard = async (conceptId: string, rating: CardRating) => {
-    setRatedCards((prev) => ({ ...prev, [conceptId]: rating }));
-    const next = await recordCardReview(conceptId, rating, {
-      branchId: unit.branchId,
-      trackId: unit.trackId,
-      durationMs: Math.max(2000, Date.now() - stepEnteredAtRef.current),
-    });
-    stepEnteredAtRef.current = Date.now();
-    onTelemetryChange(next);
-    toast(
-      rating === 'easy'
-        ? '已标记：熟练掌握'
-        : rating === 'fuzzy'
-          ? '已标记：有点模糊（排入 3 天后重测）'
-          : '已标记：没想起来（排入明日重测）'
-    );
-    if (cardIdx < concepts.length - 1) {
-      setTimeout(() => setCardIdx((i) => Math.min(concepts.length - 1, i + 1)), 220);
+  // 监听滚动进度与目录高亮
+  useEffect(() => {
+    const onScroll = () => {
+      const doc = document.documentElement;
+      const scrollable = Math.max(1, doc.scrollHeight - window.innerHeight);
+      setReadProgress(Math.min(100, Math.max(0, Math.round((window.scrollY / scrollable) * 100))));
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [unit.id]);
+
+  // 离开页面时自动温和记录阅读时长（不打断）
+  useEffect(() => {
+    openedAtRef.current = Date.now();
+    return () => {
+      const elapsed = Date.now() - openedAtRef.current;
+      if (elapsed >= 4000) {
+        void recordStudyDuration({
+          branchId: unit.branchId,
+          trackId: unit.trackId,
+          unitId: unit.id,
+          activity: 'guide',
+          durationMs: Math.min(elapsed, 45 * 60 * 1000),
+        });
+      }
+    };
+  }, [unit.id, unit.branchId, unit.trackId]);
+
+  const scrollToSection = (id: string) => {
+    setActiveSecId(id);
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
-  // 第 4 步键盘快捷键：Space 翻卡，1/2/3 直接评分
-  useEffect(() => {
-    if (step !== 4 || !currentConcept) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'BUTTON') return;
-      if (e.code === 'Space') {
-        e.preventDefault();
-        setFlippedCards((prev) => ({
-          ...prev,
-          [currentConcept.id]: !prev[currentConcept.id],
-        }));
-      } else if (flippedCards[currentConcept.id]) {
-        if (e.key === '1') handleRateCard(currentConcept.id, 'easy');
-        else if (e.key === '2') handleRateCard(currentConcept.id, 'fuzzy');
-        else if (e.key === '3') handleRateCard(currentConcept.id, 'again');
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  });
+  // 一键标为已读（彻底取消做题/填作业门禁）
+  const handleToggleMarkRead = async () => {
+    const elapsed = Math.min(Math.max(Date.now() - openedAtRef.current, 3000), 30 * 60 * 1000);
+    openedAtRef.current = Date.now();
+    await recordStudyDuration({
+      branchId: unit.branchId,
+      trackId: unit.trackId,
+      unitId: unit.id,
+      activity: 'guide',
+      durationMs: elapsed,
+    });
+    const next = await recordActionSubmission({
+      unitId: unit.id,
+      branchId: unit.branchId,
+      trackId: unit.trackId,
+      deliverableSummary: existingSub?.deliverableSummary || `已读实战手册：${unit.title}`,
+      feynmanOneLiner: memoText.trim() || existingSub?.feynmanOneLiner,
+      quizPassScoreRatio: existingSub?.quizPassScoreRatio ?? 1,
+      isCleared: !isRead,
+    });
+    onTelemetryChange(next);
+    toast.success(isRead ? '已取消已读标记' : '已记为读过，随时可以回来翻阅');
+  };
 
-  const handlePredictionSubmit = async () => {
-    if (predChoice === null) return;
-    const elapsed = Math.max(1200, Date.now() - stepEnteredAtRef.current);
+  const handleSaveLifeMemo = async () => {
+    if (!memoText.trim()) return;
+    let next = await addLifeNote({
+      title: noteTitle.trim() || unit.title.split('：')[0],
+      body: memoText.trim(),
+      branchId: unit.branchId,
+    });
+    next = await recordActionSubmission({
+      unitId: unit.id,
+      branchId: unit.branchId,
+      trackId: unit.trackId,
+      deliverableSummary: existingSub?.deliverableSummary || `笔记摘录：${memoText.trim().slice(0, 48)}`,
+      feynmanOneLiner: memoText.trim(),
+      quizPassScoreRatio: existingSub?.quizPassScoreRatio ?? 1,
+      isCleared: true,
+    });
+    onTelemetryChange(next);
+    toast.success('已收进「生活手账 → 生活笔记」');
+  };
+
+  const handlePredictionSubmit = async (idx: number) => {
+    setPredChoice(idx);
     setPredSubmitted(true);
     const next = await recordQuizAttempt({
       unitId: unit.id,
@@ -212,9 +226,9 @@ export function UnitPlayerView({
       questionId: `${unit.id}-prediction`,
       conceptId: unit.conceptNodeIds[0] ?? 'b1.prompt_context_boundary',
       kind: 'prediction',
-      selectedIndex: predChoice,
-      isCorrect: predChoice === unit.prediction.answerIndex,
-      durationMs: elapsed,
+      selectedIndex: idx,
+      isCorrect: idx === unit.prediction.answerIndex,
+      durationMs: 3500,
     });
     onTelemetryChange(next);
   };
@@ -222,10 +236,6 @@ export function UnitPlayerView({
   const handleQuizSubmit = async () => {
     const total = unit.quiz.questions.length;
     if (total === 0) return;
-
-    const elapsedTotal = Math.max(2000, Date.now() - stepEnteredAtRef.current);
-    const perQuestionMs = Math.round(elapsedTotal / total);
-
     let correctCount = 0;
     let latestSnap = telemetry;
     for (const q of unit.quiz.questions) {
@@ -241,95 +251,78 @@ export function UnitPlayerView({
         kind: 'quiz',
         selectedIndex: chosen,
         isCorrect,
-        durationMs: perQuestionMs,
+        durationMs: 5000,
       });
     }
-
-    latestSnap = await recordStudyDuration({
-      branchId: unit.branchId,
-      trackId: unit.trackId,
-      unitId: unit.id,
-      activity: 'quiz',
-      durationMs: elapsedTotal,
-    });
-
     const ratio = correctCount / total;
     setQuizScoreRatio(ratio);
     setQuizSubmitted(true);
-    stepEnteredAtRef.current = Date.now();
     onTelemetryChange(latestSnap);
     toast(
-      ratio >= unit.quiz.passRatio
-        ? `自测通过（${Math.round(ratio * 100)}%）`
-        : `本次得分 ${Math.round(ratio * 100)}%，查看解析后可重测`
+      ratio >= 0.8
+        ? `答对 ${correctCount}/${total} 题，核心判断很稳`
+        : `答对 ${correctCount}/${total} 题，看看下面解析就好（不影响自由阅读）`
     );
   };
 
-  const handleCompleteUnit = async () => {
-    const gate = evaluateUnitPassGate({
-      quizScoreRatio,
-      passRatio: unit.quiz.passRatio,
-      deliverableSummary: deliverableText,
-      requiresFeynman: Boolean(unit.actionTask.feynmanCheckPrompt),
-      feynmanOneLiner: feynmanText,
-    });
-
-    if (!gate.canClearUnit) {
-      setActionError(gate.blockingReasons.join('；'));
-      return;
-    }
-
-    setActionError('');
-    await flushStepDuration('action_task');
-
-    let latest = await recordActionSubmission({
-      unitId: unit.id,
+  const handleRateCard = async (conceptId: string, rating: CardRating) => {
+    setRatedCards((prev) => ({ ...prev, [conceptId]: rating }));
+    const next = await recordCardReview(conceptId, rating, {
       branchId: unit.branchId,
       trackId: unit.trackId,
-      deliverableSummary: deliverableText.trim(),
-      feynmanOneLiner: feynmanText.trim() || undefined,
-      linkedRealTaskId,
-      quizPassScoreRatio: quizScoreRatio,
-      isCleared: true,
+      durationMs: 4000,
     });
-
-    if (parentTrack?.milestoneDeliverable && signOffMilestone) {
-      latest = await recordMilestoneSubmission({
-        trackId: parentTrack.id,
-        branchId: unit.branchId,
-        completionPercent: 100,
-        artifactSummary: deliverableText.trim(),
-        isApproved: true,
-      });
+    onTelemetryChange(next);
+    toast(
+      rating === 'easy'
+        ? '已记下：熟悉了'
+        : rating === 'fuzzy'
+          ? '已收进温习本（3 天后提醒）'
+          : '已收进温习本（明天提醒）'
+    );
+    if (cardIdx < concepts.length - 1) {
+      setTimeout(() => setCardIdx((i) => Math.min(concepts.length - 1, i + 1)), 220);
     }
-
-    onTelemetryChange(latest);
-    toast.success(`单元已过关：${unit.title}`);
-    goToStep(7);
   };
-
-  const newlyUnlockedTrack = parentBranch?.tracks.find(
-    (t) =>
-      t.unlockAfterTrackId === unit.trackId &&
-      isTrackUnlocked(t, parentBranch.tracks, telemetry)
-  );
-
-  const allQuestionsAnswered = Object.keys(quizAnswers).length >= unit.quiz.questions.length;
-  const isCurrentFlipped = currentConcept ? Boolean(flippedCards[currentConcept.id]) : false;
 
   const openStudyDrawer = (tab: 'notes' | 'sources') => {
     setStudyDrawerTab(tab);
     setStudyDrawerOpen(true);
   };
 
+  const allQuestionsAnswered = Object.keys(quizAnswers).length >= unit.quiz.questions.length;
+
+  const tocItems = [
+    { id: 'sec-tldr', label: '一分钟核心结论' },
+    { id: 'sec-visual', label: '图解与随手工具' },
+    ...unit.guide.blocks.map((b, idx) => {
+      const cleanHead = b.heading.split(/[：?？]/)[0].replace(/`/g, '').trim();
+      const shortHead = cleanHead.length > 13 ? `${cleanHead.slice(0, 13)}…` : cleanHead;
+      return {
+        id: `sec-block-${idx}`,
+        label: `0${idx + 1} ${shortHead}`,
+      };
+    }),
+    { id: 'sec-checklist', label: '拿走就能做的清单' },
+    { id: 'sec-optional', label: '可选演练与笔记' },
+  ];
+
+  // 同分支下一篇手册推荐
+  const siblingUnits = content.units.filter((u) => u.branchId === unit.branchId);
+  const currentSiblingIdx = siblingUnits.findIndex((u) => u.id === unit.id);
+  const nextSibling =
+    currentSiblingIdx >= 0 && currentSiblingIdx + 1 < siblingUnits.length
+      ? siblingUnits[currentSiblingIdx + 1]
+      : undefined;
+
   return (
-    <div className="min-h-screen pb-14">
-      {/* 右侧学习资料与溯源抽屉（边学边查划重点、术语表、实验溯源与权威出处） */}
+    <div className="min-h-screen pb-16" data-testid="handbook-reader">
+      {/* 右侧参考资料与溯源抽屉 */}
       <Drawer
         open={studyDrawerOpen}
         onOpenChange={setStudyDrawerOpen}
-        title="本节学习资料与溯源"
-        description={`${unit.branchId} · ${unit.title} — 原学习步保留在左侧，随时对照`}
+        title="本篇要点与参考出处"
+        description={`${parentBranch?.name ?? unit.branchId} · 原手册保留在左侧随时对照`}
         widthClassName="w-[min(500px,94vw)]"
       >
         <div className="space-y-4">
@@ -364,57 +357,50 @@ export function UnitPlayerView({
             </button>
           </div>
 
-          {studyDrawerTab === 'notes' ? (
+          {studyDrawerTab === 'notes' && (
             <div className="space-y-4">
               {takeaways.length > 0 && (
-                <section className="glass-plate space-y-2 p-4">
-                  <div className="text-[12.5px] font-semibold text-[var(--dawn)]">本节人话划重点</div>
-                  <ul className="m-0 list-disc space-y-2 pl-5 text-[13.5px] leading-[1.65] text-[var(--ink-1)]">
-                    {takeaways.map((b, i) => (
-                      <li key={i}>
-                        <RichText text={b.keyTakeaway!} />
-                      </li>
-                    ))}
-                  </ul>
-                </section>
+                <div className="space-y-2">
+                  <div className="text-[12.5px] font-semibold text-[var(--dawn)]">本篇核心要点</div>
+                  {takeaways.map((b, idx) => (
+                    <div
+                      key={idx}
+                      className="glass-plate p-3.5 text-[13.5px] leading-[1.65] text-[var(--ink-1)]"
+                    >
+                      <div className="mb-1 text-[12px] text-[var(--ink-3)]">
+                        <RichText text={b.heading} />
+                      </div>
+                      <RichText text={b.keyTakeaway ?? ''} concepts={concepts} />
+                    </div>
+                  ))}
+                </div>
               )}
 
-              {concepts.length > 0 && (
-                <section className="space-y-2">
-                  <div className="text-[12.5px] font-semibold text-[var(--ink-2)]">
-                    核心术语词典（点击展开关联概念）
-                  </div>
-                  <div className="space-y-2">
-                    {concepts.map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => {
-                          setStudyDrawerOpen(false);
-                          glossary?.openConcept(c);
-                        }}
-                        className="glass-plate block w-full cursor-pointer p-3.5 text-left transition-colors hover:border-[var(--accent-border)]"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-[14px] font-semibold text-[var(--ink-1)]">
-                            {c.label}
-                          </span>
-                          <span className="font-mono-num text-[11.5px] text-[var(--accent)]">
-                            详解 →
-                          </span>
-                        </div>
-                        <p className="mt-1 mb-0 text-[13px] leading-[1.6] text-[var(--ink-2)]">
-                          {c.plainDefinition}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                </section>
-              )}
+              <div className="space-y-2">
+                <div className="text-[12.5px] font-semibold text-[var(--ink-2)]">
+                  相关概念（点击看大白话解释）
+                </div>
+                {concepts.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => glossary?.openConcept(c)}
+                    className="glass-plate flex w-full cursor-pointer flex-col gap-1 p-3.5 text-left transition-colors hover:border-[var(--accent-border)]"
+                  >
+                    <span className="text-[13.5px] font-semibold text-[var(--ink-1)]">
+                      {c.label}
+                    </span>
+                    <span className="text-[13px] leading-[1.55] text-[var(--ink-2)]">
+                      {c.plainDefinition}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
-          ) : (
+          )}
+
+          {studyDrawerTab === 'sources' && (
             <div className="space-y-4">
-              <PsychBoundaryNotice sources={unit.sources} />
               <OriginCardsList cards={unit.guide.originCards} />
               <SourceTimelinessFooter sources={unit.sources} />
             </div>
@@ -422,870 +408,634 @@ export function UnitPlayerView({
         </div>
       </Drawer>
 
-      {/* 56px 吸顶清透专注顶栏：返回 + 7步进度轨 + 资料抽屉与工具 */}
-      <header className="sticky top-0 z-40 h-[56px] border-b border-[var(--line)] bg-[var(--surface-glass)] backdrop-blur-md">
-        <div className="mx-auto flex h-full max-w-[1240px] items-center justify-between gap-3 px-4 sm:px-6">
-          <Button size="sm" variant="outline" onClick={() => onBackToBranches(unit.branchId)}>
-            <ArrowLeft size={14} strokeWidth={1.6} />
-            <span>返回 {unit.branchId}</span>
-          </Button>
+      {/* 顶部清爽手册阅读栏 + 细进度条 */}
+      <header className="sticky top-0 z-30 border-b border-[var(--line)] bg-[var(--surface-glass)] backdrop-blur-md">
+        <div
+          className="h-[2px] bg-[var(--dawn)] transition-[width] duration-150"
+          style={{ width: `${readProgress}%` }}
+          aria-hidden="true"
+        />
+        <div className="mx-auto flex h-[54px] max-w-[1140px] items-center justify-between gap-2 px-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onBackToBranches(unit.branchId)}
+              aria-label="返回生活技能目录"
+            >
+              <ArrowLeft size={15} strokeWidth={1.6} />
+              <span>返回{parentBranch?.name ?? '目录'}</span>
+            </Button>
+            <span className="hidden text-[var(--line-strong)] sm:inline">/</span>
+            <span className="hidden truncate text-[13.5px] font-medium text-[var(--ink-2)] sm:inline">
+              {unit.title}
+            </span>
+          </div>
 
-          <nav className="hidden items-center gap-1 md:flex" aria-label="7 步学习进度">
-            {STEP_META.map((item, idx) => {
-              const isCurrent = step === item.num;
-              const isPassed = item.num < step;
-              const canJump = item.num <= maxVisitedStep;
-              return (
-                <div className="flex items-center" key={item.num}>
-                  <Tooltip content={`第 ${item.num} 步 · ${item.full}`}>
-                    <button
-                      type="button"
-                      disabled={!canJump}
-                      onClick={() => goToStep(item.num)}
-                      className={cn(
-                        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12.5px] font-medium transition-colors',
-                        canJump ? 'cursor-pointer' : 'cursor-not-allowed opacity-45',
-                        isCurrent
-                          ? 'bg-[var(--accent)] text-white'
-                          : isPassed
-                            ? 'bg-[var(--growth-soft)] text-[var(--growth)]'
-                            : 'text-[var(--ink-3)]'
-                      )}
-                    >
-                      <span className="font-mono-num flex h-4 w-4 items-center justify-center rounded-full text-[11px]">
-                        {isPassed ? <Check size={11} strokeWidth={2.4} /> : item.num}
-                      </span>
-                      <span className="hidden xl:inline">{item.short}</span>
-                    </button>
-                  </Tooltip>
-                  {idx < STEP_META.length - 1 && (
-                    <span
-                      className={cn(
-                        'mx-1 h-[1.5px] w-3',
-                        item.num < step ? 'bg-[var(--growth)]' : 'bg-[var(--line-strong)]'
-                      )}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </nav>
-
-          <div className="flex items-center gap-1.5">
-            <Tooltip content="滑出右侧抽屉查看本节划重点、术语与权威出处">
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Tooltip content="一键记为读过，不需要做题或交作业">
               <Button
+                variant={isRead ? 'growth' : 'primary'}
                 size="sm"
-                variant="outline"
+                data-testid="unit-mark-read-btn"
+                onClick={handleToggleMarkRead}
+                className="rounded-full"
+              >
+                <Check size={14} strokeWidth={2.2} />
+                <span>{isRead ? '已读' : '标为已读'}</span>
+              </Button>
+            </Tooltip>
+
+            <Tooltip content="本篇划重点、术语表与权威出处">
+              <Button
+                variant="subtle"
+                size="sm"
                 data-testid="study-drawer-trigger"
                 onClick={() => openStudyDrawer('notes')}
               >
                 <BookMarked size={14} strokeWidth={1.6} />
-                <span className="hidden sm:inline">本节资料</span>
+                <span className="hidden sm:inline">参考资料</span>
               </Button>
             </Tooltip>
-
-            <Badge tone="neutral" className="font-mono-num">
-              {step}/7
-            </Badge>
 
             <Tooltip content="全局快速搜索（⌘K）">
-              <Button
-                size="icon"
-                variant="outline"
-                aria-label="全局快速搜索"
+              <button
+                type="button"
+                aria-label="快速搜索"
                 onClick={onOpenCommandPalette}
+                className="inline-flex h-[34px] w-[34px] cursor-pointer items-center justify-center rounded-full border border-[var(--line-strong)] bg-[var(--surface-plate)] text-[var(--ink-2)] transition-colors hover:text-[var(--ink-1)]"
               >
                 <Search size={14} strokeWidth={1.6} />
-              </Button>
+              </button>
             </Tooltip>
 
-            <Tooltip content={theme === 'dark' ? '切换浅色主题' : '切换暗色主题'}>
-              <Button
-                size="icon"
-                variant="outline"
-                aria-label="切换浅色或深色主题"
+            <Tooltip content={theme === 'dark' ? '切换浅色阅读模式' : '切换暗色阅读模式'}>
+              <button
+                type="button"
+                aria-label="切换明暗主题"
                 onClick={onToggleTheme}
+                className="inline-flex h-[34px] w-[34px] cursor-pointer items-center justify-center rounded-full border border-[var(--line-strong)] bg-[var(--surface-plate)] text-[var(--ink-2)] transition-colors hover:text-[var(--ink-1)]"
               >
                 {theme === 'dark' ? (
                   <Sun size={14} strokeWidth={1.6} />
                 ) : (
                   <Moon size={14} strokeWidth={1.6} />
                 )}
-              </Button>
+              </button>
             </Tooltip>
           </div>
         </div>
       </header>
 
+      {/* 主阅读区：左吸顶目录导航 + 右整页深度实战手册 */}
       <main
         id="main-content"
-        className={cn(
-          'mx-auto px-4 py-6 sm:px-6 sm:py-8',
-          step === 3 ? 'max-w-[1240px]' : 'max-w-[820px]'
-        )}
+        className="mx-auto grid max-w-[1140px] grid-cols-1 items-start gap-7 px-4 pt-6 sm:px-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:pt-8"
       >
-        {/* 简洁单元头 */}
-        <div className="mb-5 space-y-1.5">
-          <div className="sky-heading flex flex-wrap items-center gap-2 text-[13px] text-[var(--ink-2)]">
-            <span
-              className="h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: parentBranch?.accentToken ?? 'var(--accent)' }}
-            />
-            <span className="font-mono-num font-semibold">{unit.branchId}</span>
-            <span>·</span>
-            <span>{parentTrack?.title ?? unit.trackId}</span>
-            <span>·</span>
-            <span className="font-mono-num">{unit.estimatedMinutes}m</span>
-            {telemetry.unitSubmissions[unit.id]?.isCleared && <Badge tone="growth">已过关</Badge>}
-          </div>
-          <h1 className="sky-heading m-0 text-[24px] font-semibold leading-[1.25] tracking-[-0.02em] text-[var(--ink-1)] sm:text-[30px]">
-            {unit.title}
-          </h1>
-          <PlaceholderBanner visible={unit.isPlaceholder} />
-        </div>
+        {/* 左：桌面吸顶目录 + 术语速查（随时跳着读） */}
+        <aside className="hidden space-y-4 lg:sticky lg:top-[76px] lg:block" aria-label="本篇目录">
+          <div className="v3-card space-y-3 p-4">
+            <div className="flex items-center justify-between text-[12px] text-[var(--ink-3)]">
+              <span className="font-semibold text-[var(--ink-1)]">本篇目录</span>
+              <span className="font-mono-num">{readProgress}%</span>
+            </div>
+            <nav className="flex flex-col gap-1">
+              {tocItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => scrollToSection(item.id)}
+                  className={cn(
+                    'cursor-pointer truncate rounded-[8px] border-0 px-2.5 py-1.5 text-left text-[13px] transition-colors',
+                    activeSecId === item.id
+                      ? 'bg-[var(--accent-soft)] font-medium text-[var(--ink-1)]'
+                      : 'bg-transparent text-[var(--ink-3)] hover:bg-[var(--surface-plate)] hover:text-[var(--ink-1)]'
+                  )}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </nav>
 
-        {/* 第 1 步：生活场景开场 */}
-        {step === 1 && (
-          <Card className="space-y-5">
-            <Badge tone="accent">第 1 步 · 场景开场</Badge>
-            <h2 className="m-0 text-[20px] font-semibold text-[var(--ink-1)] sm:text-[22px]">
-              {unit.scenarioHook.sceneTitle}
-            </h2>
-            <div className="glass-plate p-5 text-[15.5px] leading-[1.8] text-[var(--ink-1)]">
-              <p className="m-0">
+            {concepts.length > 0 && (
+              <div className="space-y-2 border-t border-[var(--line)] pt-3">
+                <div className="text-[11.5px] font-medium text-[var(--ink-3)]">
+                  文中关键概念（点看解释）
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {concepts.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => glossary?.openConcept(c)}
+                      className="glossary-trigger glossary-term-btn text-left text-[12px]"
+                    >
+                      {c.label.replace(/（.*?）|\(.*?\)/g, '')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </aside>
+
+        {/* 右：整页长文实战手册画布 */}
+        <article className="min-w-0 max-w-[820px] space-y-6">
+          <PlaceholderBanner visible={unit.isPlaceholder} />
+
+          {/* 1. 封面标题 + 一分钟核心结论 */}
+          <Card id="sec-tldr" className="scroll-mt-20 space-y-5 p-6 sm:p-8">
+            <div className="flex flex-wrap items-center gap-2 text-[12.5px]">
+              <Badge tone="accent">{parentBranch?.name ?? unit.branchId}</Badge>
+              <Badge tone="neutral" className="font-mono-num">
+                深度手册 · 约 {unit.estimatedMinutes} 分钟
+              </Badge>
+              {isRead && <Badge tone="growth">已读留痕</Badge>}
+            </div>
+
+            <div className="space-y-2.5">
+              <h1 className="m-0 text-[24px] font-semibold leading-[1.34] tracking-[-0.02em] text-[var(--ink-1)] sm:text-[28px]">
+                {unit.title}
+              </h1>
+              <p className="m-0 text-[15px] leading-[1.78] text-[var(--ink-2)]">
                 <RichText text={unit.scenarioHook.story} concepts={concepts} />
               </p>
             </div>
-            <div className="rounded-[12px] border border-[var(--accent-border)] bg-[var(--accent-soft)] p-4">
-              <div className="mb-1 text-[12px] font-semibold text-[var(--accent)]">
-                带着这个问题继续
+
+            {/* 一分钟抓重点 TL;DR */}
+            {takeaways.length > 0 && (
+              <div className="glass-plate space-y-2.5 p-4 sm:p-5">
+                <div className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--dawn)]">
+                  <Sparkles size={14} strokeWidth={1.8} />
+                  <span>没空细看？先带走这 {takeaways.length} 句核心结论</span>
+                </div>
+                <ul className="m-0 list-disc space-y-1.5 pl-5 text-[14.2px] leading-[1.7] text-[var(--ink-1)]">
+                  {takeaways.map((blk, idx) => (
+                    <li key={idx}>
+                      <RichText text={blk.keyTakeaway ?? ''} concepts={concepts} />
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <p className="m-0 text-[15px] font-medium leading-[1.65] text-[var(--ink-1)]">
-                <RichText text={unit.scenarioHook.guidingQuestion} />
-              </p>
-            </div>
-            <PsychBoundaryNotice sources={unit.sources} />
-            <div className="flex justify-end border-t border-[var(--line)] pt-4">
-              <Button variant="primary" size="lg" onClick={() => goToStep(2)}>
-                <span>先做一道直觉预测</span>
-                <ArrowRight size={15} strokeWidth={1.6} />
-              </Button>
+            )}
+
+            {/* 移动端快捷目录芯片 */}
+            <div className="flex flex-wrap gap-1.5 lg:hidden">
+              {tocItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => scrollToSection(item.id)}
+                  className="max-w-full cursor-pointer truncate rounded-full border border-[var(--line)] bg-[var(--surface-plate)] px-3 py-1 text-[12px] text-[var(--ink-2)]"
+                >
+                  {item.label}
+                </button>
+              ))}
             </div>
           </Card>
-        )}
 
-        {/* 第 2 步：先预测 */}
-        {step === 2 && (
-          <Card className="space-y-5">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <Badge tone="accent">第 2 步 · 先预测</Badge>
-              <span className="text-[13px] text-[var(--ink-3)]">
-                激活直觉，猜错反而印象最深
-              </span>
+          <PsychBoundaryNotice sources={unit.sources} />
+
+          {/* 2. 互动图解 + 配套生活小算盘 */}
+          <section id="sec-visual" className="scroll-mt-20 space-y-4">
+            <UnitVisualFrame
+              visuals={unit.guide.visuals}
+              activeStep={diagramStep}
+              onStepChange={setDiagramStep}
+            />
+            {UNIT_LIVE_SANDBOX_MAP[unit.id] && (
+              <Card className="p-4 sm:p-5">
+                <LifeToolsSandbox mode={UNIT_LIVE_SANDBOX_MAP[unit.id]} compact />
+              </Card>
+            )}
+          </section>
+
+          {/* 3. 全篇深度分节正文（含对照表、真实样本、避坑 FAQ 与一键复制模板） */}
+          <div className="space-y-5">
+            {unit.guide.blocks.map((blk, idx) => (
+              <Card
+                key={idx}
+                id={`sec-block-${idx}`}
+                className="scroll-mt-20 space-y-4 p-6 sm:p-7"
+                onMouseEnter={() => setActiveSecId(`sec-block-${idx}`)}
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-[var(--line)] pb-3">
+                  <h2 className="m-0 flex items-baseline gap-2.5 text-[18.5px] font-semibold leading-[1.4] text-[var(--ink-1)] sm:text-[20px]">
+                    <span className="font-mono-num text-[13.5px] font-semibold text-[var(--dawn)]">
+                      0{idx + 1}
+                    </span>
+                    <span>
+                      <RichText text={blk.heading} concepts={concepts} />
+                    </span>
+                  </h2>
+                </div>
+
+                <MarkdownArticle text={blk.markdown} concepts={concepts} />
+
+                {blk.keyTakeaway && (
+                  <div className="rounded-[10px] border border-[var(--growth-border)] bg-[var(--growth-soft)] px-4 py-2.5 text-[13.5px] leading-[1.65] text-[var(--ink-1)]">
+                    <strong className="font-semibold text-[var(--growth)]">本节一句话：</strong>
+                    <RichText text={blk.keyTakeaway} concepts={concepts} />
+                  </div>
+                )}
+              </Card>
+            ))}
+          </div>
+
+          {/* 4. 拿走就能照做的实操清单（纯自愿打勾，零提交门槛） */}
+          <Card id="sec-checklist" className="scroll-mt-20 space-y-4 p-6 sm:p-7">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="inline-flex items-center gap-2">
+                <ListChecks size={17} strokeWidth={1.8} className="text-[var(--growth)]" />
+                <h2 className="m-0 text-[18px] font-semibold text-[var(--ink-1)]">
+                  拿走就能用：{unit.actionTask.title}
+                </h2>
+              </div>
+              <Badge tone="neutral">随用随勾 · 不交作业</Badge>
             </div>
-            <h2 className="m-0 text-[19px] font-semibold leading-[1.45] text-[var(--ink-1)] sm:text-[21px]">
-              <RichText text={unit.prediction.question} />
-            </h2>
+            <p className="m-0 text-[14px] text-[var(--ink-2)]">{unit.actionTask.lifeContext}</p>
 
-            <div className="space-y-2.5">
-              {unit.prediction.options.map((opt, idx) => {
-                const letter = String.fromCharCode(65 + idx);
-                const isSelected = predChoice === idx;
-                const isAnswer = predSubmitted && idx === unit.prediction.answerIndex;
-                const isWrongPick =
-                  predSubmitted && isSelected && idx !== unit.prediction.answerIndex;
-
+            <div className="glass-plate space-y-2.5 p-4">
+              {unit.actionTask.steps.map((s, idx) => {
+                const checked = Boolean(checkedSteps[idx]);
                 return (
-                  <button
-                    key={idx}
-                    type="button"
-                    disabled={predSubmitted}
-                    onClick={() => setPredChoice(idx)}
-                    className={cn(
-                      'quiz-option-btn flex min-h-[48px] w-full cursor-pointer items-start gap-3 rounded-[12px] border p-3.5 text-left text-[15px] leading-[1.55] transition-colors disabled:cursor-default',
-                      isAnswer
-                        ? 'border-[var(--growth)] bg-[var(--growth-soft)] text-[var(--ink-1)]'
-                        : isWrongPick
-                          ? 'border-[var(--danger)] bg-[var(--danger-soft)] text-[var(--ink-1)]'
-                          : isSelected
-                            ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--ink-1)]'
-                            : 'border-[var(--line-strong)] bg-[var(--surface-plate)] text-[var(--ink-2)] hover:border-[var(--accent-border)] hover:text-[var(--ink-1)]'
-                    )}
+                  <label
+                    key={s}
+                    className="flex cursor-pointer items-start gap-3 text-[14.5px] leading-[1.65]"
                   >
-                    <span className="font-mono-num mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-[6px] border border-[var(--line-strong)] bg-[var(--surface-raised)] text-[12px] font-semibold text-[var(--ink-1)]">
-                      {letter}
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={checked}
+                      onClick={() =>
+                        setCheckedSteps((prev) => ({ ...prev, [idx]: !prev[idx] }))
+                      }
+                      className={cn(
+                        'mt-1 flex h-[18px] w-[18px] shrink-0 cursor-pointer items-center justify-center rounded-[5px] border transition-colors',
+                        checked
+                          ? 'border-[var(--growth)] bg-[var(--growth)] text-[#081510]'
+                          : 'border-[var(--line-strong)] bg-[var(--surface-raised)]'
+                      )}
+                    >
+                      {checked && <Check size={12} strokeWidth={2.4} />}
+                    </button>
+                    <span
+                      className={cn(
+                        'text-[var(--ink-1)]',
+                        checked && 'text-[var(--ink-3)] line-through'
+                      )}
+                    >
+                      <RichText text={s} concepts={concepts} />
                     </span>
-                    <span className="flex-1">
-                      <RichText text={opt} />
-                    </span>
-                  </button>
+                  </label>
                 );
               })}
             </div>
-
-            {!predSubmitted ? (
-              <div className="flex justify-end border-t border-[var(--line)] pt-4">
-                <Button
-                  variant="primary"
-                  size="lg"
-                  disabled={predChoice === null}
-                  onClick={handlePredictionSubmit}
-                >
-                  锁定我的直觉判断
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4 border-t border-[var(--line)] pt-4">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="rounded-[12px] border border-[var(--warning-border)] bg-[var(--warning-soft)] p-4">
-                    <div className="mb-1 text-[12px] font-semibold text-[var(--warning)]">
-                      多数人的直觉判断
-                    </div>
-                    <p className="m-0 text-[14px] leading-[1.65] text-[var(--ink-1)]">
-                      {predChoice === unit.prediction.answerIndex
-                        ? '你成功避开了最常见的第一直觉陷阱'
-                        : `常见误区是选项 ${String.fromCharCode(65 + unit.prediction.commonTrapIndex)} —— 踩中陷阱恰恰说明这一节很值`}
-                    </p>
-                  </div>
-                  <div className="rounded-[12px] border border-[var(--growth-border)] bg-[var(--growth-soft)] p-4">
-                    <div className="mb-1 text-[12px] font-semibold text-[var(--growth)]">
-                      真实底层规律
-                    </div>
-                    <p className="m-0 text-[14px] leading-[1.65] text-[var(--ink-1)]">
-                      <RichText text={unit.prediction.whyCounterIntuitive} />
-                    </p>
-                  </div>
-                </div>
-                <div className="flex justify-end">
-                  <Button variant="primary" size="lg" onClick={() => goToStep(3)}>
-                    <span>进入互动实验室看清机制</span>
-                    <ArrowRight size={15} strokeWidth={1.6} />
-                  </Button>
-                </div>
-              </div>
-            )}
           </Card>
-        )}
 
-        {/* 第 3 步：简明双栏（左吸顶动图沙盒 + 配套生活小算盘 + 右精排原理拆解） */}
-        {step === 3 && (
-          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1.22fr)_minmax(0,1fr)]">
-            <div className="space-y-4 lg:sticky lg:top-[76px]">
-              <UnitVisualFrame
-                visuals={unit.guide.visuals}
-                activeStep={diagramStep}
-                onStepChange={setDiagramStep}
-              />
-              {UNIT_LIVE_SANDBOX_MAP[unit.id] && (
-                <Card className="p-4">
-                  <LifeToolsSandbox mode={UNIT_LIVE_SANDBOX_MAP[unit.id]} compact />
-                </Card>
+          {/* 5. 页尾 100% 可选扩展区（情景演练 / 顺手自测 / 概念闪卡 / 记入生活笔记） */}
+          <Card id="sec-optional" className="scroll-mt-20 space-y-4 p-6">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 className="m-0 text-[16.5px] font-semibold text-[var(--ink-1)]">
+                  想顺手练一下或留句笔记？（完全可选）
+                </h2>
+                <p className="mt-0.5 mb-0 text-[13px] text-[var(--ink-3)]">
+                  读完上面就已经完整学完啦；有兴致再点下面小工具试手，不做也不影响进度
+                </p>
+              </div>
+              {optionalTab !== 'none' && (
+                <Button size="sm" variant="ghost" onClick={() => setOptionalTab('none')}>
+                  <ChevronDown size={14} className="rotate-180" />
+                  <span>收起</span>
+                </Button>
               )}
             </div>
 
-            <div className="space-y-4">
-              <Card className="space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <Badge tone="accent">第 3 步 · 原理拆解</Badge>
-                  <div className="flex items-center gap-1.5">
-                    <Button size="sm" variant="subtle" onClick={() => openStudyDrawer('notes')}>
-                      划重点 ({takeaways.length})
-                    </Button>
-                    <Button size="sm" variant="subtle" onClick={() => openStudyDrawer('sources')}>
-                      溯源与出处 ({unit.sources.length})
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 text-[12.5px] text-[var(--ink-3)]">
-                  <span>点击段落联动左侧动图</span>
-                  {concepts.length > 0 && (
-                    <>
-                      <span>·</span>
-                      <span>本节术语：</span>
-                      {concepts.map((c) => (
-                        <Tooltip
-                          key={c.id}
-                          content={`${c.plainDefinition.slice(0, 36)}…（点击展开详解）`}
-                          side="top"
-                        >
-                          <button
-                            type="button"
-                            className="glossary-trigger glossary-term-btn text-[12.5px]"
-                            onClick={() => glossary?.openConcept(c)}
-                          >
-                            {c.label}
-                          </button>
-                        </Tooltip>
-                      ))}
-                    </>
-                  )}
-                </div>
-
-                <div className="divide-y divide-[var(--line)]">
-                  {unit.guide.blocks.map((blk, idx) => (
-                    <section
-                      key={idx}
-                      onClick={() => setDiagramStep(idx)}
-                      className={cn(
-                        'cursor-pointer py-4 transition-colors first:pt-1 last:pb-1',
-                        diagramStep === idx &&
-                          '-mx-3 rounded-[12px] bg-[var(--accent-soft)] px-3'
-                      )}
-                    >
-                      <h2 className="m-0 mb-2 flex items-baseline gap-2.5 text-[17px] font-semibold leading-[1.4] text-[var(--ink-1)]">
-                        <span className="font-mono-num text-[13px] text-[var(--accent)]">
-                          0{idx + 1}
-                        </span>
-                        <span>
-                          <RichText text={blk.heading} concepts={concepts} />
-                        </span>
-                      </h2>
-                      <p className="glass-plate m-0 p-3.5 text-[15px] leading-[1.8] text-[var(--ink-2)]">
-                        <RichText text={blk.markdown} concepts={concepts} />
-                      </p>
-                    </section>
-                  ))}
-                </div>
-
-                <div className="flex justify-end border-t border-[var(--line)] pt-4">
-                  <Button
-                    variant="primary"
-                    size="lg"
-                    onClick={async () => {
-                      await flushStepDuration('guide');
-                      goToStep(4);
-                    }}
-                  >
-                    <span>读完了，翻看 3D 概念闪卡</span>
-                    <ArrowRight size={15} strokeWidth={1.6} />
-                  </Button>
-                </div>
-              </Card>
-
-              <PsychBoundaryNotice sources={unit.sources} />
-            </div>
-          </div>
-        )}
-
-        {/* 第 4 步：真 3D 弹性翻卡概念台 */}
-        {step === 4 && currentConcept && (
-          <Card className="space-y-5">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <Badge tone="accent">第 4 步 · 3D 概念闪卡</Badge>
-                <p className="mt-2 mb-0 text-[13.5px] text-[var(--ink-2)]">
-                  先在脑中复述再翻面（快捷键：Space 翻面，1/2/3 评分）
-                </p>
-              </div>
-              <Badge tone="neutral" className="font-mono-num">
-                {cardIdx + 1} / {concepts.length}
-              </Badge>
-            </div>
-
-            <div className="flip-perspective mx-auto max-w-[660px]">
-              <motion.div
-                className={cn(
-                  'flip-card-box flip-preserve-3d relative grid cursor-pointer',
-                  isCurrentFlipped && 'is-flipped'
-                )}
-                animate={{ rotateY: isCurrentFlipped ? 180 : 0 }}
-                transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-                onClick={() =>
-                  setFlippedCards((prev) => ({
-                    ...prev,
-                    [currentConcept.id]: !prev[currentConcept.id],
-                  }))
-                }
+            <div className="flex flex-wrap gap-2" role="tablist" aria-label="可选扩展练习">
+              {linkedScenario && (
+                <Button
+                  size="sm"
+                  variant={optionalTab === 'scenario' ? 'primary' : 'outline'}
+                  data-testid="opt-tab-scenario"
+                  onClick={() =>
+                    setOptionalTab((prev) => (prev === 'scenario' ? 'none' : 'scenario'))
+                  }
+                >
+                  <MessageCircle size={13} strokeWidth={1.7} />
+                  <span>情景演练一局</span>
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant={optionalTab === 'quiz' ? 'primary' : 'outline'}
+                data-testid="opt-tab-quiz"
+                onClick={() => setOptionalTab((prev) => (prev === 'quiz' ? 'none' : 'quiz'))}
               >
-                {/* 正面 */}
-                <div
-                  className={cn(
-                    'flip-backface-hidden glass-plate col-start-1 row-start-1 flex min-h-[280px] flex-col justify-between rounded-[16px] p-6',
-                    isCurrentFlipped && 'pointer-events-none'
-                  )}
+                <HelpCircle size={13} strokeWidth={1.7} />
+                <span>顺手自测 ({unit.quiz.questions.length} 题)</span>
+              </Button>
+              {concepts.length > 0 && (
+                <Button
+                  size="sm"
+                  variant={optionalTab === 'cards' ? 'primary' : 'outline'}
+                  data-testid="opt-tab-cards"
+                  onClick={() => setOptionalTab((prev) => (prev === 'cards' ? 'none' : 'cards'))}
                 >
-                  <div className="flex items-center justify-between text-[12.5px] text-[var(--ink-3)]">
-                    <span className="font-semibold text-[var(--ink-1)]">
-                      {currentConcept.label}
-                    </span>
-                    <span className="font-mono-num">{currentConcept.branchId} · 正面提问</span>
-                  </div>
-
-                  <div className="my-6 text-center text-[19px] font-medium leading-[1.55] text-[var(--ink-1)] sm:text-[21px]">
-                    {currentConcept.cardPrompt}
-                  </div>
-
-                  <div className="flex justify-center">
-                    <Button variant="outline" size="sm">
-                      <RotateCw size={14} strokeWidth={1.5} />
-                      <span>翻看解析</span>
-                    </Button>
-                  </div>
-                </div>
-
-                {/* 背面 */}
-                <div
-                  onClick={(e) => e.stopPropagation()}
-                  className={cn(
-                    'flip-backface-hidden glass-plate col-start-1 row-start-1 flex min-h-[280px] flex-col justify-between gap-4 rounded-[16px] border-[var(--accent-border)] p-6 [transform:rotateY(180deg)]',
-                    !isCurrentFlipped && 'pointer-events-none'
-                  )}
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-[12.5px]">
-                      <span className="font-semibold text-[var(--accent)]">
-                        {currentConcept.label}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setFlippedCards((prev) => ({ ...prev, [currentConcept.id]: false }))
-                        }
-                        className="cursor-pointer border-0 bg-transparent text-[12px] text-[var(--ink-3)] hover:text-[var(--ink-1)]"
-                      >
-                        翻回正面
-                      </button>
-                    </div>
-
-                    <div className="text-[15px] leading-[1.75] text-[var(--ink-1)]">
-                      <RichText text={currentConcept.cardAnswer} />
-                    </div>
-
-                    <div className="rounded-[10px] border border-[var(--line)] bg-[var(--surface-raised)] px-3.5 py-2.5 text-[13.5px] leading-[1.6] text-[var(--ink-2)]">
-                      <strong className="font-medium text-[var(--ink-1)]">人话定义：</strong>
-                      {currentConcept.plainDefinition}
-                    </div>
-
-                    {currentConcept.crossLinks.length > 0 && (
-                      <div className="space-y-2">
-                        {currentConcept.crossLinks.map((link) => {
-                          const targetNode = content.knowledgeGraph.nodes.find(
-                            (n) => n.id === link.targetId
-                          );
-                          const linkedUnit = content.units.find((u) =>
-                            u.conceptNodeIds.includes(link.targetId)
-                          );
-                          return (
-                            <div
-                              key={link.targetId}
-                              className="flex flex-wrap items-center justify-between gap-2 rounded-[8px] border border-[var(--line)] px-3 py-2 text-[12.5px] text-[var(--ink-2)]"
-                            >
-                              <span>
-                                跨分支互链 ·{' '}
-                                <strong className="text-[var(--ink-1)]">
-                                  {targetNode?.label ?? link.targetId}
-                                </strong>
-                                ：{link.bridgeNote}
-                              </span>
-                              {linkedUnit && linkedUnit.id !== unit.id && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => onOpenUnit(linkedUnit.id)}
-                                >
-                                  前往关联单元
-                                </Button>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2 border-t border-[var(--line)] pt-3">
-                    <Button
-                      size="sm"
-                      variant={ratedCards[currentConcept.id] === 'easy' ? 'growth' : 'outline'}
-                      onClick={() => handleRateCard(currentConcept.id, 'easy')}
-                    >
-                      1 熟练掌握
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={ratedCards[currentConcept.id] === 'fuzzy' ? 'warning' : 'outline'}
-                      onClick={() => handleRateCard(currentConcept.id, 'fuzzy')}
-                    >
-                      2 有点模糊（3天后）
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={ratedCards[currentConcept.id] === 'again' ? 'danger' : 'outline'}
-                      onClick={() => handleRateCard(currentConcept.id, 'again')}
-                    >
-                      3 没想起来（明日重测）
-                    </Button>
-                  </div>
-                </div>
-              </motion.div>
+                  <Layers size={13} strokeWidth={1.7} />
+                  <span>概念闪卡 ({concepts.length})</span>
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant={optionalTab === 'note' ? 'primary' : 'outline'}
+                data-testid="opt-tab-note"
+                onClick={() => setOptionalTab((prev) => (prev === 'note' ? 'none' : 'note'))}
+              >
+                <PenLine size={13} strokeWidth={1.7} />
+                <span>写一条生活笔记</span>
+              </Button>
             </div>
 
-            {concepts.length > 1 && (
-              <div className="flex items-center justify-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={cardIdx === 0}
-                  onClick={() => setCardIdx((i) => Math.max(0, i - 1))}
-                >
-                  <ArrowLeft size={14} strokeWidth={1.5} />
-                  <span>上一张</span>
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={cardIdx >= concepts.length - 1}
-                  onClick={() => setCardIdx((i) => Math.min(concepts.length - 1, i + 1))}
-                >
-                  <span>下一张</span>
-                  <ArrowRight size={14} strokeWidth={1.5} />
-                </Button>
+            {/* 可选 A：情景演练 */}
+            {optionalTab === 'scenario' && linkedScenario && (
+              <div className="pt-2">
+                <LifeScenarioSim scenario={linkedScenario} />
               </div>
             )}
 
-            <div className="flex justify-end border-t border-[var(--line)] pt-4">
-              <Button variant="primary" size="lg" onClick={() => goToStep(5)}>
-                <span>进入第 5 步提取自测</span>
-                <ArrowRight size={15} strokeWidth={1.6} />
-              </Button>
-            </div>
-          </Card>
-        )}
-
-        {/* 第 5 步：真实情景演练 + 提取自测 */}
-        {step === 5 && (
-          <Card className="space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-2.5">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <Badge tone="accent">第 5 步 · 提取自测</Badge>
-                <span className="text-[13px] text-[var(--ink-3)]">
-                  达标线 {Math.round(unit.quiz.passRatio * 100)}%，拿不准的题会自动收进温习本
-                </span>
-              </div>
-              <Button size="sm" variant="subtle" onClick={() => openStudyDrawer('notes')}>
-                边对照划重点
-              </Button>
-            </div>
-
-            {(() => {
-              const linkedScenario = getScenarioByUnitId(unit.id);
-              if (!linkedScenario) return null;
-              return (
-                <div className="space-y-2">
-                  <div className="text-[13px] font-semibold text-[var(--dawn)]">
-                    先在真实生活情景里演练一局
+            {/* 可选 B：顺手自测（无门槛） */}
+            {optionalTab === 'quiz' && (
+              <div className="space-y-5 border-t border-[var(--line)] pt-4">
+                {/* 反直觉小思考 */}
+                <div className="glass-plate space-y-3 p-4">
+                  <div className="text-[12px] font-semibold text-[var(--dawn)]">直觉小思考</div>
+                  <div className="text-[14.5px] font-medium text-[var(--ink-1)]">
+                    <RichText text={unit.prediction.question} />
                   </div>
-                  <LifeScenarioSim scenario={linkedScenario} />
-                </div>
-              );
-            })()}
-
-            <div className="space-y-6">
-              {unit.quiz.questions.map((q, qIdx) => {
-                const picked = quizAnswers[q.id];
-                return (
-                  <div className="quiz-question-block space-y-3" key={q.id}>
-                    <div className="flex items-baseline gap-2.5 text-[16px] font-semibold leading-[1.5] text-[var(--ink-1)]">
-                      <span className="font-mono-num text-[13px] text-[var(--accent)]">
-                        Q{qIdx + 1}
-                      </span>
-                      <span>
-                        <RichText text={q.stem} />
-                      </span>
-                    </div>
-
-                    <div className="space-y-2">
-                      {q.options.map((opt, oIdx) => {
-                        const letter = String.fromCharCode(65 + oIdx);
-                        const isSelected = picked === oIdx;
-                        const isCorrectOpt = quizSubmitted && oIdx === q.correctIndex;
-                        const isWrongPick =
-                          quizSubmitted && isSelected && oIdx !== q.correctIndex;
-
-                        return (
-                          <button
-                            key={oIdx}
-                            type="button"
-                            disabled={quizSubmitted}
-                            onClick={() =>
-                              setQuizAnswers((prev) => ({ ...prev, [q.id]: oIdx }))
-                            }
-                            className={cn(
-                              'quiz-option-btn flex min-h-[46px] w-full cursor-pointer items-start gap-3 rounded-[12px] border p-3.5 text-left text-[14.5px] leading-[1.55] transition-colors disabled:cursor-default',
-                              isCorrectOpt
-                                ? 'border-[var(--growth)] bg-[var(--growth-soft)] text-[var(--ink-1)]'
-                                : isWrongPick
-                                  ? 'border-[var(--danger)] bg-[var(--danger-soft)] text-[var(--ink-1)]'
-                                  : isSelected
-                                    ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--ink-1)]'
-                                    : 'border-[var(--line-strong)] bg-[var(--surface-plate)] text-[var(--ink-2)] hover:border-[var(--accent-border)] hover:text-[var(--ink-1)]'
-                            )}
-                          >
-                            <span className="font-mono-num mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-[6px] border border-[var(--line-strong)] bg-[var(--surface-raised)] text-[12px] font-semibold text-[var(--ink-1)]">
-                              {letter}
-                            </span>
-                            <span className="flex-1">
-                              <RichText text={opt} />
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {quizSubmitted && (
-                      <div
-                        className={cn(
-                          'rounded-[10px] border p-3.5 text-[13.5px] leading-[1.65]',
-                          picked === q.correctIndex
-                            ? 'border-[var(--growth-border)] bg-[var(--growth-soft)] text-[var(--ink-1)]'
-                            : 'border-[var(--danger-border)] bg-[var(--danger-soft)] text-[var(--ink-1)]'
-                        )}
-                      >
-                        <strong className="font-semibold">
-                          {picked === q.correctIndex
-                            ? '回答正确：'
-                            : '纠偏解析（已排入明日重测）：'}
-                        </strong>
-                        <RichText text={q.explanation} />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {!quizSubmitted ? (
-              <div className="flex justify-end border-t border-[var(--line)] pt-4">
-                <Button
-                  variant="primary"
-                  size="lg"
-                  disabled={!allQuestionsAnswered}
-                  onClick={handleQuizSubmit}
-                >
-                  提交自测并查看解析
-                </Button>
-              </div>
-            ) : (
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] pt-4">
-                <div className="flex items-center gap-2.5 text-[15px]">
-                  <span className="text-[var(--ink-2)]">本次得分</span>
-                  <strong className="font-mono-num text-[20px] font-semibold text-[var(--ink-1)]">
-                    {Math.round(quizScoreRatio * 100)}%
-                  </strong>
-                  <Badge tone={quizScoreRatio >= unit.quiz.passRatio ? 'growth' : 'warning'}>
-                    {quizScoreRatio >= unit.quiz.passRatio ? '已达标' : '未达标，请重测'}
-                  </Badge>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {quizScoreRatio < unit.quiz.passRatio && (
-                    <Popconfirm
-                      title="清空本次作答并重测？"
-                      confirmLabel="重新测试"
-                      tone="warning"
-                      onConfirm={() => {
-                        setQuizSubmitted(false);
-                        setQuizAnswers({});
-                        stepEnteredAtRef.current = Date.now();
-                      }}
-                    >
-                      <Button variant="outline">重测本节题目</Button>
-                    </Popconfirm>
-                  )}
-                  {quizScoreRatio >= unit.quiz.passRatio && (
-                    <Button variant="primary" size="lg" onClick={() => goToStep(6)}>
-                      <span>进入行动任务落地</span>
-                      <ArrowRight size={15} strokeWidth={1.6} />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-          </Card>
-        )}
-
-        {/* 第 6 步：实战行动任务 */}
-        {step === 6 && (
-          <Card className="space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <Badge tone="accent">第 6 步 · 实战行动任务</Badge>
-              <Button size="sm" variant="subtle" onClick={() => openStudyDrawer('notes')}>
-                打开本节要点对照写
-              </Button>
-            </div>
-
-            <div className="space-y-1.5">
-              <h2 className="m-0 text-[20px] font-semibold text-[var(--ink-1)] sm:text-[22px]">
-                <RichText text={unit.actionTask.title} />
-              </h2>
-              <p className="m-0 text-[14px] text-[var(--ink-2)]">
-                切入场景：{unit.actionTask.lifeContext}
-              </p>
-            </div>
-
-            <ol className="glass-plate m-0 list-decimal space-y-2 py-4 pr-4 pl-9 text-[14.5px] leading-[1.7] text-[var(--ink-1)]">
-              {unit.actionTask.steps.map((s) => (
-                <li key={s}>
-                  <RichText text={s} />
-                </li>
-              ))}
-            </ol>
-
-            {(() => {
-              const matchingPoolTasks = (telemetry.realTasks ?? []).filter(
-                (rt) =>
-                  rt.status === 'open' &&
-                  (rt.category === unit.actionTask.matchPoolCategory ||
-                    rt.branchId === unit.branchId)
-              );
-              if (matchingPoolTasks.length === 0) return null;
-              return (
-                <div className="glass-plate space-y-2.5 p-4">
-                  <div className="text-[13px] font-medium text-[var(--ink-1)]">
-                    绑定真实任务池待办（提交本节时同步标为已交付）
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {matchingPoolTasks.map((rt) => {
-                      const isPicked = linkedRealTaskId === rt.id;
+                  <div className="space-y-1.5">
+                    {unit.prediction.options.map((opt, idx) => {
+                      const picked = predChoice === idx;
+                      const isRight = predSubmitted && idx === unit.prediction.answerIndex;
+                      const isWrong = predSubmitted && picked && idx !== unit.prediction.answerIndex;
                       return (
-                        <Button
-                          key={rt.id}
-                          size="sm"
-                          variant={isPicked ? 'primary' : 'outline'}
-                          onClick={() => {
-                            if (isPicked) {
-                              setLinkedRealTaskId(undefined);
-                            } else {
-                              setLinkedRealTaskId(rt.id);
-                              if (!deliverableText.trim()) {
-                                setDeliverableText(`【真实待办交付】${rt.title}`);
-                              }
-                            }
-                          }}
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => handlePredictionSubmit(idx)}
+                          className={cn(
+                            'quiz-option-btn flex w-full cursor-pointer items-start gap-2.5 rounded-[10px] border p-3 text-left text-[13.5px] transition-colors',
+                            isRight
+                              ? 'border-[var(--growth)] bg-[var(--growth-soft)] text-[var(--ink-1)]'
+                              : isWrong
+                                ? 'border-[var(--danger)] bg-[var(--danger-soft)] text-[var(--ink-1)]'
+                                : 'border-[var(--line)] bg-[var(--surface-raised)] text-[var(--ink-2)] hover:border-[var(--accent-border)] hover:text-[var(--ink-1)]'
+                          )}
                         >
-                          {isPicked ? '已绑定：' : '+ 绑定：'}
-                          {rt.title}
-                        </Button>
+                          <span className="font-mono-num text-[12px] font-semibold">
+                            {String.fromCharCode(65 + idx)}
+                          </span>
+                          <span>{opt}</span>
+                        </button>
                       );
                     })}
                   </div>
+                  {predSubmitted && (
+                    <p className="m-0 rounded-[8px] border border-[var(--growth-border)] bg-[var(--growth-soft)] p-3 text-[13px] leading-[1.65] text-[var(--ink-1)]">
+                      <strong>解析：</strong>
+                      <RichText text={unit.prediction.whyCounterIntuitive} />
+                    </p>
+                  )}
                 </div>
-              );
-            })()}
 
-            <div className="space-y-1.5">
-              <label className="block text-[13.5px] font-medium text-[var(--ink-1)]">
-                {unit.actionTask.deliverablePrompt}
-              </label>
-              <textarea
-                rows={3}
-                className="v3-textarea"
-                value={deliverableText}
-                onChange={(e) => {
-                  setDeliverableText(e.target.value);
-                  if (actionError) setActionError('');
-                }}
-                placeholder="写下你的执行结果、模板内容或本地文件路径…"
-              />
-            </div>
+                {/* 正式自测题 */}
+                {unit.quiz.questions.map((q, qIdx) => {
+                  const picked = quizAnswers[q.id];
+                  return (
+                    <div className="quiz-question-block space-y-2.5" key={q.id}>
+                      <div className="text-[15px] font-semibold text-[var(--ink-1)]">
+                        <span className="font-mono-num mr-2 text-[13px] text-[var(--accent)]">
+                          Q{qIdx + 1}
+                        </span>
+                        <RichText text={q.stem} />
+                      </div>
+                      <div className="space-y-1.5">
+                        {q.options.map((opt, oIdx) => {
+                          const isSelected = picked === oIdx;
+                          const isCorrectOpt = quizSubmitted && oIdx === q.correctIndex;
+                          const isWrongPick = quizSubmitted && isSelected && oIdx !== q.correctIndex;
+                          return (
+                            <button
+                              key={oIdx}
+                              type="button"
+                              disabled={quizSubmitted}
+                              onClick={() =>
+                                setQuizAnswers((prev) => ({ ...prev, [q.id]: oIdx }))
+                              }
+                              className={cn(
+                                'quiz-option-btn flex w-full cursor-pointer items-start gap-2.5 rounded-[10px] border p-3 text-left text-[14px] transition-colors disabled:cursor-default',
+                                isCorrectOpt
+                                  ? 'border-[var(--growth)] bg-[var(--growth-soft)] text-[var(--ink-1)]'
+                                  : isWrongPick
+                                    ? 'border-[var(--danger)] bg-[var(--danger-soft)] text-[var(--ink-1)]'
+                                    : isSelected
+                                      ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--ink-1)]'
+                                      : 'border-[var(--line-strong)] bg-[var(--surface-plate)] text-[var(--ink-2)] hover:border-[var(--accent-border)]'
+                              )}
+                            >
+                              <span className="font-mono-num text-[12px] font-semibold">
+                                {String.fromCharCode(65 + oIdx)}
+                              </span>
+                              <span>
+                                <RichText text={opt} />
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {quizSubmitted && (
+                        <div className="rounded-[10px] border border-[var(--line-strong)] bg-[var(--surface-plate)] p-3 text-[13.5px] leading-[1.65] text-[var(--ink-2)]">
+                          <strong className="text-[var(--ink-1)]">
+                            {picked === q.correctIndex ? '判断准确：' : '解析参考：'}
+                          </strong>
+                          <RichText text={q.explanation} />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
 
-            {unit.actionTask.feynmanCheckPrompt && (
-              <div className="space-y-1.5">
-                <label className="block text-[13.5px] font-medium text-[var(--ink-1)]">
-                  费曼一句话复述：{unit.actionTask.feynmanCheckPrompt}
-                </label>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  {quizSubmitted ? (
+                    <>
+                      <span className="text-[13.5px] text-[var(--ink-2)]">
+                        本次答对率{' '}
+                        <strong className="font-mono-num text-[var(--ink-1)]">
+                          {Math.round(quizScoreRatio * 100)}%
+                        </strong>
+                      </span>
+                      <Popconfirm
+                        title="清空刚才的选择重做一次？"
+                        confirmLabel="重做"
+                        tone="warning"
+                        onConfirm={() => {
+                          setQuizSubmitted(false);
+                          setQuizAnswers({});
+                        }}
+                      >
+                        <Button size="sm" variant="outline">
+                          重做一次
+                        </Button>
+                      </Popconfirm>
+                    </>
+                  ) : (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      disabled={!allQuestionsAnswered}
+                      onClick={handleQuizSubmit}
+                    >
+                      核对答案与解析
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* 可选 C：3D 概念闪卡 */}
+            {optionalTab === 'cards' && currentConcept && (
+              <div className="space-y-4 border-t border-[var(--line)] pt-4">
+                <div className="flip-perspective mx-auto max-w-[640px]">
+                  <motion.div
+                    className={cn(
+                      'flip-card-box flip-preserve-3d relative grid cursor-pointer',
+                      isCurrentFlipped && 'is-flipped'
+                    )}
+                    animate={{ rotateY: isCurrentFlipped ? 180 : 0 }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+                    onClick={() =>
+                      setFlippedCards((prev) => ({
+                        ...prev,
+                        [currentConcept.id]: !prev[currentConcept.id],
+                      }))
+                    }
+                  >
+                    <div
+                      className={cn(
+                        'flip-backface-hidden glass-plate col-start-1 row-start-1 flex min-h-[220px] flex-col justify-between rounded-[14px] p-5',
+                        isCurrentFlipped && 'pointer-events-none'
+                      )}
+                    >
+                      <div className="text-[12.5px] font-semibold text-[var(--ink-3)]">
+                        {currentConcept.label}（{cardIdx + 1}/{concepts.length}）
+                      </div>
+                      <div className="my-4 text-center text-[17px] font-medium leading-[1.6] text-[var(--ink-1)]">
+                        {currentConcept.cardPrompt}
+                      </div>
+                      <div className="flex justify-center">
+                        <Button variant="outline" size="sm">
+                          <RotateCw size={13} strokeWidth={1.6} />
+                          <span>翻看大白话解析</span>
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className={cn(
+                        'flip-backface-hidden glass-plate col-start-1 row-start-1 flex min-h-[220px] flex-col justify-between gap-3 rounded-[14px] border-[var(--accent-border)] p-5 [transform:rotateY(180deg)]',
+                        !isCurrentFlipped && 'pointer-events-none'
+                      )}
+                    >
+                      <div className="text-[14.5px] leading-[1.7] text-[var(--ink-1)]">
+                        <RichText text={currentConcept.cardAnswer} />
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 border-t border-[var(--line)] pt-3">
+                        <Button
+                          size="sm"
+                          variant={ratedCards[currentConcept.id] === 'easy' ? 'growth' : 'outline'}
+                          onClick={() => handleRateCard(currentConcept.id, 'easy')}
+                        >
+                          熟悉了
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={ratedCards[currentConcept.id] === 'fuzzy' ? 'warning' : 'outline'}
+                          onClick={() => handleRateCard(currentConcept.id, 'fuzzy')}
+                        >
+                          有点模糊（3天后温习）
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={ratedCards[currentConcept.id] === 'again' ? 'danger' : 'outline'}
+                          onClick={() => handleRateCard(currentConcept.id, 'again')}
+                        >
+                          收进明日温习
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+              </div>
+            )}
+
+            {/* 可选 D：记一条随身生活笔记 */}
+            {optionalTab === 'note' && (
+              <div className="space-y-3 border-t border-[var(--line)] pt-4">
                 <input
                   type="text"
-                  className="v3-input"
-                  value={feynmanText}
-                  onChange={(e) => {
-                    setFeynmanText(e.target.value);
-                    if (actionError) setActionError('');
-                  }}
-                  placeholder="不拽术语，用一句大白话说清核心原理…"
+                  className="v3-input text-[14px]"
+                  value={noteTitle}
+                  onChange={(e) => setNoteTitle(e.target.value)}
+                  placeholder="笔记标题"
                 />
+                <textarea
+                  rows={3}
+                  className="v3-textarea text-[14px]"
+                  value={memoText}
+                  onChange={(e) => setMemoText(e.target.value)}
+                  placeholder="写下这篇最打动你的一条备忘、数字或下次遇到要照做的话…"
+                />
+                <div className="flex justify-end">
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    disabled={!memoText.trim()}
+                    onClick={handleSaveLifeMemo}
+                  >
+                    <BookmarkPlus size={14} strokeWidth={1.7} />
+                    <span>存进生活笔记</span>
+                  </Button>
+                </div>
               </div>
             )}
-
-            {parentTrack?.milestoneDeliverable && (
-              <label className="glass-plate flex cursor-pointer items-center gap-2.5 p-3.5 text-[13.5px] text-[var(--ink-1)]">
-                <input
-                  type="checkbox"
-                  checked={signOffMilestone}
-                  onChange={(e) => setSignOffMilestone(e.target.checked)}
-                  className="h-4 w-4 accent-[var(--accent)]"
-                />
-                <span>
-                  同步确认本阶总产出已达标：
-                  <strong>{parentTrack.milestoneDeliverable.title}</strong>
-                </span>
-              </label>
-            )}
-
-            {actionError && (
-              <AlertBanner
-                tone="danger"
-                title="过关条件未满足"
-                message={actionError}
-                onDismiss={() => setActionError('')}
-                action={
-                  quizScoreRatio < unit.quiz.passRatio ? (
-                    <Button size="sm" variant="outline" onClick={() => goToStep(5)}>
-                      返回第 5 步自测
-                    </Button>
-                  ) : undefined
-                }
-              />
-            )}
-
-            <div className="flex justify-end border-t border-[var(--line)] pt-4">
-              <Button variant="primary" size="lg" onClick={handleCompleteUnit}>
-                <span>提交行动记录并完成过关</span>
-                <ArrowRight size={15} strokeWidth={1.6} />
-              </Button>
-            </div>
           </Card>
-        )}
 
-        {/* 第 7 步：过关完成 */}
-        {step === 7 && (
-          <Card className="space-y-5 border-[var(--growth-border)]">
-            <div className="flex items-start gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-[var(--growth-soft)] text-[var(--growth)]">
-                <CheckCircle2 size={24} strokeWidth={1.7} />
-              </div>
-              <div className="space-y-1.5">
-                <Badge tone="growth">单元过关已留痕</Badge>
-                <h2 className="m-0 text-[22px] font-semibold text-[var(--ink-1)]">
-                  已完成：{unit.title}
-                </h2>
-                <p className="m-0 text-[14.5px] text-[var(--ink-2)]">
-                  自测得分 {Math.round(quizScoreRatio * 100)}% · 行动记录已写入本地 IndexedDB
-                  并同步更新技能星图与 1080P 状态墙
-                </p>
-              </div>
-            </div>
+          {/* 6. 经典溯源与权威出处 + 底部导航 */}
+          <OriginCardsList cards={unit.guide.originCards} />
+          <SourceTimelinessFooter sources={unit.sources} />
 
-            {newlyUnlockedTrack && (
-              <div className="rounded-[12px] border border-[var(--accent-border)] bg-[var(--accent-soft)] px-4 py-3 text-[14px] text-[var(--ink-1)]">
-                新阶段已解锁：<strong>{newlyUnlockedTrack.title}</strong>
-              </div>
-            )}
-
-            <div className="flex flex-wrap items-center gap-3 border-t border-[var(--line)] pt-4">
-              <Button variant="primary" onClick={() => onBackToBranches(unit.branchId)}>
-                返回 {unit.branchId} 路径图
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+            <div className="flex items-center gap-2">
+              <Button variant={isRead ? 'growth' : 'primary'} onClick={handleToggleMarkRead}>
+                <CheckCircle2 size={15} strokeWidth={1.8} />
+                <span>{isRead ? '已读（点击取消）' : '读完了，标为已读'}</span>
               </Button>
               <a
                 href="#/"
-                className="inline-flex min-h-[40px] items-center justify-center rounded-[10px] border border-[var(--line-strong)] bg-[var(--surface-plate)] px-4 text-[14px] font-medium text-[var(--ink-1)] no-underline hover:border-[var(--accent-border)]"
+                className="inline-flex min-h-[38px] items-center rounded-full border border-[var(--line-strong)] bg-[var(--surface-plate)] px-4 text-[13.5px] font-medium text-[var(--ink-1)] no-underline hover:border-[var(--accent-border)]"
               >
-                回到今日主线
+                回到今天
               </a>
             </div>
-          </Card>
-        )}
+
+            {nextSibling && (
+              <Button variant="outline" onClick={() => onOpenUnit(nextSibling.id)}>
+                <span>下一篇：{nextSibling.title.split('：')[0]}</span>
+              </Button>
+            )}
+          </div>
+        </article>
       </main>
     </div>
   );

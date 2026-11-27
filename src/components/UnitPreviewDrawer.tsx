@@ -57,7 +57,7 @@ export function UnitPreviewDrawer({
             {cleared ? (
               <>
                 <Check size={12} strokeWidth={2} />
-                <span>已过关</span>
+                <span>已读</span>
               </>
             ) : (
               <>
@@ -84,7 +84,7 @@ export function UnitPreviewDrawer({
                 onOpenUnit(targetId);
               }}
             >
-              <span>{cleared ? '进入回看学习' : '进入完整 7 步互动学习'}</span>
+              <span>{cleared ? '重温完整手册' : '打开深度实战手册'}</span>
               <ArrowRight size={14} strokeWidth={1.6} />
             </Button>
           </>

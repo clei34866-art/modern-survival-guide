@@ -29,14 +29,24 @@
       "guide": {
         "blocks": [
           {
-            "heading": "NumPy 核心心法：形状 `shape`、广播机制与拒绝手写低效循环",
-            "markdown": "参考 NumPy 官方入门指南，排查一切数值 Bug 的第一步永远是先打印 `arr.shape` 和 `arr.dtype`（看清数组维度与数据类型）。借助**向量化（Vectorization）**与**广播（Broadcasting）**，你可以直接对整列或整张二维矩阵做归一化、求均值 `arr.mean(axis=0)` 与布尔掩码过滤 `arr[arr > 0]`，既消灭下标越界风险，又让数学公式和代码几乎逐字对应。",
-            "keyTakeaway": "先看 `shape` 再运算；凡是对整列数据做同一种数学变换，优先写向量化表达式而非 Python for 循环。"
+            "heading": "为什么科研和日常数据处理要抛弃“手动拖 Excel”改写 Python 脚本？",
+            "markdown": "手动在表格软件里删空行、拉公式、调字体，处理 1 份数据感觉还挺快；可一旦实验补测了第 2 批样品，或者导师让你把纵轴单位统一换算一遍，你就要重头再来两小时——而且**一个月后你根本说不清当时删掉了哪几行异常点**。\n\n用 **NumPy + Pandas** 写一段 20–40 行的脚本，一次解决两个核心问题：\n1. **速度跨越百倍（向量化与广播）**：Python 原生列表里每个元素都是独立包装的对象，`for` 循环每次加法都要反复检查类型；而 NumPy `ndarray` 在内存中把同类型浮点数紧挨着排成一整块连续数组，调用 `arr + 273.15` 时直接交给底层编译好的 C/SIMD 指令批量运算，代码既短又快。\n2. **100% 代码级可复现**：原始 CSV 文件设为只读底稿永不手改，所有清洗规则、异常值过滤和绘图参数全写在 `.py` 脚本里，换新数据 3 秒一键重出全套结果。",
+            "keyTakeaway": "把原始 CSV 当只读底稿、把清洗逻辑写成可重复运行的脚本，是告别重复劳作和保证科研可追溯的起点。"
           },
           {
-            "heading": "Pandas 可复现清洗四步流水线（绝不直接覆盖原始数据）",
-            "markdown": "遵循 Pandas 官方导览与科研数据卫生原则：① **原始 CSV 设为只读底稿**，所有清洗写在 `.py` 脚本中；② 读入后立刻用 `df.info()` 与 `df.isna().sum()` 摸清缺失值和错位字符串列；③ 显式声明异常值过滤条件与分组聚合 `df.groupby(...).agg(...)`；④ 将清洗结果与规范图表自动输出到独立的 `outputs/` 目录，改数据后一条命令 3 秒全盘重跑。",
-            "keyTakeaway": "代码即实验记录本：永远不要手工改动原始测量 CSV 文件。"
+            "heading": "NumPy / Pandas 常见踩坑 vs 规范向量化写法对照表",
+            "markdown": "| 数据处理需求 | 低效或容易踩坑的写法 | 推荐的向量化 / 规范写法 | 关键优势 |\n| --- | --- | --- | --- |\n| **整列单位换算** | `for i in range(len(df)): df['K'][i] = df['C'][i] + 273.15` | `df['temp_k'] = df['temp_c'] + 273.15` | 快几十至上百倍，且避免链式赋值警告 |\n| **按条件筛选过滤** | 写循环把符合条件的行逐条 `append` 到新表 | `clean = df[(df['value'] > 0) & (df['value'].notna())].copy()` | 布尔掩码一行到位，加 `.copy()` 杜绝视图误改 |\n| **多维度分组统计** | 手动筛选排序后分段算 `AVERAGE` | `df.groupby('group')['value'].agg(['count', 'mean', 'std'])` | 一次出样本数、均值和标准差，零漏行 |\n| **排查维度/类型错** | 报错了盲猜改公式 | 第一时间打印 `arr.shape, arr.dtype` 或 `df.info()` | 90% 的广播报错和字符串数字混杂一眼现形 |",
+            "keyTakeaway": "遇到数值报错别盲猜，先打印 `arr.shape`、`arr.dtype` 与 `df.isna().sum()`，真相 5 秒浮出水面。"
+          },
+          {
+            "heading": "直接复制运行：科研 / 记账通用 Pandas 清洗汇总脚本模板",
+            "markdown": "把下面这段基于官方 Pandas / NumPy API 的干净模板存进你的工具文件夹，替换文件名和列名即可一键清洗并导出汇总结果（绝不覆盖原始 CSV）：\n\n```python\nfrom pathlib import Path\nimport numpy as np\nimport pandas as pd\n\n# 1. 只读加载原始数据（绝不覆盖 raw 文件）\nraw_path = Path(\"data/raw_measurements.csv\")\nout_dir = Path(\"outputs\")\nout_dir.mkdir(exist_ok=True)\n\ndf = pd.read_csv(raw_path)\nprint(\"原始维度:\", df.shape)\nprint(\"各列缺失数:\n\", df.isna().sum())\n\n# 2. 强制数值化（把异常字符转为 NaN）并用布尔掩码过滤有效行\ndf[\"temp_c\"] = pd.to_numeric(df[\"temp_c\"], errors=\"coerce\")\ndf[\"strength\"] = pd.to_numeric(df[\"strength\"], errors=\"coerce\")\nclean = df.dropna(subset=[\"temp_c\", \"strength\"]).copy()\nclean = clean[clean[\"strength\"] > 0]\n\n# 3. NumPy 向量化衍生列与分组统计\nclean[\"temp_k\"] = clean[\"temp_c\"].to_numpy() + 273.15\nsummary = (\n    clean.groupby(\"sample_group\", as_index=False)[\"strength\"]\n    .agg(n=\"count\", mean=\"mean\", std=\"std\")\n)\nsummary[\"mean\"] = np.round(summary[\"mean\"], 2)\nsummary[\"std\"] = np.round(summary[\"std\"], 2)\n\n# 4. 输出至独立目录\nclean.to_csv(out_dir / \"cleaned_measurements.csv\", index=False)\nsummary.to_csv(out_dir / \"group_summary.csv\", index=False)\nprint(summary)\n```",
+            "keyTakeaway": "只读加载 → `to_numeric(..., errors=\"coerce\")` 排脏字符 → 向量化计算 → 输出新目录，四步通吃绝大多数表格任务。"
+          },
+          {
+            "heading": "高频报错与边界排查 FAQ",
+            "markdown": "- **为什么 `df['col']` 算均值时突然报错 `TypeError`？**\n  常见原因：CSV 某一格混进了 `\"N/A\"`、`\"-\"` 或单位字母 `\"12.5mm\"`，导致整列被 Pandas 识别成文本 `object`。先用 `pd.to_numeric(df['col'], errors='coerce')` 转数值并查看哪些行变成了 `NaN`。\n- **为什么看到 `SettingWithCopyWarning` 警告？**\n  你在切片视图（如 `sub = df[df['x'] > 0]`）上直接赋值了。切完子表后顺手加 `.copy()`，或统一用 `df.loc[mask, 'col'] = new_val` 即可彻底消除隐患。\n- **中文 CSV 读出来全是乱码怎么办？**\n  Windows Excel 导出的 CSV 常见 `gbk` 或 `utf-8-sig` 编码，在 `pd.read_csv(..., encoding=\"utf-8-sig\")` 或 `\"gbk\"` 切换即可；导出给 Excel 打开时推荐用 `encoding=\"utf-8-sig\"`。",
+            "keyTakeaway": "中文乱码换 `utf-8-sig`/`gbk`，切片后加 `.copy()`，脏数据先 `to_numeric(..., errors=\"coerce\")` 定位。"
           }
         ],
         "visuals": [
@@ -57,7 +67,9 @@
           }
         ]
       },
-      "conceptNodeIds": ["b1.numpy_vectorization"],
+      "conceptNodeIds": [
+        "b1.numpy_vectorization"
+      ],
       "quiz": {
         "mode": "standard_mcq",
         "passRatio": 0.8,
@@ -131,14 +143,24 @@
       "guide": {
         "blocks": [
           {
-            "heading": "看懂欠拟合 vs 过拟合：紧盯训练误差与验证误差的分叉点",
-            "markdown": "结合李宏毅机器学习课程与 Scikit-learn 官方指南，模型复杂度提升时会出现典型分叉：**欠拟合（高偏差）**表现为训练集和验证集误差双高（模型太简单抓不住规律）；**过拟合（高方差）**表现为训练误差一路逼近 0，而验证误差却触底反弹（模型把训练集里的偶然噪音全背下来了）。调参必须以独立的**交叉验证（Cross-Validation）**分数为准，测试集只在最终锁版时开启一次。",
-            "keyTakeaway": "训练集高分不算本事，未见过的验证集稳步下降才证明泛化有效。"
+            "heading": "泛化才是唯一考卷：一眼区分欠拟合、过拟合与数据泄漏",
+            "markdown": "训练机器学习模型时，最让人自我陶醉的假象就是“训练集准确率 99.6%”。训练集只是平时发下来的**带答案练习题**——模型如果参数太多、数据太少，完全可以像死背题号一样把训练样本里的偶然噪音全背下来，一换到未见过的新样本（验证集/测试集）立刻原形毕露，这就是**过拟合（高方差）**。\n\n相反，如果模型连练习题都做不对（训练集和验证集误差双高），说明模型表达能力太弱或关键特征缺失，属于**欠拟合（高偏差）**。\n\n更隐蔽的杀手叫**数据泄漏（Data Leakage）**：测试集的信息不知不觉混进了训练过程（例如先对整张表做归一化、缺失值均值填充或特征选择，再切分训练/测试集），让你看到虚高的离线分数，一部署到真实新样品上效果瞬间腰斩。",
+            "keyTakeaway": "测试集必须像高考密封卷一样在开工第一步就锁进保险柜，只在最终评估时开启一次。"
           },
           {
-            "heading": "防止数据泄漏与选对评估指标",
-            "markdown": "① **严防泄漏**：所有缺失值填充、特征缩放与特征选择必须放进 `Pipeline`，保证每折交叉验证严格只在训练折内拟合参数；② **拒绝被类别不平衡欺骗**：若缺陷样品只占 2%，哪怕模型全猜「正常」准确率也有 98%，此时必须看 **精确率（Precision）、召回率（Recall）、F1 或 PR-AUC** 而非单一 Accuracy。",
-            "keyTakeaway": "先跑通一个最简单的线性/随机森林基线模型，再谈复杂深度网络，对比才有标尺。"
+            "heading": "模型诊断与评估指标选型对照表",
+            "markdown": "| 观察到的现象 | 诊断结论 | 优先排查与改进动作 |\n| --- | --- | --- |\n| 训练误差高 + 验证误差高 | **欠拟合（高偏差）** | 检查特征是否缺失关键物理/业务信息、适当提高模型复杂度、减弱过强正则化 |\n| 训练误差极低 + 验证误差明显偏高 | **过拟合（高方差）** | 收集更多真实样本、精简冗余特征、加大正则化（L2 / 限制树深度）、用交叉验证早停 |\n| 离线验证 98% + 新批次实测暴跌 | **高度疑似数据泄漏或分布漂移** | 检查是否全局做了 `fit_transform`、是否把未来时间戳或同一样品多切片同时分进了训练和测试集 |\n| 缺陷样本仅占 2%，全猜正常准确率 98% | **类别极度不平衡致 Accuracy 失真** | 弃用单一准确率，改看少数类的 **精确率（Precision）、召回率（Recall）、F1 与 PR-AUC** |",
+            "keyTakeaway": "类别不平衡场景看 Accuracy 毫无意义；把同批次/同来源样本分组切分（GroupKFold）才能防时间与分组泄漏。"
+          },
+          {
+            "heading": "直接复制运行：零泄漏 Scikit-learn Pipeline + 5 折交叉验证模板",
+            "markdown": "杜绝预处理泄漏最省心的工程惯例，就是把**缺失值填充、标准化缩放与模型全部打包进 `Pipeline`**，这样每次交叉验证都会严格只在训练折内 `fit` 参数、再原样 `transform` 验证折：\n\n```python\nfrom sklearn.model_selection import train_test_split, StratifiedKFold, cross_validate\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.impute import SimpleImputer\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import classification_report\n\n# 1. 第一步立刻锁定独立测试集（分层抽样保持类别比例）\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, stratify=y, random_state=42\n)\n\n# 2. 用 Pipeline 打包预处理与基线模型，100% 阻断数据泄漏\npipe = make_pipeline(\n    SimpleImputer(strategy=\"median\"),\n    StandardScaler(),\n    LogisticRegression(max_iter=1000, class_weight=\"balanced\"),\n)\n\n# 3. 仅在训练集上跑 5 折交叉验证评估泛化稳定性\ncv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\nscores = cross_validate(\n    pipe, X_train, y_train, cv=cv,\n    scoring=[\"f1_macro\", \"roc_auc\"], return_train_score=True\n)\nprint(\"训练 F1:\", scores[\"train_f1_macro\"].mean().round(3))\nprint(\"验证 F1:\", scores[\"test_f1_macro\"].mean().round(3))\n\n# 4. 全部调优定版后，才在独立测试集上开箱验收一次\npipe.fit(X_train, y_train)\nprint(classification_report(y_test, pipe.predict(X_test)))\n```",
+            "keyTakeaway": "养成肌肉记忆：先 `train_test_split`，再用 `make_pipeline` 包住所有预处理和模型，从源头掐灭数据泄漏。"
+          },
+          {
+            "heading": "工程习惯与边界：为什么总要先跑一个“土味简单基线”？",
+            "markdown": "很多初学者拿到 500 行表格数据，第一件事就去搭复杂深度学习网络调三天参。更靠谱的工程纪律是：\n1. **10 分钟先跑通最简单基线**（线性/逻辑回归或默认参数随机森林/梯度提升树），拿到一个真实可复现的验证集基准分；\n2. **表格类小样本（几百到几万行）**：树模型（如随机森林、LightGBM/XGBoost）与扎实的特征工程通常远稳于强上深度神经网络；\n3. **做误差分析（Error Analysis）**：把验证集里预测最离谱的 10 个样本打印出来亲眼看一眼——往往你会发现是原始数据标错了、单位没统一，修好数据带来的提升远超换十个新模型。",
+            "keyTakeaway": "先跑简单基线定标尺，再看错得最离谱的 10 个样本查数据问题，往往比盲目换复杂模型涨分快十倍。"
           }
         ],
         "visuals": [
@@ -149,15 +171,35 @@
               "template": "curve_compare",
               "data": {
                 "series": [
-                  { "label": "验证集表现（先升后降，防过拟合拐点）", "points": [48, 74, 86, 79, 64] },
-                  { "label": "训练集表现（一路虚高至死记噪音）", "points": [52, 80, 92, 97, 99] }
+                  {
+                    "label": "验证集表现（先升后降，防过拟合拐点）",
+                    "points": [
+                      48,
+                      74,
+                      86,
+                      79,
+                      64
+                    ]
+                  },
+                  {
+                    "label": "训练集表现（一路虚高至死记噪音）",
+                    "points": [
+                      52,
+                      80,
+                      92,
+                      97,
+                      99
+                    ]
+                  }
                 ]
               }
             }
           }
         ]
       },
-      "conceptNodeIds": ["b1.ml_leakage_overfit"],
+      "conceptNodeIds": [
+        "b1.ml_leakage_overfit"
+      ],
       "quiz": {
         "mode": "standard_mcq",
         "passRatio": 0.8,
@@ -231,14 +273,24 @@
       "guide": {
         "blocks": [
           {
-            "heading": "Self-Attention 直觉：每个词都在用 Query 去全句查谁最相关",
-            "markdown": "在经典论文《Attention Is All You Need》(Vaswani et al., 2017) 中，Transformer 抛弃了逐字串行推进的循环网络，让句子里的每个 token 同时生成三个向量：**Query（我在找什么信息）**、**Key（我身上有什么特征标签）**与**Value（我携带的实际语义内容）**。通过计算 Q 与所有词 K 的相似度权重，模型能一步把相隔几十个词的代词和主语直接关联起来，这也是大模型高度依赖「上下文里给了什么锚点」的底层物理原因。",
-            "keyTakeaway": "自注意力本质上是「按相关性动态加权读取上下文」——上下文里垃圾越多，注意力权重被稀释得越厉害。"
+            "heading": "用大白话看懂 Self-Attention：每个词都在全句里“按相关性查资料”",
+            "markdown": "在 2017 年里程碑论文《Attention Is All You Need》之前，处理文本主要靠 RNN 像接力棒一样从左往右一个词一个词往后传，句子一长前面信息就耗散了，而且没法并行训练。\n\nTransformer 的核心突破是**自注意力机制（Self-Attention）**：它让句子里的每个词（token）同时生成三个向量，你可以直接用图书馆找书来类比：\n- **Query（Q，查询）**：“我现在想找什么信息？”（比如句子末尾的代词“它”在找前面指代的是哪个名词）；\n- **Key（K，索引标签）**：全句每个词亮出自己的特征标签；\n- **Value（V，实际内容）**：每个词真正携带的语义信息。\n\n模型计算当前词的 Q 与全句所有词 K 的点积相似度（经过 Softmax 变成总和为 1 的注意力权重），再按权重把所有词的 V 加权汇总。**这正是为什么上下文里无关废话越少、结构锚点越清晰，大模型回答就越准的底层物理原因**。",
+            "keyTakeaway": "自注意力让模型能跨长距离直接关联语义，但也意味着上下文里的无关噪音会实打实稀释注意力权重。"
           },
           {
-            "heading": "RAG 四步闭环与落地避坑：切块边界 + 混合检索 + 引文约束",
-            "markdown": "一个好用的个人知识库 RAG 系统核心就四步：① **语义切块（Chunking）**——按章节段落切分并保留少量重叠，切忌把表格或公式从中间硬腰斩；② **混合检索（关键词 BM25 + 向量语义检索）**——防止纯向量检索漏掉精确专有名词或化学式；③ **重排精选 Top-K 原文片段**送入提示词 `<documents>`；④ 联动 L1 的 **Quote-First 引文核查约束**，找不到片段直接回答「知识库未收录」。",
-            "keyTakeaway": "RAG 回答不准，80% 的根因不是大模型不够聪明，而是切块太碎或检索根本没把正确段落捞出来。"
+            "heading": "RAG（检索增强）vs 微调（Fine-tuning）vs 长上下文选型对照表",
+            "markdown": "想让大模型读懂你自己的资料库，千万别盲目一上来就去微调模型。先看清三种路线的真实分工：\n\n| 工程路线 | 最擅长解决什么问题 | 典型短板与边界 | 个人/团队首选场景 |\n| --- | --- | --- | --- |\n| **直接长上下文** | 临时精读 1–5 篇总计几万字内的文档 | 文档一多 token 费用飙升，且超长中段容易“注意力稀释” | 单篇论文精读、审单份合同、读少量代码文件 |\n| **RAG（检索增强生成）** | **动态更新的外部知识库 + 强制每句标出处溯源** | 依赖切块质量与检索召回率，捞错段落就答错 | **个人/实验室几百篇 PDF 文献库、规章制度、笔记库问答** |\n| **微调（Fine-tuning / LoRA）** | 固化特定说话风格、极严格输出格式或领域专有推理习惯 | **不擅长当精确数据库**，知识一更新就过时且容易残留幻觉 | 需要极低延迟、固定格式转换或海量领域样本的行为对齐 |",
+            "keyTakeaway": "要记住随时变化的事实并逐句标出处，选 RAG；要改变模型的输出风格和习惯，才考虑微调。"
+          },
+          {
+            "heading": "直接复制使用：个人文献库 RAG 切块与验收设计蓝图",
+            "markdown": "RAG 问答不准，80% 的根因不在大模型，而在**切块把表格/公式腰斩了**或**纯向量检索漏掉了精确专有名词**。搭个人知识库前，先按这份结构规范好切块与检索验收集：\n\n```text\n【个人知识库 RAG 高准确率设计清单】\n1. 语义切块规范（Chunking）：\n   - 按标题/自然段边界切分，单块约 400–600 字，块间保留 10%–15% 重叠（Overlap）；\n   - 表格与公式尽量整块保留，不从中间硬切；\n   - 每块强制附带元数据：{ file_name, section_title, page_num, updated_at }。\n\n2. 混合检索（Hybrid Search）：\n   - 关键词精确检索（BM25，专抓合金牌号/报错码/人名如 Ti-6Al-4V）+ 向量语义检索（专抓同义表达）；\n   - 融合后用 Reranker 精排，仅把最相关的 Top 5 片段放进 <documents> 顶部。\n\n3. 上线前 5 题黄金验收集（自己提前备好）：\n   - 2 道精确术语/数值查证题（检验 BM25 是否召回准确段落）；\n   - 2 道跨段落综合归纳题（检验 Top-K 覆盖是否完整）；\n   - 1 道库里根本没有的负样本题（检验系统是否老实答「知识库未收录」而非瞎编）。\n```",
+            "keyTakeaway": "混合检索（BM25 + 向量）+ 元数据页码溯源 + 1 道库外负样本验真，能直接把个人 RAG 实用度拉高一个量级。"
+          },
+          {
+            "heading": "排错 FAQ：RAG 总是答非所问时，按哪三步定位？",
+            "markdown": "1. **先查“召回”别先骂模型**：把检索器捞出来的 Top-5 原文片段打印出来亲眼看一眼——如果正确答案根本不在那 5 段里，换再强的顶级大模型也救不回来。\n2. **问句太短太模糊时加一步“查询改写（Query Rewriting）”**：用户随手问“那个参数怎么调？”，检索器完全不知道“那个”是谁；先用轻量调用把对话历史补全成完整检索句再搜。\n3. **警惕多版本文档打架**：知识库里同时留着 `2023旧规定.pdf` 和 `2026新规定.pdf` 时，检索很可能把旧条款捞出来——务必及时清理过期文档或在元数据里按年份优先过滤。",
+            "keyTakeaway": "排查 RAG 永远遵循“先看捞出来的原文对不对，再查提示词约束，最后才考虑换模型”。"
           }
         ],
         "visuals": [
@@ -267,7 +319,9 @@
           }
         ]
       },
-      "conceptNodeIds": ["b1.transformer_rag_loop"],
+      "conceptNodeIds": [
+        "b1.transformer_rag_loop"
+      ],
       "quiz": {
         "mode": "standard_mcq",
         "passRatio": 0.8,
@@ -336,14 +390,24 @@
       "guide": {
         "blocks": [
           {
-            "heading": "经典三遍精读法（Keshav 框架 × AI 辅助核查）",
-            "markdown": "① **第一遍（10 分钟鸟瞰筛滤）**：只看标题、摘要、主图与结论局限，用一句话概括其核心贡献与边界；② **第二遍（40 分钟拆解骨架）**：精读方法论与消融实验（Ablation Study），看清**到底是哪个模块带来了真实提升、基线对比是否公平**，可让 AI 用 Quote-First 模式协助解释陌生符号，但图表数字必须亲眼核对；③ **第三遍（仅限 TOP 10% 核心论文）**：拉取开源代码在最小样本上亲手跑通复现，并尝试改一个假设检验其鲁棒性。",
-            "keyTakeaway": "读消融实验与 Limitations 往往比读炫酷的 Introduction 学到更多真东西。"
+            "heading": "科研文献看不完怎么办？用 Keshav 三遍精读法 10 分钟筛掉 80% 灌水文",
+            "markdown": "每周 arXiv 新论文成百上千，如果每下载一篇就从第 1 页第 1 个单词逐字查字典读到末尾，不仅精疲力竭，还很容易迷失在细枝末节里，错过真正能启发自己课题的好工作。\n\n计算机科学家 S. Keshav 总结的经典**三遍阅读法（Three-Pass Approach）**，能把读论文从“线性苦读”变成“精准漏斗”：\n- **第一遍（5–10 分钟鸟瞰筛选）**：只读**标题、摘要、引言最后一段（贡献列表）、各级小标题、核心框架图与主结果表、结论与局限性（Limitations）**。读完立刻做决定：这篇是直接归档跳过，还是真值得投入时间？\n- **第二遍（40–60 分钟拆解骨架）**：暂时跳过繁琐定理证明，重点精读**方法流程、对比基线是否公平、以及消融实验（Ablation Study）**，并在空白处写下自己的质疑。\n- **第三遍（仅限 TOP 10% 核心必读论文）**：拉下开源代码在最小数据集上亲手跑通复现，并在脑中尝试“如果由我重新设计这套实验，哪一步假设最脆弱？”",
+            "keyTakeaway": "80% 的论文只需花 10 分钟读完第一遍留一张卡片即可放过，把最宝贵的整块精力全砸在真正硬核的 TOP 10% 上。"
           },
           {
-            "heading": "交叉课题迁移四问：别拿大炮打蚊子",
-            "markdown": "评估一篇 AI 前沿论文能否迁移到自己的材料科学或心理实验时，先过四问：① **数据量级匹配吗？**（百级小样本优先物理约束特征/树模型，而非盲目上大模型）；② **评价指标和物理/现实约束一致吗？**；③ **有无公开可复现代码与数据脚本？**；④ **相比传统基线，提升幅度是否大于实验测量误差本身？**",
-            "keyTakeaway": "交叉科研的核心竞争力不是追最热的模型名字，而是把真实领域问题抽象干净、用最稳的工具解决。"
+            "heading": "交叉论文“真突破 vs 包装灌水”鉴别对照表",
+            "markdown": "读 AI × 材料、AI × 生物/心理等跨学科论文时，华丽的模型架构图很容易唬人。紧盯下面 4 处细节，10 分钟看穿含金量：\n\n| 审读维度 | 高含金量扎实论文特征 | 需要打问号的过度包装信号 |\n| --- | --- | --- |\n| **基线对比（Baselines）** | 与经典传统方法（如树模型/物理方程）及近期强基线在**同数据、同调参预算**下公平比拼 | 只拿自己调参一周的新网络去欺负默认参数的旧模型，或避开最强的传统基线 |\n| **消融实验（Ablation）** | 逐个拆掉所提模块，清晰展示**究竟是哪一步带来了真实增益** | 堆了四五个炫酷模块却不做消融，看不出提升是不是全靠换了更强骨干网络 |\n| **数据与误差边界** | 报告多次随机种子均值 ± 标准差；如实列出小样本/外推失效场景 | 只挑最好看的一次单次结果，提升幅度甚至小于实验仪器本身的测量误差 |\n| **可复现性** | 公开清晰代码仓库、数据划分方式与超参数配置 | 关键数据预处理细节语焉不详、宣称“代码即将开源”却长期空仓库 |",
+            "keyTakeaway": "读论文最见功力的不是背引言宏大叙事，而是先翻主图、消融实验表和 Limitations（局限性）。"
+          },
+          {
+            "heading": "直接复制使用：10 分钟论文精读卡片 + 交叉课题迁移评估模板",
+            "markdown": "每读完一篇值得关注的论文，在你的本地笔记库里只填完下面这张 150–250 字的精读卡片即可收工，写综述或开题报告时直接拼装：\n\n```text\n# [年份] 论文简称（一作/团队）\n- 原文链接 / DOI：\n- 一句话问题与贡献：针对「______痛点」，提出了「______方法」，在「______数据」上相比最强基线提升了 ____。\n- 最关键 1 张图 / 消融数字：__________________\n- 明显局限与前提假设（Limitations）：需要 ____ 量级数据 / 仅在 ____ 条件下有效。\n- 迁移到我课题的四问判定：\n  1. 数据量级匹配吗？[ ] 是  [ ] 否\n  2. 相比我现有基线增益大于测量误差吗？[ ] 是  [ ] 否\n  3. 有无开源可跑代码？[ ] 有  [ ] 无\n  → 决策：[ ] 止步第一遍归档  [ ] 进入第二遍精读  [ ] 拉代码复现\n```",
+            "keyTakeaway": "别把整篇 PDF 翻译成万字流水账；用一张带局限性与迁移判定的短卡片，才能把读过的论文变成自己的科研弹药。"
+          },
+          {
+            "heading": "配合 AI 辅助读论文的正确姿势（绝不跳过亲眼看图）",
+            "markdown": "AI 非常适合帮你**拆解陌生数学符号、翻译长难句、以及按上面卡片模板做初稿抽取**，但有两条硬边界绝不能外包给 AI：\n1. **核心结果图、坐标轴单位与误差棒必须自己亲眼核对**：很多模型在转述 PDF 里的双栏表格和子图时极易串行。\n2. **“这篇值不值得迁移到我自己的实验里”必须由你结合真实实验条件拍板**：小样本（几十到几百组）湿实验往往物理先验与干净特征远胜于盲目套用复杂大模型。",
+            "keyTakeaway": "AI 替你省掉查字典和整理初稿的体力活，自己把时间集中在看图、看消融和判断迁移价值上。"
           }
         ],
         "visuals": [
@@ -364,7 +428,9 @@
           }
         ]
       },
-      "conceptNodeIds": ["b1.paper_three_pass_eval"],
+      "conceptNodeIds": [
+        "b1.paper_three_pass_eval"
+      ],
       "quiz": {
         "mode": "standard_mcq",
         "passRatio": 0.8,

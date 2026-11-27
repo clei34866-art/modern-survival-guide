@@ -357,7 +357,11 @@ export function LifeToolsSandbox({ mode = 'all', compact = false }: LifeToolsSan
 
       {/* 2. 生活费 / 工资三桶分账器 */}
       {currentTool === 'budget' && (
-        <div className="glass-plate space-y-4 p-4 sm:p-5" data-testid="sandbox-budget">
+        <div
+          className="glass-plate space-y-4 p-4 sm:p-5"
+          data-testid="sandbox-budget"
+          data-sandbox="budget-slider"
+        >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-[14.5px] font-semibold text-[var(--ink-1)]">
               生活费 / 工资三桶分账器
@@ -387,7 +391,10 @@ export function LifeToolsSandbox({ mode = 'all', compact = false }: LifeToolsSan
           <label className="block space-y-1.5 text-[13px] text-[var(--ink-2)]">
             <div className="flex justify-between">
               <span>每月到手生活费 / 工资</span>
-              <strong className="font-mono-num text-[15px] text-[var(--ink-1)]">
+              <strong
+                className="font-mono-num text-[15px] text-[var(--ink-1)]"
+                data-budget-income
+              >
                 ¥{monthlyIncome.toLocaleString('zh-CN')}
               </strong>
             </div>
